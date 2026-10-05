@@ -1,0 +1,34 @@
+{
+  "name": "frete-web-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run --maxWorkers=2",
+    "test:browser:payers": "node scripts/check-registrations-browser.mjs",
+    "test:browser:registrations": "node scripts/check-registrations-browser.mjs",
+    "test:browser:closures": "node scripts/check-closures-browser.mjs",
+    "test:browser:operations": "node scripts/check-operations-browser.mjs",
+    "test:browser:navigation": "node scripts/check-navigation-browser.mjs",
+    "test:browser": "npm run test:browser:navigation && npm run test:browser:payers && npm run test:browser:closures && npm run test:browser:operations"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^28.0.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

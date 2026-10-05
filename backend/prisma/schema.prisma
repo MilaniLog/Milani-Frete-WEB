@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model frete_tipos_nota {
+  id Int @id @default(autoincrement())
+  unit Int
+  codigo String @db.VarChar(10)
+  nome String @db.VarChar(120)
+  tipo String @db.VarChar(20)
+  ativo Boolean @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+  @@unique([unit, codigo])
+}
+
+model frete_notas {
+  id Int @id @default(autoincrement())
+  unit Int
+  numero String @db.VarChar(30)
+  data_nota DateTime @db.Date
+  emitido_em DateTime @db.Date
+  valor Decimal @db.Decimal(15, 2)
+  saldo Decimal @db.Decimal(15, 2)
+  tipo_id Int
+  codigo_tipo String @db.VarChar(10)
+  nome_tipo String @db.VarChar(120)
+  tipo String @db.VarChar(20)
+  responsavel_cod Int
+  departamento String? @db.VarChar(30)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+  cupons frete_cupons[]
+  @@unique([unit, numero])
+  @@unique([id, unit])
+}
+
+model frete_cupons {
+  id Int @id @default(autoincrement())
+  unit Int
+  nota_id Int
+  nota frete_notas @relation(fields: [nota_id, unit], references: [id, unit], onDelete: Restrict)
+  placa String @db.VarChar(20)
+  motorista String @db.VarChar(100)
+  tipo_veiculo String @db.VarChar(100)
+  semana String @db.Char(4)
+  data_cobranca DateTime @db.Date
+  valor Decimal @db.Decimal(15, 2)
+  descricao String? @db.VarChar(255)
+  pago Boolean @default(false)
+  fechamento_id Int?
+  responsavel_cod Int
+  departamento String? @db.VarChar(30)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+  @@index([unit, semana, placa])
+  @@index([nota_id, unit])
+  @@index([fechamento_id])
+}
+
+model frete_carregamento_manifestos {
+  id           Int      @id @default(autoincrement())
+  unit         Int
+  origem       String   @default("SP") @db.VarChar(10)
+  semana       DateTime @db.Date
+  manifestos   String   @db.VarChar(20)
+  hora         String   @db.VarChar(10)
+  placa        String   @db.VarChar(20)
+  motorista    String   @db.VarChar(100)
+  tipo_veiculo String   @db.VarChar(100)
+
+  perc_carreg Decimal @default(0) @db.Decimal(12, 8)
+  perc_final  Decimal @default(0) @db.Decimal(12, 8)
+
+  destino String @db.Text
+
+  m3     Decimal @default(0) @db.Decimal(12, 3)
+  kg     Decimal @default(0) @db.Decimal(14, 3)
+  qtd_nf Int
+
+  cod_777_00 Decimal @default(0) @db.Decimal(15, 4)
+  cod_888_00 Decimal @default(0) @db.Decimal(15, 4)
+  cod_999_00 Decimal @default(0) @db.Decimal(15, 4)
+
+  cod_777_15  Decimal @default(0) @db.Decimal(15, 4)
+  cod_888_25  Decimal @default(0) @db.Decimal(15, 4)
+  cod_999_100 Decimal @default(0) @db.Decimal(15, 4)
+
+  frete_total   Decimal @default(0) @db.Decimal(15, 4)
+  frete_calc    Decimal @default(0) @db.Decimal(15, 4)
+  frete_veiculo Decimal @default(0) @db.Decimal(15, 4)
+
+  cods_desp         String?  @db.VarChar(10)
+  vlr_desp          Decimal? @db.Decimal(15, 4)
+  descricao_despesa String?  @db.VarChar(50)
+
+  frt_tl_vlc  Decimal @default(0) @db.Decimal(15, 4)
+  carreg_perc Decimal @default(0) @db.Decimal(12, 8)
+
+  nao_777 Decimal @default(0) @db.Decimal(15, 4)
+  nao_888 Decimal @default(0) @db.Decimal(15, 4)
+  nao_999 Decimal @default(0) @db.Decimal(15, 4)
+
+  nao_777_calc Decimal @default(0) @db.Decimal(15, 4)
+  nao_888_calc Decimal @default(0) @db.Decimal(15, 4)
+  nao_999_calc Decimal @default(0) @db.Decimal(15, 4)
+
+  subtotal Decimal @default(0) @db.Decimal(15, 4)
+
+  outros        Decimal @default(0) @db.Decimal(15, 4)
+  diaria        Decimal @default(0) @db.Decimal(15, 4)
+  tde           Decimal @default(0) @db.Decimal(15, 4)
+  escada        Decimal @default(0) @db.Decimal(15, 4)
+  paletização Decimal @default(0) @db.Decimal(15, 4)
+
+  sub_lc_ex Decimal @default(0) @db.Decimal(15, 4)
+  sub_frete Decimal @default(0) @db.Decimal(15, 4)
+  sub_total Decimal @default(0) @db.Decimal(15, 4)
+
+  final_perc Decimal @default(0) @db.Decimal(12, 8)
+
+  num_fechamento Int?
+  fechamento_id  Int?
+
+  carga_mista Boolean @default(false)
+
+  usuario String @db.VarChar(10)
+
+  estadia Decimal @default(0) @db.Decimal(15, 4)
+
+  data_hora DateTime @default(now())
+
+  percentual_antigo Decimal @default(0) @db.Decimal(12, 8)
+
+  descarga Decimal @default(0) @db.Decimal(15, 4)
+
+  observacao String? @db.VarChar(255)
+
+  romaneio String? @db.VarChar(50)
+  ciot     String? @db.VarChar(50)
+
+  ctrb_numero       String? @db.VarChar(30)
+  ctrb_total        Decimal @default(0) @db.Decimal(15, 2)
+  ctrb_adiantamento Decimal @default(0) @db.Decimal(15, 2)
+
+  sest_senat  Decimal @default(0) @db.Decimal(15, 2)
+  irrf        Decimal @default(0) @db.Decimal(15, 2)
+  prev_social Decimal @default(0) @db.Decimal(15, 2)
+  inss        Decimal @default(0) @db.Decimal(15, 2)
+
+  total_retencoes Decimal @default(0) @db.Decimal(15, 2)
+  valor_liquido   Decimal @default(0) @db.Decimal(15, 2)
+
+  vale_pedagio Decimal @default(0) @db.Decimal(15, 2)
+
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@index([unit], map: "fk_manifesto_unit")
+  @@index([manifestos], map: "idx_frete_manifesto_numero")
+  @@index([placa], map: "idx_frete_manifesto_placa")
+  @@index([semana], map: "idx_frete_manifesto_data")
+  @@index([fechamento_id], map: "idx_frete_manifesto_fechamento")
+}
+
+model employees {
+  id       Int     @id @default(autoincrement())
+  cod      Int     @unique(map: "Cod")
+  Name     String  @db.VarChar(50)
+  password String? @db.VarChar(255)
+  unit     Int
+  isAdmin  Boolean @default(false)
+
+  @@index([unit], map: "unit")
+}
+
+model user_permissions {
+  cod_user        Int
+  is_admin        Boolean
+  id              Int     @id @default(autoincrement())
+  unit            Int
+  stock_service   Boolean @default(false)
+  ticket_service  Boolean @default(false)
+  freight_service Boolean @default(false)
+  freight_closure Boolean @default(false)
+
+  @@index([cod_user], map: "cod_user")
+  @@index([unit], map: "unit")
+}
+
+model vehicle {
+  driver_cpf           String? @db.VarChar(11)
+  empresa_sigla        String?  @db.VarChar(10)
+  owner_name           String?  @db.VarChar(50)
+  plate                String   @id @db.VarChar(20)
+  codVehicleType       Int
+  owner                String   @db.VarChar(14)
+  first_payer          String?  @db.VarChar(30)
+  second_payer         String?  @db.VarChar(30)
+  second_payer_percent Decimal  @default(0) @db.Decimal(10, 6)
+  canceled             Boolean  @default(false)
+  user                 Int
+  created_at           DateTime @default(now())
+  updated_at           DateTime @default(now()) @updatedAt
+}
+
+model vehicleType {
+  codVehicleType Int      @id
+  typeName       String   @db.VarChar(50)
+  max_m3         Decimal  @default(0) @db.Decimal(12, 3)
+  max_weight     Decimal  @default(0) @db.Decimal(14, 3)
+  freight_value  Decimal  @default(0) @db.Decimal(15, 2)
+  user           Int
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now()) @updatedAt
+}
+
+model driver {
+  // Coluna legada sem uso no site. Empresa pertence somente ao veículo.
+  empresa_sigla String? @db.VarChar(10)
+  cpf        BigInt   @id @db.BigInt
+  name       String   @db.VarChar(50)
+  user       Int
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model frete_empresas {
+  sigla String @id @db.VarChar(10)
+  matriz String @db.VarChar(20)
+  nome String @db.VarChar(100)
+  cor String @db.VarChar(20)
+}
+
+// Existing legacy owner table, distinct from the PlanCompanies catalog.
+model companies {
+  cnpj String @id @db.VarChar(14)
+  fantasy_name String @unique @db.VarChar(50)
+}
+
+model frete_destinos {
+  id         Int      @id @default(autoincrement())
+  unit       Int
+  nome       String   @db.VarChar(150)
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  @@index([unit])
+}
+
+model frete_regras_calculo {
+  id           Int      @id @default(autoincrement())
+  origem       String   @db.VarChar(10)
+  codigo_frete Int
+  aliquota     Decimal  @default(0) @db.Decimal(10, 6)
+  percentual   Decimal  @default(0) @db.Decimal(10, 6)
+  ativo        Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+
+  @@index([origem])
+}
+
+model frete_despesas {
+  id         Int      @id @default(autoincrement())
+  unit       Int
+  codigo     String   @db.VarChar(10)
+  nome       String   @db.VarChar(120)
+  tipo       String   @db.VarChar(20)
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  updated_at DateTime @default(now()) @db.DateTime(0)
+
+  @@unique([unit, codigo], map: "uk_frete_despesa_unit_codigo")
+  @@index([tipo], map: "idx_frete_despesa_tipo")
+}
+
+model frete_lancamentos {
+  id                            Int                            @id @default(autoincrement())
+  numero                        Int
+  unit                          Int
+  semana                        String?                        @db.Char(4)
+  placa                         String?                        @db.VarChar(20)
+  motorista                     String?                        @db.VarChar(100)
+  tipo_veiculo                  String?                        @db.VarChar(100)
+  destino                       String?                        @db.VarChar(150)
+  codigo_despesa                String                         @db.VarChar(10)
+  nome_despesa                  String                         @db.VarChar(120)
+  tipo_despesa                  String                         @db.VarChar(20)
+  data_lancamento               DateTime                       @db.Date
+  valor                         Decimal                        @default(0.00) @db.Decimal(15, 2)
+  descricao                     String?                        @db.VarChar(255)
+  pago                          Boolean                        @default(false)
+  manifesto_id                  Int?
+  fechamento_id                 Int?
+  responsavel_cod               Int?
+  departamento                  String?                        @db.VarChar(30)
+  emitido_em                    DateTime?                      @db.DateTime(0)
+  created_at                    DateTime                       @default(now()) @db.DateTime(0)
+  updated_at                    DateTime                       @default(now()) @db.DateTime(0)
+
+  @@unique([unit, numero], map: "uk_frete_lancamento_numero")
+  @@index([fechamento_id], map: "idx_frete_lancamento_fechamento")
+  @@index([manifesto_id], map: "idx_frete_lancamento_manifesto")
+  @@index([placa], map: "idx_frete_lancamento_placa")
+  @@index([responsavel_cod], map: "idx_frete_lancamento_responsavel")
+  @@index([semana], map: "idx_frete_lancamento_semana")
+  @@index([tipo_despesa], map: "idx_frete_lancamento_tipo")
+}
+
+model frete_semanas {
+  codigo      String   @id @db.Char(4)
+  data_inicio DateTime @db.Date
+  data_fim    DateTime @db.Date
+  created_at  DateTime @default(now()) @db.DateTime(0)
+
+  @@index([data_inicio, data_fim], map: "idx_frete_semana_periodo")
+}
+
+model frete_fechamentos {
+  historico                     Json?
+  id                            Int                             @id @default(autoincrement())
+  numero                        Int
+  unit                          Int
+  semana                        String?                         @db.Char(4)
+  periodo_inicio                DateTime?                       @db.Date
+  periodo_fim                   DateTime?                       @db.Date
+  placa                         String                          @db.VarChar(20)
+  total_bruto                   Decimal                         @default(0.00) @db.Decimal(15, 2)
+  total_ctrb                    Decimal                         @default(0.00) @db.Decimal(15, 2)
+  total_liquido                 Decimal                         @default(0.00) @db.Decimal(15, 2)
+  status                        String                          @default("ABERTO") @db.VarChar(20)
+}

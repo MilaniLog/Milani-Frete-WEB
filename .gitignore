@@ -1,0 +1,17 @@
+# Ferramentas locais usadas na análise do VBA
+/.audit-tools/
+/artifacts/
+/backend/.git-interno-backup/
+/backend/.agents/
+/backend/.claude/
+/backend/.windsurf/
+
+# Dependências e builds
+node_modules/
+dist/
+coverage/
+
+# Configurações locais e segredos
+.env
+.env.*
+!.env.example

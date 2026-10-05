@@ -1,0 +1,824 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model branches {
+  unit                          Int                             @id @unique(map: "unit")
+  branch                        String                          @db.VarChar(20)
+  employees                     employees[]
+  finalized_tickets             finalized_tickets[]
+  frete_carregamento_manifestos frete_carregamento_manifestos[]
+  frete_despesas                frete_despesas[]
+  frete_destinos                frete_destinos[]
+  frete_lancamentos             frete_lancamentos[]
+  invoices                      invoices[]
+  stock_material                stock_material[]
+  tickets                       tickets[]
+  tickets_old                   tickets_old[]
+  user_permissions              user_permissions[]
+}
+
+model companies {
+  cnpj                                                         String              @id @db.VarChar(14)
+  fantasy_name                                                 String              @unique(map: "fantasy_name") @db.VarChar(50)
+  phone                                                        String?             @db.VarChar(13)
+  email                                                        String?             @db.VarChar(50)
+  postal_code                                                  Int?
+  street                                                       String?             @db.VarChar(50)
+  num_adress                                                   String?             @db.VarChar(20)
+  neighborhood                                                 String?             @db.VarChar(50)
+  city                                                         String?             @db.VarChar(50)
+  state                                                        String?             @db.VarChar(3)
+  auto_generate_ticket                                         Boolean             @default(false)
+  finalized_tickets_finalized_tickets_freight_payerTocompanies finalized_tickets[] @relation("finalized_tickets_freight_payerTocompanies")
+  finalized_tickets_finalized_tickets_recipientTocompanies     finalized_tickets[] @relation("finalized_tickets_recipientTocompanies")
+  finalized_tickets_finalized_tickets_senderTocompanies        finalized_tickets[] @relation("finalized_tickets_senderTocompanies")
+  material_output_material_output_recipient_cnpjTocompanies    material_output[]   @relation("material_output_recipient_cnpjTocompanies")
+  material_output_material_output_sender_cnpjTocompanies       material_output[]   @relation("material_output_sender_cnpjTocompanies")
+  purchase_material                                            purchase_material[]
+  ticket_owner                                                 ticket_owner[]
+  tickets_tickets_freight_payerTocompanies                     tickets[]           @relation("tickets_freight_payerTocompanies")
+  tickets_tickets_recipientTocompanies                         tickets[]           @relation("tickets_recipientTocompanies")
+  tickets_tickets_senderTocompanies                            tickets[]           @relation("tickets_senderTocompanies")
+  vehicle                                                      vehicle[]
+}
+
+model driver {
+  cpf             BigInt            @id
+  name            String            @db.VarChar(50)
+  user            Int
+  created_at      DateTime          @default(now()) @db.DateTime(0)
+  updated_at      DateTime          @default(now()) @db.DateTime(0)
+  material_output material_output[]
+  return_material return_material[]
+
+  @@index([user], map: "user")
+}
+
+model employees {
+  id                                                      Int                      @id @default(autoincrement())
+  cod                                                     Int                      @unique(map: "Cod")
+  Name                                                    String                   @db.VarChar(50)
+  password                                                String?                  @db.VarChar(255)
+  unit                                                    Int
+  isAdmin                                                 Boolean                  @default(false)
+  branches                                                branches                 @relation(fields: [unit], references: [unit], map: "employees_ibfk_1")
+  finalized_tickets_finalized_tickets_codToemployees      finalized_tickets[]      @relation("finalized_tickets_codToemployees")
+  finalized_tickets_finalized_tickets_conf_codToemployees finalized_tickets[]      @relation("finalized_tickets_conf_codToemployees")
+  frete_lancamentos                                       frete_lancamentos[]
+  material_breakage                                       material_breakage[]
+  material_output                                         material_output[]
+  material_repair                                         material_repair[]
+  outsource_input                                         outsource_input[]
+  pallet_ajustes                                          pallet_ajustes[]
+  pallets                                                 pallets[]
+  purchase_material                                       purchase_material[]
+  reason_material_breack                                  reason_material_breack[]
+  return_material                                         return_material[]
+  scans                                                   scans[]
+  tickets_old_tickets_old_codToemployees                  tickets_old[]            @relation("tickets_old_codToemployees")
+  tickets_old_tickets_old_conf_codToemployees             tickets_old[]            @relation("tickets_old_conf_codToemployees")
+  type_material                                           type_material[]
+  user_permissions                                        user_permissions[]
+  vehicle                                                 vehicle[]
+  vehicleType                                             vehicleType[]
+
+  @@index([unit], map: "unit")
+}
+
+model finalized_tickets {
+  id                                                              Int          @id @default(autoincrement())
+  cod                                                             Int
+  conf_cod                                                        Int?
+  dt_manifest                                                     DateTime?    @db.Date
+  unit                                                            Int?
+  manifest                                                        String?      @db.VarChar(20)
+  responsible                                                     String       @db.VarChar(50)
+  sender                                                          String       @db.VarChar(14)
+  recipient                                                       String       @db.VarChar(14)
+  freight_payer                                                   String       @db.VarChar(14)
+  type                                                            String?      @db.VarChar(20)
+  dt_ctrc                                                         DateTime?    @db.Date
+  ctrc                                                            String?      @db.VarChar(20)
+  cte                                                             String?      @db.VarChar(20)
+  ticket                                                          String?      @db.VarChar(100)
+  freight                                                         String?      @db.VarChar(50)
+  delivery_date                                                   DateTime?    @db.Date
+  request_date                                                    DateTime?    @db.Date
+  return_date                                                     DateTime?    @db.Date
+  sending_request                                                 String?      @db.VarChar(50)
+  ticket_owner_finalized_tickets_sender_responsibleToticket_owner ticket_owner @relation("finalized_tickets_sender_responsibleToticket_owner", fields: [sender, responsible], references: [cnpj, name], onUpdate: Restrict, map: "finaliszed_tickets_ibfk_2")
+  ticket_owner_finalized_tickets_responsibleToticket_owner        ticket_owner @relation("finalized_tickets_responsibleToticket_owner", fields: [responsible], references: [name], onUpdate: Restrict, map: "fisnalized_tickets_ibfk_1")
+  employees_finalized_tickets_codToemployees                      employees    @relation("finalized_tickets_codToemployees", fields: [cod], references: [cod], map: "fks_cod_employees")
+  companies_finalized_tickets_freight_payerTocompanies            companies    @relation("finalized_tickets_freight_payerTocompanies", fields: [freight_payer], references: [cnpj], onUpdate: Restrict, map: "fks_freithPayer_companies")
+  companies_finalized_tickets_recipientTocompanies                companies    @relation("finalized_tickets_recipientTocompanies", fields: [recipient], references: [cnpj], map: "fks_recipient_cnpj")
+  companies_finalized_tickets_senderTocompanies                   companies    @relation("finalized_tickets_senderTocompanies", fields: [sender], references: [cnpj], map: "fks_sender_cnpj")
+  branches                                                        branches?    @relation(fields: [unit], references: [unit], onDelete: Restrict, map: "fsk_unit_brances")
+  employees_finalized_tickets_conf_codToemployees                 employees?   @relation("finalized_tickets_conf_codToemployees", fields: [conf_cod], references: [cod], onDelete: Restrict, map: "ifsk_cod_conf_employees")
+
+  @@index([conf_cod], map: "conf_cod")
+  @@index([cod], map: "finalized_tickets_ibfk_2")
+  @@index([freight_payer], map: "freight_payer")
+  @@index([recipient], map: "recipient")
+  @@index([responsible], map: "responsible")
+  @@index([responsible], map: "responsible_2")
+  @@index([sender], map: "sender")
+  @@index([sender, responsible], map: "sender_2")
+  @@index([unit], map: "unit")
+}
+
+model frete_carregamento_manifestos {
+  id                Int                 @id @default(autoincrement())
+  unit              Int
+  semana            DateTime            @db.Date
+  manifestos        String              @db.VarChar(20)
+  hora              String              @db.VarChar(10)
+  placa             String              @db.VarChar(20)
+  motorista         String              @db.VarChar(100)
+  tipo_veiculo      String              @db.VarChar(100)
+  perc_carreg       Decimal             @default(0.00000000) @db.Decimal(12, 8)
+  perc_final        Decimal             @default(0.00000000) @db.Decimal(12, 8)
+  destino           String              @db.Text
+  m3                Decimal             @default(0.000) @db.Decimal(12, 3)
+  kg                Decimal             @default(0.000) @db.Decimal(14, 3)
+  qtd_nf            Int
+  cod_777_00        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cod_888_00        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cod_999_00        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cod_777_15        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cod_888_25        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cod_999_100       Decimal             @default(0.0000) @db.Decimal(15, 4)
+  frete_total       Decimal             @default(0.0000) @db.Decimal(15, 4)
+  frete_calc        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  frete_veiculo     Decimal             @default(0.0000) @db.Decimal(15, 4)
+  cods_desp         String?             @db.VarChar(10)
+  vlr_desp          Decimal?            @db.Decimal(15, 4)
+  descricao_despesa String?             @db.VarChar(50)
+  frt_tl_vlc        Decimal             @default(0.0000) @db.Decimal(15, 4)
+  carreg_perc       Decimal             @default(0.00000000) @db.Decimal(12, 8)
+  nao_777           Decimal             @default(0.0000) @db.Decimal(15, 4)
+  nao_888           Decimal             @default(0.0000) @db.Decimal(15, 4)
+  nao_999           Decimal             @default(0.0000) @db.Decimal(15, 4)
+  nao_777_calc      Decimal             @default(0.0000) @db.Decimal(15, 4)
+  nao_888_calc      Decimal             @default(0.0000) @db.Decimal(15, 4)
+  nao_999_calc      Decimal             @default(0.0000) @db.Decimal(15, 4)
+  subtotal          Decimal             @default(0.0000) @db.Decimal(15, 4)
+  outros            Decimal             @default(0.0000) @db.Decimal(15, 4)
+  diaria            Decimal             @default(0.0000) @db.Decimal(15, 4)
+  tde               Decimal             @default(0.0000) @db.Decimal(15, 4)
+  escada            Decimal             @default(0.0000) @db.Decimal(15, 4)
+  paletiza__o       Decimal             @default(0.0000) @map("paletização") @db.Decimal(15, 4)
+  sub_lc_ex         Decimal             @default(0.0000) @db.Decimal(15, 4)
+  sub_frete         Decimal             @default(0.0000) @db.Decimal(15, 4)
+  sub_total         Decimal             @default(0.0000) @db.Decimal(15, 4)
+  final_perc        Decimal             @default(0.00000000) @db.Decimal(12, 8)
+  num_fechamento    Int?
+  usuario           String              @db.VarChar(10)
+  estadia           Decimal             @default(0.0000) @db.Decimal(15, 4)
+  data_hora         DateTime            @default(now()) @db.DateTime(0)
+  percentual_antigo Decimal             @default(0.00000000) @db.Decimal(12, 8)
+  descarga          Decimal             @default(0.0000) @db.Decimal(15, 4)
+  observacao        String?             @db.VarChar(255)
+  fechamento_id     Int?
+  carga_mista       Boolean             @default(false)
+  romaneio          String?             @db.VarChar(50)
+  ciot              String?             @db.VarChar(50)
+  ctrb_numero       String?             @db.VarChar(30)
+  ctrb_total        Decimal             @default(0.00) @db.Decimal(15, 2)
+  ctrb_adiantamento Decimal             @default(0.00) @db.Decimal(15, 2)
+  sest_senat        Decimal             @default(0.00) @db.Decimal(15, 2)
+  irrf              Decimal             @default(0.00) @db.Decimal(15, 2)
+  prev_social       Decimal             @default(0.00) @db.Decimal(15, 2)
+  inss              Decimal             @default(0.00) @db.Decimal(15, 2)
+  total_retencoes   Decimal             @default(0.00) @db.Decimal(15, 2)
+  valor_liquido     Decimal             @default(0.00) @db.Decimal(15, 2)
+  vale_pedagio      Decimal             @default(0.00) @db.Decimal(15, 2)
+  updated_at        DateTime            @default(now()) @db.DateTime(0)
+  frete_fechamentos frete_fechamentos?  @relation(fields: [fechamento_id], references: [id], onDelete: Restrict, map: "fk_frete_manifesto_fechamento")
+  branches          branches            @relation(fields: [unit], references: [unit], onUpdate: Restrict, map: "fk_manifesto_unit")
+  frete_lancamentos frete_lancamentos[]
+
+  @@index([unit], map: "fk_manifesto_unit")
+  @@index([semana], map: "idx_frete_manifesto_data")
+  @@index([fechamento_id], map: "idx_frete_manifesto_fechamento")
+  @@index([manifestos], map: "idx_frete_manifesto_numero")
+  @@index([placa], map: "idx_frete_manifesto_placa")
+}
+
+model frete_despesas {
+  id         Int      @id @default(autoincrement())
+  unit       Int
+  codigo     String   @db.VarChar(10)
+  nome       String   @db.VarChar(120)
+  tipo       String   @db.VarChar(20)
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  updated_at DateTime @default(now()) @db.DateTime(0)
+  branches   branches @relation(fields: [unit], references: [unit], map: "fk_frete_despesa_unit")
+
+  @@unique([unit, codigo], map: "uk_frete_despesa_unit_codigo")
+  @@index([tipo], map: "idx_frete_despesa_tipo")
+}
+
+model frete_destinos {
+  id         Int      @id @default(autoincrement())
+  unit       Int
+  nome       String   @db.VarChar(150)
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  updated_at DateTime @default(now()) @db.DateTime(0)
+  branches   branches @relation(fields: [unit], references: [unit], map: "fk_frete_destino_unit")
+
+  @@unique([unit, nome], map: "uk_frete_destino_unit_nome")
+}
+
+model frete_fechamentos {
+  id                            Int                             @id @default(autoincrement())
+  numero                        Int
+  unit                          Int
+  semana                        String?                         @db.Char(4)
+  periodo_inicio                DateTime?                       @db.Date
+  periodo_fim                   DateTime?                       @db.Date
+  placa                         String                          @db.VarChar(20)
+  total_bruto                   Decimal                         @default(0.00) @db.Decimal(15, 2)
+  total_ctrb                    Decimal                         @default(0.00) @db.Decimal(15, 2)
+  total_liquido                 Decimal                         @default(0.00) @db.Decimal(15, 2)
+  status                        String                          @default("ABERTO") @db.VarChar(20)
+  frete_carregamento_manifestos frete_carregamento_manifestos[]
+  frete_lancamentos             frete_lancamentos[]
+}
+
+model frete_lancamentos {
+  id                            Int                            @id @default(autoincrement())
+  numero                        Int
+  unit                          Int
+  semana                        String?                        @db.Char(4)
+  placa                         String?                        @db.VarChar(20)
+  motorista                     String?                        @db.VarChar(100)
+  tipo_veiculo                  String?                        @db.VarChar(100)
+  destino                       String?                        @db.VarChar(150)
+  codigo_despesa                String                         @db.VarChar(10)
+  nome_despesa                  String                         @db.VarChar(120)
+  tipo_despesa                  String                         @db.VarChar(20)
+  data_lancamento               DateTime                       @db.Date
+  valor                         Decimal                        @default(0.00) @db.Decimal(15, 2)
+  descricao                     String?                        @db.VarChar(255)
+  pago                          Boolean                        @default(false)
+  manifesto_id                  Int?
+  fechamento_id                 Int?
+  responsavel_cod               Int?
+  departamento                  String?                        @db.VarChar(30)
+  emitido_em                    DateTime?                      @db.DateTime(0)
+  created_at                    DateTime                       @default(now()) @db.DateTime(0)
+  updated_at                    DateTime                       @default(now()) @db.DateTime(0)
+  frete_fechamentos             frete_fechamentos?             @relation(fields: [fechamento_id], references: [id], onDelete: Restrict, map: "fk_frete_lancamento_fechamento")
+  frete_carregamento_manifestos frete_carregamento_manifestos? @relation(fields: [manifesto_id], references: [id], onDelete: Restrict, map: "fk_frete_lancamento_manifesto")
+  employees                     employees?                     @relation(fields: [responsavel_cod], references: [cod], onDelete: Restrict, map: "fk_frete_lancamento_responsavel")
+  branches                      branches                       @relation(fields: [unit], references: [unit], map: "fk_frete_lancamento_unit")
+  vehicle                       vehicle?                       @relation(fields: [placa], references: [plate], onDelete: Restrict, map: "fk_frete_lancamento_vehicle")
+
+  @@unique([unit, numero], map: "uk_frete_lancamento_numero")
+  @@index([fechamento_id], map: "idx_frete_lancamento_fechamento")
+  @@index([manifesto_id], map: "idx_frete_lancamento_manifesto")
+  @@index([placa], map: "idx_frete_lancamento_placa")
+  @@index([responsavel_cod], map: "idx_frete_lancamento_responsavel")
+  @@index([semana], map: "idx_frete_lancamento_semana")
+  @@index([tipo_despesa], map: "idx_frete_lancamento_tipo")
+}
+
+model frete_regras_calculo {
+  id           Int      @id @default(autoincrement())
+  origem       String   @db.VarChar(10)
+  codigo_frete Int
+  aliquota     Decimal  @default(0.000000) @db.Decimal(10, 6)
+  percentual   Decimal  @default(0.000000) @db.Decimal(10, 6)
+  ativo        Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.DateTime(0)
+  updated_at   DateTime @default(now()) @db.DateTime(0)
+
+  @@unique([origem, codigo_frete], map: "uk_frete_regra_origem_codigo")
+}
+
+model frete_semanas {
+  codigo      String   @id @db.Char(4)
+  data_inicio DateTime @db.Date
+  data_fim    DateTime @db.Date
+  created_at  DateTime @default(now()) @db.DateTime(0)
+
+  @@index([data_inicio, data_fim], map: "idx_frete_semana_periodo")
+}
+
+model invoices {
+  fatura         String?        @db.VarChar(20)
+  invoice        Int
+  ticket_id      Int
+  ticket         String?        @unique(map: "ticket") @db.VarChar(10)
+  unit           Int
+  type_change    String         @db.VarChar(50)
+  cte            String?        @db.VarChar(20)
+  status_ticket  String?        @db.VarChar(25)
+  tickets        tickets        @relation(fields: [ticket_id], references: [id], map: "fk_invoice_ticket")
+  branches       branches       @relation(fields: [unit], references: [unit], onDelete: Cascade, map: "invoices_ibfk_1")
+  type_of_charge type_of_charge @relation(fields: [type_change], references: [charge], map: "invoices_ibfk_2")
+
+  @@id([invoice, ticket_id, type_change])
+  @@unique([invoice, type_change, unit], map: "unq_invoice_tpe")
+  @@index([ticket_id], map: "ticket_id")
+  @@index([type_change], map: "type_change")
+  @@index([unit], map: "unit")
+}
+
+model material_bonus {
+  id                                                             Int              @id @default(autoincrement())
+  origin_bonus                                                   Int?             @unique(map: "origin_bonus")
+  exit_collect                                                   Int?
+  return_collect                                                 Int?             @unique(map: "return_search_2")
+  return_material_material_bonus_origin_bonusToreturn_material   return_material? @relation("material_bonus_origin_bonusToreturn_material", fields: [origin_bonus], references: [material_output_id], onDelete: Cascade, map: "material_bonus_ibfk_1")
+  material_output                                                material_output? @relation(fields: [exit_collect], references: [id], onDelete: Restrict, map: "material_bonus_ibfk_2")
+  return_material_material_bonus_return_collectToreturn_material return_material? @relation("material_bonus_return_collectToreturn_material", fields: [return_collect], references: [material_output_id], onDelete: Restrict, onUpdate: Restrict, map: "material_bonus_ibfk_3")
+
+  @@index([exit_collect], map: "exit_search")
+  @@index([origin_bonus], map: "return_material")
+  @@index([return_collect], map: "return_search")
+}
+
+model material_breakage {
+  id                                                             Int                    @id @default(autoincrement())
+  material_type                                                  String                 @db.VarChar(20)
+  codReason_breack                                               Int
+  quant                                                          Int
+  user                                                           Int
+  date_brack                                                     DateTime               @db.Date
+  unit                                                           Int
+  created_at                                                     DateTime               @default(now()) @db.DateTime(0)
+  update_at                                                      DateTime               @default(now()) @db.DateTime(0)
+  observations                                                   String                 @db.VarChar(100)
+  stock_material_material_breakage_material_typeTostock_material stock_material         @relation("material_breakage_material_typeTostock_material", fields: [material_type], references: [material_type], map: "material_breakage_ibfk_2")
+  reason_material_breack                                         reason_material_breack @relation(fields: [codReason_breack], references: [cod], onUpdate: Restrict, map: "material_breakage_ibfk_3")
+  employees                                                      employees              @relation(fields: [user], references: [cod], map: "material_breakage_ibfk_4")
+  stock_material_material_breakage_unitTostock_material          stock_material         @relation("material_breakage_unitTostock_material", fields: [unit], references: [unit], map: "material_breakage_ibfk_5")
+
+  @@index([codReason_breack], map: "codReason_breack")
+  @@index([material_type], map: "material_type")
+  @@index([unit], map: "unit")
+  @@index([user], map: "user")
+}
+
+model material_output {
+  id                                                                       Int               @id @default(autoincrement())
+  type_material                                                            String            @db.VarChar(20)
+  sender_unit                                                              Int?
+  vehicle_plate                                                            String            @db.VarChar(20)
+  manifest                                                                 Int?
+  recipient_cnpj                                                           String?           @db.VarChar(20)
+  amoun_withdrawn                                                          Int
+  user                                                                     Int
+  date_output                                                              DateTime          @db.Date
+  created_at                                                               DateTime          @default(now()) @db.DateTime(0)
+  update_at                                                                DateTime          @default(now()) @db.DateTime(0)
+  driver_cpf                                                               BigInt
+  reason_leave                                                             String            @db.VarChar(30)
+  recipient_unit                                                           Int?
+  sender_cnpj                                                              String?           @db.VarChar(14)
+  bonus_collection                                                         String?           @db.VarChar(200)
+  material_bonus                                                           material_bonus[]
+  employees                                                                employees         @relation(fields: [user], references: [cod], map: "material_output_ibfk_1")
+  stock_material_material_output_sender_unit_type_materialTostock_material stock_material?   @relation("material_output_sender_unit_type_materialTostock_material", fields: [sender_unit, type_material], references: [unit, material_type], onDelete: Cascade, map: "material_output_ibfk_2")
+  companies_material_output_recipient_cnpjTocompanies                      companies?        @relation("material_output_recipient_cnpjTocompanies", fields: [recipient_cnpj], references: [cnpj], onDelete: Restrict, map: "material_output_ibfk_3")
+  vehicle                                                                  vehicle           @relation(fields: [vehicle_plate], references: [plate], map: "material_output_ibfk_4")
+  driver                                                                   driver            @relation(fields: [driver_cpf], references: [cpf], map: "material_output_ibfk_5")
+  stock_material_material_output_recipient_unitTostock_material            stock_material?   @relation("material_output_recipient_unitTostock_material", fields: [recipient_unit], references: [unit], onDelete: Restrict, map: "material_output_ibfk_6")
+  companies_material_output_sender_cnpjTocompanies                         companies?        @relation("material_output_sender_cnpjTocompanies", fields: [sender_cnpj], references: [cnpj], onDelete: Restrict, map: "material_output_ibfk_7")
+  material_repair                                                          material_repair[]
+  return_material                                                          return_material?
+
+  @@index([driver_cpf], map: "driver_cpf")
+  @@index([bonus_collection], map: "material_bonus")
+  @@index([sender_unit, type_material], map: "material_output_ibfk_5")
+  @@index([recipient_cnpj], map: "recipient_cnpj")
+  @@index([recipient_unit], map: "recipient_unit")
+  @@index([sender_unit], map: "sender_cnpj")
+  @@index([sender_cnpj], map: "sender_cnpj_2")
+  @@index([type_material], map: "type")
+  @@index([user], map: "userId")
+  @@index([vehicle_plate], map: "vehicle_plate")
+}
+
+model material_repair {
+  id              Int              @id @default(autoincrement())
+  quant           Int
+  invoice         String           @db.VarChar(20)
+  date_repair     DateTime         @db.Date
+  user            Int
+  created_at      DateTime         @default(now()) @db.DateTime(0)
+  update_at       DateTime?        @default(now()) @db.DateTime(0)
+  way_bill        Int?
+  employees       employees        @relation(fields: [user], references: [cod], map: "material_repair_ibfk_3")
+  material_output material_output? @relation(fields: [way_bill], references: [id], onDelete: Restrict, map: "material_repair_ibfk_5")
+
+  @@index([user], map: "user")
+  @@index([way_bill], map: "way_bill")
+}
+
+model outsource_input {
+  id             Int       @id @default(autoincrement())
+  unit           Int
+  outsource_cnpj String    @db.VarChar(14)
+  nf             Int
+  loan           Int?
+  in_use         Int?
+  created_at     DateTime  @default(now()) @db.DateTime(0)
+  update_at      DateTime  @default(now()) @db.DateTime(0)
+  user           Int
+  employees      employees @relation(fields: [user], references: [cod], map: "outsource_input_ibfk_1")
+
+  @@index([outsource_cnpj], map: "outsource_cnpj")
+  @@index([unit], map: "unit")
+  @@index([user], map: "user")
+}
+
+model outsource_output {
+  id                 Int      @id @default(autoincrement())
+  outsource_input_id Int
+  amount_material    Int
+  amount_return      Int
+  bonus              Int
+  cod_bonus          Int
+  date_bonus         DateTime @db.Date
+  breack             Int
+  loss               Int
+  user               Int
+  created_at         DateTime @default(now()) @db.DateTime(0)
+  updated_at         DateTime @default(now()) @db.DateTime(0)
+
+  @@index([user], map: "user")
+}
+
+model pallet_ajustes {
+  id                Int       @id @default(autoincrement())
+  pallet_id         Int
+  remessa           String    @db.VarChar(10)
+  volumes_original  Int
+  volumes_corrigido Int
+  employee_id       Int
+  created_at        DateTime? @default(now()) @db.DateTime(0)
+  pallets           pallets   @relation(fields: [pallet_id], references: [id], onUpdate: Restrict, map: "pallet_ajustes_ibfk_1")
+  employees         employees @relation(fields: [employee_id], references: [id], onUpdate: Restrict, map: "pallet_ajustes_ibfk_2")
+
+  @@index([employee_id], map: "employee_id")
+  @@index([pallet_id], map: "pallet_id")
+}
+
+model pallet_scans {
+  id            Int      @id @default(autoincrement())
+  employee_id   Int
+  pallet_id     Int
+  qr_code       String   @db.VarChar(50)
+  cnpj          String   @db.VarChar(14)
+  serie         String   @db.VarChar(3)
+  remessa       String   @db.VarChar(10)
+  total_volumes Int
+  rota          String   @db.VarChar(10)
+  volume        String   @db.VarChar(4)
+  created_at    DateTime @default(now()) @db.DateTime(0)
+  pallets       pallets  @relation(fields: [pallet_id], references: [id], onUpdate: Restrict, map: "fk_pallet_scan")
+
+  @@unique([remessa, volume], map: "uk_remessa_volume")
+  @@index([pallet_id], map: "fk_pallet_scan")
+  @@index([employee_id], map: "idx_employee")
+  @@index([remessa], map: "idx_remessa")
+}
+
+model pallets {
+  id             Int              @id @default(autoincrement())
+  nome           String           @unique(map: "nome") @db.VarChar(50)
+  fr             String           @db.VarChar(30)
+  qtd_volumes    Int
+  qtd_lidos      Int              @default(0)
+  status         pallets_status   @default(ABERTO)
+  employee_id    Int
+  created_at     DateTime         @default(now()) @db.DateTime(0)
+  closed_at      DateTime?        @db.DateTime(0)
+  pallet_ajustes pallet_ajustes[]
+  pallet_scans   pallet_scans[]
+  employees      employees        @relation(fields: [employee_id], references: [id], onUpdate: Restrict, map: "fk_pallet_employee")
+
+  @@index([employee_id], map: "fk_pallet_employee")
+  @@index([status], map: "idx_rota_status")
+  @@index([status], map: "idx_status")
+}
+
+model purchase_material {
+  invoice                                                      BigInt
+  type_material                                                String         @db.VarChar(20)
+  seller_cnpj                                                  String         @db.VarChar(14)
+  quant                                                        Int
+  date_purchase                                                DateTime       @db.Date
+  unit                                                         Int
+  id                                                           Int            @id @default(autoincrement())
+  user                                                         Int
+  created_at                                                   DateTime       @default(now()) @db.DateTime(0)
+  updated_at                                                   DateTime       @default(now()) @db.DateTime(0)
+  obervation                                                   String?        @db.VarChar(100)
+  unit_value                                                   Float          @db.Float
+  type_material_purchase_material_type_materialTotype_material type_material  @relation("purchase_material_type_materialTotype_material", fields: [type_material], references: [material_name], map: "purchase_material_ibfk_1")
+  stock_material                                               stock_material @relation(fields: [unit], references: [unit], map: "purchase_material_ibfk_3")
+  companies                                                    companies      @relation(fields: [seller_cnpj], references: [cnpj], map: "purchase_material_ibfk_4")
+  employees                                                    employees      @relation(fields: [user], references: [cod], map: "purchase_material_ibfk_5")
+
+  @@unique([type_material, seller_cnpj, unit, invoice], map: "nf_contrains")
+  @@index([seller_cnpj], map: "cnpj")
+  @@index([type_material], map: "type_material_idx")
+  @@index([unit], map: "unit")
+  @@index([user], map: "user")
+}
+
+model reason_material_breack {
+  id                Int                 @id @default(autoincrement())
+  reason            String              @db.VarChar(50)
+  cod               Int                 @unique(map: "cod")
+  user              Int
+  created_at        DateTime            @default(now()) @db.DateTime(0)
+  updated_at        DateTime            @default(now()) @db.DateTime(0)
+  material_breakage material_breakage[]
+  employees         employees           @relation(fields: [user], references: [cod], map: "reason_material_breack_ibfk_1")
+
+  @@index([user], map: "user")
+}
+
+model remessa_rua {
+  id            Int       @id @default(autoincrement())
+  remessa       String    @unique(map: "remessa") @db.VarChar(20)
+  rua           String    @db.VarChar(20)
+  employee_id   Int?
+  data_registro DateTime? @default(now()) @db.DateTime(0)
+}
+
+model return_material {
+  id                                                            Int             @id @default(autoincrement())
+  material_output_id                                            Int             @unique(map: "material_output_id")
+  amount_return                                                 Int?            @default(0)
+  bonus                                                         Int?            @default(0)
+  cod_bonus                                                     String?         @db.VarChar(255)
+  date_bonus                                                    DateTime?       @db.Date
+  voucher                                                       Int?            @default(0)
+  user                                                          Int
+  total_return                                                  Int             @default(0)
+  amount_devolution                                             Int?            @default(0)
+  created_at                                                    DateTime        @default(now()) @db.Timestamp(0)
+  update_at                                                     DateTime        @default(now()) @db.Timestamp(0)
+  amount_break                                                  Int?            @default(0)
+  date_return                                                   DateTime        @db.Date
+  vehicle_plate                                                 String          @db.VarChar(20)
+  driver_cpf                                                    BigInt
+  valueVoucher                                                  Decimal?        @default(0.00) @db.Decimal(9, 2)
+  receiving_unit                                                Int?
+  missing_material                                              Int             @default(0)
+  material_bonus_material_bonus_origin_bonusToreturn_material   material_bonus? @relation("material_bonus_origin_bonusToreturn_material")
+  material_bonus_material_bonus_return_collectToreturn_material material_bonus? @relation("material_bonus_return_collectToreturn_material")
+  stock_material                                                stock_material? @relation(fields: [receiving_unit], references: [unit], onDelete: Restrict, onUpdate: Restrict, map: "fk_receiving_unit")
+  material_output                                               material_output @relation(fields: [material_output_id], references: [id], onDelete: Cascade, map: "return_material_ibfk_1")
+  employees                                                     employees       @relation(fields: [user], references: [cod], onDelete: Cascade, map: "return_material_ibfk_2")
+  driver                                                        driver          @relation(fields: [driver_cpf], references: [cpf], onDelete: Cascade, map: "return_material_ibfk_3")
+  vehicle                                                       vehicle         @relation(fields: [vehicle_plate], references: [plate], onDelete: Cascade, map: "return_material_ibfk_4")
+
+  @@index([driver_cpf], map: "driver_cpf")
+  @@index([receiving_unit], map: "receiving_unit")
+  @@index([user], map: "user")
+  @@index([vehicle_plate], map: "vehicle_plate")
+}
+
+model scans {
+  id            Int       @id @default(autoincrement())
+  employee_id   Int
+  qr_code       String    @db.VarChar(50)
+  cnpj          String    @db.VarChar(14)
+  serie         String    @db.VarChar(3)
+  remessa       String    @db.VarChar(10)
+  total_volumes Int
+  rota          String    @db.VarChar(10)
+  volume        String    @db.VarChar(4)
+  created_at    DateTime  @default(now()) @db.DateTime(0)
+  employees     employees @relation(fields: [employee_id], references: [id], onUpdate: Restrict, map: "fk_scans_employee")
+
+  @@unique([remessa, volume], map: "uk_remessa_volume")
+  @@index([employee_id], map: "fk_scans_employee")
+}
+
+model stock_material {
+  id                                                                        Int                 @id @default(autoincrement())
+  unit                                                                      Int
+  material_type                                                             String              @db.VarChar(20)
+  total_stock                                                               Int
+  material_for_use                                                          Int                 @default(0)
+  amount_in_use                                                             Int                 @default(0)
+  amount_loan                                                               Int                 @default(0)
+  amount_devolution                                                         Int                 @default(0)
+  amount_bonus                                                              Int                 @default(0)
+  amount_break                                                              Int                 @default(0)
+  user                                                                      Int
+  created_at                                                                DateTime            @default(now()) @db.DateTime(0)
+  updated_at                                                                DateTime            @default(now()) @db.DateTime(0)
+  amount_repair                                                             Int                 @default(0)
+  amount_outsourced                                                         Int?                @default(0)
+  amount_discarded                                                          Int                 @default(0)
+  missing                                                                   Int                 @default(0)
+  material_breakage_material_breakage_material_typeTostock_material         material_breakage[] @relation("material_breakage_material_typeTostock_material")
+  material_breakage_material_breakage_unitTostock_material                  material_breakage[] @relation("material_breakage_unitTostock_material")
+  material_output_material_output_sender_unit_type_materialTostock_material material_output[]   @relation("material_output_sender_unit_type_materialTostock_material")
+  material_output_material_output_recipient_unitTostock_material            material_output[]   @relation("material_output_recipient_unitTostock_material")
+  purchase_material                                                         purchase_material[]
+  return_material                                                           return_material[]
+  type_material                                                             type_material       @relation(fields: [material_type], references: [material_name], map: "stock_material_ibfk_1")
+  branches                                                                  branches            @relation(fields: [unit], references: [unit], map: "stock_material_ibfk_2")
+
+  @@unique([unit, material_type], map: "unit_material")
+  @@index([unit], map: "cnpj")
+  @@index([material_type], map: "material_type")
+  @@index([user], map: "user")
+}
+
+model ticket_owner {
+  name                                                                 String              @db.VarChar(50)
+  email                                                                String              @db.VarChar(50)
+  cnpj                                                                 String              @db.VarChar(14)
+  department                                                           String?             @db.VarChar(30)
+  is_atv                                                               Boolean             @default(true)
+  finalized_tickets_finalized_tickets_sender_responsibleToticket_owner finalized_tickets[] @relation("finalized_tickets_sender_responsibleToticket_owner")
+  finalized_tickets_finalized_tickets_responsibleToticket_owner        finalized_tickets[] @relation("finalized_tickets_responsibleToticket_owner")
+  companies                                                            companies           @relation(fields: [cnpj], references: [cnpj], map: "ticket_owner_ibfk_1")
+  tickets                                                              tickets[]
+
+  @@id([cnpj, name])
+  @@index([name], map: "name")
+}
+
+model tickets {
+  id                                         Int             @id @default(autoincrement())
+  cod                                        Int
+  conf_cod                                   Int?
+  dt_manifest                                DateTime?       @db.Date
+  unit                                       Int?
+  manifest                                   String?         @db.VarChar(20)
+  responsible                                String          @db.VarChar(50)
+  sender                                     String          @db.VarChar(14)
+  recipient                                  String          @db.VarChar(14)
+  freight_payer                              String          @db.VarChar(14)
+  type                                       String?         @db.VarChar(20)
+  dt_ctrc                                    DateTime?       @db.Date
+  ctrc                                       String?         @db.VarChar(20)
+  freight                                    String?         @db.VarChar(50)
+  delivery_date                              DateTime?       @db.Date
+  request_date                               DateTime?       @db.Date
+  return_date                                DateTime?       @db.Date
+  sending_request                            DateTime?       @db.Date
+  returnSendingRequest                       DateTime?       @db.Date
+  observation                                String?         @db.VarChar(250)
+  observation2                               String?         @db.VarChar(250)
+  observation3                               String?         @db.VarChar(250)
+  created_at                                 DateTime        @default(now()) @db.Date
+  finalized_by                               Int?
+  updated_at                                 DateTime        @default(now()) @db.Date
+  finalized_at                               DateTime?       @db.DateTime(0)
+  invoices                                   invoices[]
+  companies_tickets_freight_payerTocompanies companies       @relation("tickets_freight_payerTocompanies", fields: [freight_payer], references: [cnpj], onDelete: Cascade, map: "fk_freithPayer_companies")
+  companies_tickets_recipientTocompanies     companies       @relation("tickets_recipientTocompanies", fields: [recipient], references: [cnpj], onDelete: Cascade, map: "fk_recipient_cnpj")
+  companies_tickets_senderTocompanies        companies       @relation("tickets_senderTocompanies", fields: [sender], references: [cnpj], onDelete: Cascade, map: "fk_sender_cnpj")
+  branches                                   branches?       @relation(fields: [unit], references: [unit], onDelete: Cascade, map: "fk_unit_brances")
+  ticket_owner                               ticket_owner    @relation(fields: [responsible], references: [name], onDelete: Cascade, map: "tickets_ibfk_1")
+  type_of_charge                             type_of_charge? @relation(fields: [type], references: [charge], onDelete: Restrict, map: "tickets_ibfk_2")
+
+  @@index([conf_cod], map: "conf_cod")
+  @@index([finalized_by], map: "finalized_by")
+  @@index([freight_payer], map: "freight_payer")
+  @@index([recipient], map: "recipient")
+  @@index([responsible], map: "responsible")
+  @@index([responsible], map: "responsible_2")
+  @@index([sender], map: "sender")
+  @@index([sender, responsible], map: "sender_2")
+  @@index([cod], map: "tickets_ibfk_2")
+  @@index([type], map: "type")
+  @@index([type], map: "type_2")
+  @@index([unit], map: "unit")
+}
+
+model tickets_old {
+  id                                        Int        @id @default(autoincrement())
+  cod                                       Int
+  conf_cod                                  Int?
+  dt_manifest                               DateTime?  @db.Date
+  unit                                      Int
+  manifest                                  String?    @db.VarChar(20)
+  note                                      String?    @db.VarChar(20)
+  type                                      String?    @db.VarChar(20)
+  responsible                               String?    @db.VarChar(50)
+  sender                                    String?    @db.VarChar(50)
+  recipient                                 String?    @db.VarChar(50)
+  dt_ctrc                                   DateTime?  @db.Date
+  ctrc                                      String?    @db.VarChar(20)
+  cte                                       String?    @db.VarChar(20)
+  ticket                                    String?    @db.VarChar(100)
+  freight                                   String?    @db.VarChar(50)
+  delivery_date                             DateTime?  @db.Date
+  request_date                              DateTime?  @db.Date
+  return_date                               DateTime?  @db.Date
+  sending_request                           String?    @db.VarChar(50)
+  created_at                                DateTime?  @default(now()) @db.Timestamp(0)
+  branches                                  branches   @relation(fields: [unit], references: [unit], map: "tickets_old_ibfk_1")
+  employees_tickets_old_codToemployees      employees  @relation("tickets_old_codToemployees", fields: [cod], references: [cod], map: "tickets_old_ibfk_2")
+  employees_tickets_old_conf_codToemployees employees? @relation("tickets_old_conf_codToemployees", fields: [conf_cod], references: [cod], onDelete: Restrict, map: "tickets_old_ibfk_3")
+
+  @@index([cod], map: "tickets_ibfk_2")
+  @@index([conf_cod], map: "tickets_old_ibfk_3")
+  @@index([unit], map: "unit")
+}
+
+model type_material {
+  id                                                               Int                 @id @default(autoincrement())
+  material_name                                                    String              @db.VarChar(20)
+  cod                                                              Int                 @unique(map: "cod")
+  user                                                             Int
+  created_at                                                       DateTime            @default(now()) @db.DateTime(0)
+  updated_at                                                       DateTime            @default(now()) @db.DateTime(0)
+  value                                                            Decimal             @db.Decimal(9, 2)
+  purchase_material_purchase_material_type_materialTotype_material purchase_material[] @relation("purchase_material_type_materialTotype_material")
+  stock_material                                                   stock_material[]
+  employees                                                        employees           @relation(fields: [user], references: [cod], map: "type_material_ibfk_1")
+
+  @@index([material_name], map: "material_name")
+  @@index([user], map: "user")
+}
+
+model type_of_charge {
+  id       Int        @id @default(autoincrement())
+  charge   String     @unique(map: "charge") @db.VarChar(50)
+  invoices invoices[]
+  tickets  tickets[]
+
+  @@index([charge], map: "charge_2")
+}
+
+model user_permissions {
+  cod_user        Int
+  is_admin        Boolean
+  id              Int       @id @default(autoincrement())
+  unit            Int
+  stock_service   Boolean   @default(false)
+  ticket_service  Boolean   @default(false)
+  freight_service Boolean   @default(false)
+  freight_closure Boolean   @default(false)
+  employees       employees @relation(fields: [cod_user], references: [cod], map: "user_permissions_ibfk_1")
+  branches        branches  @relation(fields: [unit], references: [unit], map: "user_permissions_ibfk_2")
+
+  @@unique([cod_user, unit, stock_service, ticket_service], map: "unit_unit_serice")
+  @@index([cod_user], map: "cod_user")
+  @@index([unit], map: "unit")
+}
+
+model vehicle {
+  plate                String              @id @db.VarChar(20)
+  codVehicleType       Int
+  owner                String              @db.VarChar(14)
+  first_payer          String?             @db.VarChar(30)
+  second_payer         String?             @db.VarChar(30)
+  second_payer_percent Decimal             @default(0.000000) @db.Decimal(10, 6)
+  canceled             Boolean             @default(false)
+  user                 Int
+  created_at           DateTime            @default(now()) @db.DateTime(0)
+  updated_at           DateTime            @default(now()) @db.DateTime(0)
+  frete_lancamentos    frete_lancamentos[]
+  material_output      material_output[]
+  return_material      return_material[]
+  vehicleType          vehicleType         @relation(fields: [codVehicleType], references: [codVehicleType], map: "vehicle_ibfk_1")
+  employees            employees           @relation(fields: [user], references: [cod], map: "vehicle_ibfk_3")
+  companies            companies           @relation(fields: [owner], references: [cnpj], map: "vehicle_ibfk_4")
+
+  @@index([codVehicleType], map: "codTipoVeiculo")
+  @@index([owner], map: "driver")
+  @@index([user], map: "user")
+}
+
+model vehicleType {
+  codVehicleType Int       @id
+  typeName       String    @db.VarChar(50)
+  max_m3         Decimal   @default(0.000) @db.Decimal(12, 3)
+  max_weight     Decimal   @default(0.000) @db.Decimal(14, 3)
+  freight_value  Decimal   @default(0.00) @db.Decimal(15, 2)
+  user           Int
+  created_at     DateTime  @default(now()) @db.DateTime(0)
+  updated_at     DateTime  @default(now()) @db.DateTime(0)
+  vehicle        vehicle[]
+  employees      employees @relation(fields: [user], references: [cod], map: "vehicleType_ibfk_1")
+
+  @@index([user], map: "user")
+}
+
+enum pallets_status {
+  ABERTO
+  FECHADO
+}

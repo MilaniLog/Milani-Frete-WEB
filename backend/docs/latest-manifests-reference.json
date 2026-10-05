@@ -1,0 +1,258 @@
+{
+  "sha256": "5e727a30313e6d1f1e8788714e8f9b8b1377773536fa1ef2a48ffbb19a374a4b",
+  "selection": "Last five appended rows in Manifestos, not sorted by editable AW timestamp",
+  "rules": [
+    {
+      "codigo_frete": 777.0,
+      "aliquota": "0.07",
+      "percentual": "0.15"
+    },
+    {
+      "codigo_frete": 888.0,
+      "aliquota": "0.12",
+      "percentual": "0.25"
+    },
+    {
+      "codigo_frete": 999.0,
+      "aliquota": "0.12",
+      "percentual": "1.0"
+    }
+  ],
+  "cases": [
+    {
+      "row": 14351,
+      "manifest": "100048541-1",
+      "date": "2026-09-30",
+      "input": {
+        "cod_777_00": 0.0,
+        "cod_888_00": 0.0,
+        "cod_999_00": 988.6,
+        "nao_777": 0.0,
+        "nao_888": 0.0,
+        "nao_999": 214.65,
+        "frete_veiculo": 400.0,
+        "outros": 0.0,
+        "diaria": 0.0,
+        "tde": 174.9,
+        "escada": 160.0,
+        "paletizacao": 0.0,
+        "estadia": 0.0,
+        "descarga": 0.0,
+        "despesas_empresa": 60.0
+      },
+      "expected": {
+        "freight777": 0.0,
+        "freight888": 0.0,
+        "freight999": 869.9680000000001,
+        "notDelivery777": 0.0,
+        "notDelivery888": 0.0,
+        "notDelivery999": 188.892,
+        "totalFretes": 869.9680000000001,
+        "discounts": 188.892,
+        "totalPay": 460.0,
+        "initPercent": 0.459787026649256,
+        "finalPercent": 0.4527666007858453,
+        "legacyNet": 1015.9759999999999
+      },
+      "ctrb": {
+        "BD": 25.0,
+        "BE": 0.0,
+        "BF": 0.0,
+        "BG": 0.0,
+        "BH": 0.0,
+        "BI": 0.0,
+        "BJ": 25.0,
+        "BK": 0.0,
+        "BL": 0.0
+      }
+    },
+    {
+      "row": 14352,
+      "manifest": "100048550-1",
+      "date": "2026-09-30",
+      "input": {
+        "cod_777_00": 0.0,
+        "cod_888_00": 0.0,
+        "cod_999_00": 718.58,
+        "nao_777": 0.0,
+        "nao_888": 0.0,
+        "nao_999": 0.0,
+        "frete_veiculo": 250.0,
+        "outros": 0.0,
+        "diaria": 0.0,
+        "tde": 0.0,
+        "escada": 80.0,
+        "paletizacao": 0.0,
+        "estadia": 0.0,
+        "descarga": 0.0,
+        "despesas_empresa": 60.0
+      },
+      "expected": {
+        "freight777": 0.0,
+        "freight888": 0.0,
+        "freight999": 632.3504,
+        "notDelivery777": 0.0,
+        "notDelivery888": 0.0,
+        "notDelivery999": 0.0,
+        "totalFretes": 632.3504,
+        "discounts": 0.0,
+        "totalPay": 310.0,
+        "initPercent": 0.39535042596636294,
+        "finalPercent": 0.43517909163804774,
+        "legacyNet": 712.3504
+      },
+      "ctrb": {
+        "BD": 25.0,
+        "BE": 0.13,
+        "BF": 0.0,
+        "BG": 0.0,
+        "BH": 0.55,
+        "BI": 0.68,
+        "BJ": 24.32,
+        "BK": 0.0,
+        "BL": 0.0
+      }
+    },
+    {
+      "row": 14353,
+      "manifest": "100048537-3",
+      "date": "2026-09-30",
+      "input": {
+        "cod_777_00": 0.0,
+        "cod_888_00": 0.0,
+        "cod_999_00": 473.21,
+        "nao_777": 0.0,
+        "nao_888": 0.0,
+        "nao_999": 0.0,
+        "frete_veiculo": 250.0,
+        "outros": 0.0,
+        "diaria": 0.0,
+        "tde": 349.8,
+        "escada": 80.0,
+        "paletizacao": 0.0,
+        "estadia": 0.0,
+        "descarga": 0.0,
+        "despesas_empresa": 60.0
+      },
+      "expected": {
+        "freight777": 0.0,
+        "freight888": 0.0,
+        "freight999": 416.4248,
+        "notDelivery777": 0.0,
+        "notDelivery888": 0.0,
+        "notDelivery999": 0.0,
+        "totalFretes": 416.4248,
+        "discounts": 0.0,
+        "totalPay": 310.0,
+        "initPercent": 0.6003484902916445,
+        "finalPercent": 0.36633291768333903,
+        "legacyNet": 846.2248
+      },
+      "ctrb": {
+        "BD": 25.0,
+        "BE": 0.13,
+        "BF": 0.0,
+        "BG": 0.0,
+        "BH": 0.55,
+        "BI": 0.68,
+        "BJ": 24.32,
+        "BK": 0.0,
+        "BL": 0.0
+      }
+    },
+    {
+      "row": 14354,
+      "manifest": "100048551-9",
+      "date": "2026-09-30",
+      "input": {
+        "cod_777_00": 0.0,
+        "cod_888_00": 0.0,
+        "cod_999_00": 2037.41,
+        "nao_777": 0.0,
+        "nao_888": 0.0,
+        "nao_999": 0.0,
+        "frete_veiculo": 500.0,
+        "outros": 0.0,
+        "diaria": 0.0,
+        "tde": 174.9,
+        "escada": 0.0,
+        "paletizacao": 0.0,
+        "estadia": 0.0,
+        "descarga": 160.0,
+        "despesas_empresa": 60.0
+      },
+      "expected": {
+        "freight777": 0.0,
+        "freight888": 0.0,
+        "freight999": 1792.9208,
+        "notDelivery777": 0.0,
+        "notDelivery888": 0.0,
+        "notDelivery999": 0.0,
+        "totalFretes": 1792.9208,
+        "discounts": 0.0,
+        "totalPay": 560.0,
+        "initPercent": 0.2788745604379178,
+        "finalPercent": 0.2631800572679804,
+        "legacyNet": 1967.8208000000002
+      },
+      "ctrb": {
+        "BD": 25.0,
+        "BE": 0.13,
+        "BF": 0.0,
+        "BG": 0.0,
+        "BH": 0.55,
+        "BI": 0.68,
+        "BJ": 24.32,
+        "BK": 0.0,
+        "BL": 0.0
+      }
+    },
+    {
+      "row": 14355,
+      "manifest": "100048548-9",
+      "date": "2026-09-30",
+      "input": {
+        "cod_777_00": 0.0,
+        "cod_888_00": 0.0,
+        "cod_999_00": 1481.9,
+        "nao_777": 0.0,
+        "nao_888": 0.0,
+        "nao_999": 489.3,
+        "frete_veiculo": 250.0,
+        "outros": 0.0,
+        "diaria": 0.0,
+        "tde": 0.0,
+        "escada": 0.0,
+        "paletizacao": 0.0,
+        "estadia": 0.0,
+        "descarga": 0.0,
+        "despesas_empresa": 0
+      },
+      "expected": {
+        "freight777": 0.0,
+        "freight888": 0.0,
+        "freight999": 1304.0720000000001,
+        "notDelivery777": 0.0,
+        "notDelivery888": 0.0,
+        "notDelivery999": 430.584,
+        "totalFretes": 1304.0720000000001,
+        "discounts": 430.584,
+        "totalPay": 250.0,
+        "initPercent": 0.1917072063505696,
+        "finalPercent": 0.2862088546150605,
+        "legacyNet": 873.488
+      },
+      "ctrb": {
+        "BD": 0.0,
+        "BE": 1.22,
+        "BF": 0.0,
+        "BG": 0.0,
+        "BH": 5.36,
+        "BI": 6.58,
+        "BJ": -6.58,
+        "BK": 0.0,
+        "BL": 0.0
+      }
+    }
+  ]
+}

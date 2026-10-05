@@ -1,0 +1,77 @@
+{
+  "source_sha256": "7a09c38c424aef356ba2301fb9a29bc2547d237aae0e3cf17ca954860a95be5f",
+  "source_row": 4438,
+  "candidate_count": 235,
+  "aggregate_matches": 234,
+  "differences": [
+    {
+      "source_row": 188,
+      "stored_net": "28.77000000000001",
+      "reconstructed_net": "448.77",
+      "difference": "419.99999999999999",
+      "manifest_count": 4,
+      "entry_count": 4,
+      "coupon_count": 2
+    }
+  ],
+  "expected": {
+    "total_liquido": "892.83999999999992",
+    "total_bruto": "1310",
+    "total_debitos": "417.16"
+  },
+  "manifests": [
+    {
+      "id": 1,
+      "frete_veiculo": "250",
+      "ctrb_total": "25.00",
+      "ctrb_numero": "CTRB-ANONIMIZADO"
+    },
+    {
+      "id": 2,
+      "frete_veiculo": "250",
+      "ctrb_total": "25.00",
+      "ctrb_numero": "CTRB-ANONIMIZADO"
+    },
+    {
+      "id": 3,
+      "frete_veiculo": "250",
+      "ctrb_total": "25.00",
+      "ctrb_numero": "CTRB-ANONIMIZADO"
+    },
+    {
+      "id": 4,
+      "frete_veiculo": "250",
+      "ctrb_total": "0",
+      "ctrb_numero": "CTRB-ANONIMIZADO"
+    },
+    {
+      "id": 5,
+      "frete_veiculo": "250",
+      "ctrb_total": "25.00",
+      "ctrb_numero": "CTRB-ANONIMIZADO"
+    }
+  ],
+  "entries": [
+    {
+      "id": 1,
+      "tipo_despesa": "Debito",
+      "valor": "60"
+    },
+    {
+      "id": 2,
+      "tipo_despesa": "Credito",
+      "valor": "60"
+    }
+  ],
+  "coupons": [
+    {
+      "id": 1,
+      "valor": "357.16"
+    }
+  ],
+  "calculated_from_cached_rows": {
+    "total_bruto": "1310",
+    "total_debitos": "417.16",
+    "total_liquido": "892.84"
+  }
+}
