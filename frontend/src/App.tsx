@@ -734,6 +734,7 @@ function CreateManifest({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const firstManifestFieldRef = useRef<HTMLInputElement>(null);
   const [vehicles, setVehicles] = useState<{ plate: string; driver_cpf?:string|null; driver_name?:string|null }[]>([]);
   const [suggestedDriver, setSuggestedDriver] = useState({cpf:'',name:initial?.motorista ?? ''});
   const [plate, setPlate] = useState(initial?.placa ?? "");
@@ -749,6 +750,13 @@ function CreateManifest({
     ].filter((value): value is string => !!value),
   );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+  useEffect(() => {
+    if (initial) return;
+    requestAnimationFrame(() => {
+      firstManifestFieldRef.current?.focus();
+      firstManifestFieldRef.current?.select();
+    });
+  }, [initial]);
   useEffect(() => {
     let active = true;
     api<{ plate: string; driver_cpf?:string|null; driver_name?:string|null }[]>("/registrations/vehicles", token)
