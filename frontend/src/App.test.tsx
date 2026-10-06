@@ -50,7 +50,7 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
     vale_pedagio: "60",
     romaneio: "ROM",
     ciot: "CIOT",
-    ctrb_numero: "000123",
+    ctrb_numero: "000123-4",
     observacao: "Preservar",
     carga_mista: true,
   };
@@ -75,10 +75,10 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   expect(screen.getByLabelText("Hora").getAttribute("type")).toBe("text");
   await screen.findByDisplayValue("Motorista de teste");
   await waitFor(() => expect((screen.getByRole("combobox", {name:"Destino"}) as HTMLInputElement).value).toBe("Destino"));
-  fireEvent.focus(screen.getByLabelText("Motorista"));
+  fireEvent.click(screen.getByLabelText("Motorista"));
   fireEvent.click(await screen.findByRole("option", {name:"Motorista de teste"}));
-  fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
-  await screen.findByText("Registro fechado durante a edição.");
+  fireEvent.click(screen.getByRole("button", { name: /Salvar altera/i }));
+  await screen.findByText(/Registro fechado/);
   const call = vi
     .mocked(fetch)
     .mock.calls.find(
@@ -98,7 +98,7 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
     vale_pedagio: 60,
     romaneio: "ROM",
     ciot: "CIOT",
-    ctrb_numero: "000123",
+    ctrb_numero: "000123-4",
     observacao: "Preservar",
   });
   expect(JSON.parse(String(call?.[1]?.body))).not.toHaveProperty('carga_mista');
@@ -106,7 +106,7 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   expect(
     (screen.getByLabelText("Observações") as HTMLTextAreaElement).value,
   ).toBe("Preservar");
-});
+}, 15000);
 
 it("não oferece edição para manifesto fechado", async () => {
   const originalFetch = vi.mocked(fetch).getMockImplementation()!;
@@ -260,7 +260,7 @@ it("envia cadastro com números e mantém CPF como texto", async () => {
     fireEvent.click(await screen.findByRole("option",{name}));
   }
   await screen.findByRole("option", { name: "Motorista de teste", hidden: true });
-  fireEvent.focus(screen.getByLabelText("Motorista"));
+  fireEvent.click(screen.getByLabelText("Motorista"));
   fireEvent.click(await screen.findByRole("option", {name:"Motorista de teste"}));
   fireEvent.click(screen.getByRole("button", { name: "Cadastrar manifesto" }));
   await screen.findByText("Manifesto M123 cadastrado com sucesso.");

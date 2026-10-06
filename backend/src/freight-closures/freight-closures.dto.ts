@@ -1,5 +1,6 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  ArrayUnique,
   IsNotEmpty,
   IsString,
   Matches,
@@ -7,6 +8,10 @@ import {
   IsOptional,
   IsIn,
   IsDateString,
+  IsArray,
+  IsInt,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 
 export class ConferenceDto {
@@ -54,9 +59,39 @@ export class ClosureDto {
   )
   @Matches(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/)
   placa: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  debit_entry_ids?: number[];
+}
+
+class WeekClosureSelectionDto {
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @Matches(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/)
+  placa: string;
+
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  debit_entry_ids: number[];
 }
 
 export class WeekClosureDto {
   @Matches(/^\d{4}$/)
   semana: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique((item: WeekClosureSelectionDto) => item.placa)
+  @ValidateNested({ each: true })
+  @Type(() => WeekClosureSelectionDto)
+  selections?: WeekClosureSelectionDto[];
 }

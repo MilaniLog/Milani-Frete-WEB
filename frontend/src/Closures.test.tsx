@@ -52,7 +52,7 @@ it("conferência filtrada não oferece finalização parcial e envia os filtros"
   fireEvent.click(
     screen.getByRole("button", { name: "Relatório de conferência" }),
   );
-  await screen.findByRole("heading", { name: "Conferência" });
+  await screen.findByRole("heading", { name: /Confer.ncia por placa/ });
   const call = vi
     .mocked(fetch)
     .mock.calls.find(([p]) => String(p).includes("/conference?"));
@@ -85,13 +85,11 @@ it("placa vazia confere toda a semana antes de finalizar, sem filtros de relató
   ).toBe(false);
   fireEvent.click(confirm);
   await screen.findByText("1 fechamentos finalizados.");
-  expect(fetch).toHaveBeenCalledWith(
-    "/api/freight-closures/week",
-    expect.objectContaining({
-      method: "POST",
-      body: JSON.stringify({ semana: "3926" }),
-    }),
-  );
+  const weekCall = vi
+    .mocked(fetch)
+    .mock.calls.find(([path, options]) => path === "/api/freight-closures/week" && options?.method === "POST");
+  expect(weekCall).toBeTruthy();
+  expect(JSON.parse(String(weekCall?.[1]?.body))).toMatchObject({ semana: "3926" });
 });
 afterEach(() => {
   cleanup();
@@ -131,6 +129,7 @@ it("exige confirmação e envia apenas semana e placa ao finalizar", async () =>
   expect(JSON.parse(String(call?.[1]?.body))).toEqual({
     semana: "0001",
     placa: "ABC1234",
+    debit_entry_ids: [],
   });
 });
 it("mudança de placa invalida a conferência e sua confirmação", async () => {

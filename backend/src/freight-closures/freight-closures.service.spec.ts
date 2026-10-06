@@ -10,6 +10,7 @@ describe('FreightClosuresService', () => {
   beforeEach(() => {
     const table = (rows: any[] = []) => ({
       findMany: jest.fn().mockResolvedValue(rows),
+      findFirst: jest.fn().mockResolvedValue(null),
       updateMany: jest.fn().mockResolvedValue({ count: rows.length }),
     });
     db = {
@@ -30,6 +31,7 @@ describe('FreightClosuresService', () => {
       frete_carregamento_manifestos: table([
         {
           id: 10,
+          num_fechamento: 10001,
           frete_veiculo: new Decimal(100),
           ctrb_total: new Decimal(200),
         },
@@ -49,7 +51,7 @@ describe('FreightClosuresService', () => {
       frete_fechamentos: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         aggregate: jest.fn().mockResolvedValue({ _max: { numero: 5 } }),
-        create: jest.fn().mockResolvedValue({ id: 6, numero: 6 }),
+        create: jest.fn().mockResolvedValue({ id: 6, numero: 10001 }),
         findFirst: jest.fn().mockResolvedValue(null),
       },
     };
@@ -69,15 +71,32 @@ describe('FreightClosuresService', () => {
       isolationLevel: 'Serializable',
     });
     expect(db.frete_fechamentos.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ unit: 2, numero: 6, status: 'FECHADO' }),
+      data: expect.objectContaining({
+        unit: 2,
+        numero: 10001,
+        status: 'FECHADO',
+      }),
     });
     expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { fechamento_id: 6, num_fechamento: 6 },
+        data: { fechamento_id: 6, num_fechamento: 10001 },
       }),
     );
     expect(db.frete_cupons.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { fechamento_id: 6, pago: true } }),
+    );
+  });
+  it('mantem debito desmarcado em aberto para proximo fechamento', async () => {
+    db.frete_lancamentos.updateMany.mockResolvedValueOnce({ count: 2 });
+    const result = await service.finalize(
+      { ...dto, debit_entry_ids: [] },
+      user,
+    );
+    expect(result.totals.total_liquido.toString()).toBe('90');
+    expect(db.frete_lancamentos.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: [1, 3] } }),
+      }),
     );
   });
   it.each([
@@ -123,6 +142,7 @@ describe('FreightClosuresService', () => {
     db.frete_carregamento_manifestos.findMany.mockResolvedValue([
       {
         id: 10,
+        num_fechamento: 10001,
         frete_veiculo: new Decimal(2020),
         ctrb_total: new Decimal(0),
         ctrb_numero: null,
@@ -252,7 +272,7 @@ describe('FreightClosuresService', () => {
       });
       expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith({
         where: { fechamento_id: 6, unit: 2 },
-        data: { fechamento_id: null, num_fechamento: null },
+        data: { fechamento_id: null, num_fechamento: 6 },
       });
     });
     it('aceita fechamento legado sem histórico', async () => {

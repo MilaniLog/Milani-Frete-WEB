@@ -28,6 +28,24 @@ export class CreateManifestDto {
   @MaxLength(20)
   manifestos: string;
 
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  manifesto_adicional_1?: string;
+
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  manifesto_adicional_2?: string;
+
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  manifesto_adicional_3?: string;
+
   @IsString()
   @Matches(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/)
   @MaxLength(10)
@@ -210,7 +228,13 @@ export class CreateManifestDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(30)
+  @MaxLength(8)
+  @Matches(/^\d{6}-\d$/, { message: 'ctrb_numero must match 000000-0' })
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    const digits = value.replace(/\D/g, '').slice(0, 7);
+    return digits.length > 6 ? `${digits.slice(0, 6)}-${digits.slice(6)}` : value;
+  })
   ctrb_numero?: string;
 
   @IsOptional()

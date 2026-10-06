@@ -46,17 +46,27 @@ export default function SearchableSelect(props: SelectHTMLAttributes<HTMLSelectE
       aria-autocomplete="list" aria-activedescendant={open && active>=0 && matches[active] ? `${id}-${active}` : undefined}
       autoComplete="off" disabled={props.disabled} required={props.required} value={text}
       placeholder="Digite para pesquisar ou selecione"
-      onFocus={()=>{setOpen(true);setFilter(false);setActive(-1);}}
+      onFocus={()=>{setOpen(props.name === 'cpf_motorista' ? false : !select.current?.value);setFilter(false);setActive(-1);}}
       onClick={()=>setOpen(true)}
       onChange={e=>{const value = props.name === 'placa' ? normalizePlate(e.target.value) : e.target.value;setText(value);setFilter(true);setOpen(true);setActive(-1);change('');e.target.setCustomValidity(value ? 'Selecione uma opção da lista.' : '');}}
       onKeyDown={e=>{
-        if(e.key==='ArrowDown' || e.key==='ArrowUp') {e.preventDefault();setOpen(true);setActive(i=>Math.max(0,Math.min(matches.length-1,i+(e.key==='ArrowDown'?1:-1))));}
+        if(e.key==='ArrowDown' || e.key==='ArrowUp') {e.preventDefault();setOpen(true);setFilter(false);setActive(i=>Math.max(0,Math.min(matches.length-1,i+(e.key==='ArrowDown'?1:-1))));}
         if(e.key==='Escape') {e.preventDefault();setOpen(false);}
         if(e.key==='Enter' && open && !e.nativeEvent.isComposing) {
           e.preventDefault();
-          if(matches[active>=0?active:0]) {
-            choose(matches[active>=0?active:0]);
-            const field = e.currentTarget;
+          const field = e.currentTarget;
+          if (active >= 0 && matches[active]) {
+            choose(matches[active]);
+            queueMicrotask(() => focusNextField(field));
+            return;
+          }
+          if (select.current?.value && !filter) {
+            setOpen(false);
+            queueMicrotask(() => focusNextField(field));
+            return;
+          }
+          if(filter && matches.length === 1) {
+            choose(matches[0]);
             queueMicrotask(() => focusNextField(field));
           }
         }

@@ -6,3 +6,7 @@ export function formatManifestNumber(value: string): string | null {
   const number = match[2].replace('-', '').padStart(7, '0');
   return `${match[1]}${number.slice(0,6)}-${number.slice(6)}`;
 }
+
+export function comparableManifestNumber(value: string): string {
+  return value.replace(/\D/g, '');
+}

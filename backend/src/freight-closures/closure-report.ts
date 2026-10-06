@@ -2,6 +2,15 @@ import { ConflictException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
 
 type Row = Record<string, any>;
+const manifestLabel = (manifest: Row) =>
+  [
+    manifest.manifestos,
+    manifest.manifesto_adicional_1,
+    manifest.manifesto_adicional_2,
+    manifest.manifesto_adicional_3,
+  ]
+    .filter(Boolean)
+    .join(' / ');
 export type ClosureReport = {
   titulo: string;
   origem: string;
@@ -269,6 +278,19 @@ export function renderClosureReport(report: ClosureReport): string {
   const unlinked = report.entries.filter(
     (e) => e.manifesto_id == null || !ids.has(e.manifesto_id),
   );
+  const linkedDebits = report.manifests.flatMap((m) =>
+    report.entries.filter(
+      (e) =>
+        m.id != null && e.manifesto_id === m.id && e.tipo_despesa === 'Debito',
+    ),
+  );
+  const bottomEntries = [
+    ...linkedDebits,
+    ...unlinked.filter((e) => e.tipo_despesa !== 'Adiantamento'),
+  ];
+  const bottomAdvances = unlinked.filter(
+    (e) => e.tipo_despesa === 'Adiantamento',
+  );
   const payments = [report.payment?.primeira, report.payment?.segunda].filter(
     (p) =>
       p && (p.empresa || new Decimal(String(p.valor ?? 0)).isZero() === false),
@@ -280,6 +302,17 @@ export function renderClosureReport(report: ClosureReport): string {
   }).format(new Date());
   const gross = report.totals.total_bruto;
   const net = report.totals.total_liquido;
+  const totalValePedagio = sum('vale_pedagio') ?? new Decimal(0);
+  const totalCtrb =
+    report.totals.total_ctrb != null
+      ? new Decimal(String(report.totals.total_ctrb))
+      : null;
+  const reportGross =
+    gross != null ? new Decimal(String(gross)).plus(totalValePedagio) : null;
+  const reportSaldo =
+    net != null
+      ? new Decimal(String(net)).minus(totalCtrb ?? new Decimal(0))
+      : null;
   const deductions =
     gross != null && net != null
       ? new Decimal(String(gross)).minus(String(net))
@@ -311,10 +344,25 @@ export function renderClosureReport(report: ClosureReport): string {
     subtotal,
     forUse,
     receivable,
-    ratio(gross, forUse),
-    ratio(gross, receivable),
-    ratio(gross, extrasForTest(aggregate)),
+    ratio(reportGross ?? gross, forUse),
+    ratio(reportGross ?? gross, receivable),
+    ratio(reportGross ?? gross, extrasForTest(aggregate)),
   ];
+  const linkedAdvance3333 = report.entries.filter(
+    (entry) =>
+      entry.tipo_despesa === 'Adiantamento' &&
+      String(entry.codigo_despesa ?? '').trim() === '3333' &&
+      entry.manifesto_id != null &&
+      ids.has(entry.manifesto_id),
+  );
+  const totalAdiantamento3333 = linkedAdvance3333.reduce(
+    (total, entry) => total.plus(String(entry.valor ?? 0)),
+    new Decimal(0),
+  );
+  const ctrbSubtotal = aggregate.valor_liquido;
+  const ctrbFinal =
+    ctrbSubtotal != null ? ctrbSubtotal.minus(totalAdiantamento3333) : null;
+  const firstPayer = report.payment?.primeira?.empresa ?? 'Não cadastrada';
   const owner = `${h.beneficiario?.nome ?? 'Não registrado'}${report.payment?.primeira?.empresa ? ` - ${report.payment.primeira.empresa}` : ''}`;
   const warnings = `${report.origem === 'PREVIA' ? '<p>PRÉVIA — NÃO FINALIZADO. Conferência provisória.</p>' : report.origem !== 'FINALIZACAO' ? '<p>Fechamento legado: sem cópia original da finalização; dados dos vínculos atuais ou do cancelamento.</p>' : ''}${h.status && h.status !== 'FINALIZADO' && report.origem !== 'PREVIA' ? `<p>${escape(h.status)}</p>` : ''}${h.cancelamento ? `<p>Cancelado em ${escape(date(h.cancelamento.em))}. Usuário: ${escape(h.cancelamento.usuario?.cod)}. Motivo: ${escape(h.cancelamento.motivo)}</p>` : ''}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(report.titulo)}</title><style>
@@ -351,7 +399,7 @@ ${
             : []),
           row([
             cell(date(m.semana)),
-            cell(m.manifestos),
+            cell(manifestLabel(m)),
             cell(m.motorista),
             cell(m.hora?.replace(/^(\d{2})(\d{2})$/, '$1:$2').slice(0, 5)),
             cell(m.qtd_nf),
@@ -369,7 +417,7 @@ ${
           ]),
         ],
         'manifest-heading',
-      )}</div>${entries(linked.filter((e) => e.tipo_despesa !== 'Adiantamento'))}${extras(m)}${paired([...freight.map((x) => x[0]), 'PERCENT', '% TEST'], [...freight.map((x) => moneyOrDash(m[x[1]])), percent(m.percentual_antigo), percent(ratio(m.frt_tl_vlc, extrasForTest(m)))])}${ctrb(m)}${entries(
+      )}</div>${entries(linked.filter((e) => e.tipo_despesa === 'Credito'))}${extras(m)}${paired([...freight.map((x) => x[0]), 'PERCENT', '% TEST'], [...freight.map((x) => moneyOrDash(m[x[1]])), percent(m.percentual_antigo), percent(ratio(m.frt_tl_vlc, extrasForTest(m)))])}${ctrb(m)}${entries(
         linked.filter((e) => e.tipo_despesa === 'Adiantamento'),
         true,
       )}</div>`;
@@ -377,23 +425,40 @@ ${
     .join('') || '<p>Nenhum manifesto.</p>'
 }
 ${
-  unlinked.length
-    ? `<h2>LANÇAMENTOS AVULSOS / SEM MANIFESTO NESTE RELATÓRIO</h2>${entries(unlinked.filter((e) => e.tipo_despesa !== 'Adiantamento'))}${entries(
-        unlinked.filter((e) => e.tipo_despesa === 'Adiantamento'),
+  bottomEntries.length || bottomAdvances.length
+    ? `<h2>DEBITOS E LANCAMENTOS AVULSOS / SEM MANIFESTO</h2>${entries(bottomEntries)}${entries(
+        bottomAdvances,
         true,
       )}`
     : ''
 }
 ${report.coupons.length ? `<h2>CUPONS</h2>${table(report.coupons.map((c) => row([cell(c.id), cell(date(c.data_cobranca)), cell(`Nota (ID): ${c.nota_id}`), cell(c.descricao, 4), cell(`−${money(c.valor)}`, 1, true)])))}` : ''}
-<div class="summary">${table([row([cell('T Bruto:'), cell(moneyOrDash(gross)), cell('T CTRB:'), cell(moneyOrDash(report.totals.total_ctrb)), cell('T Vales:'), cell(moneyOrDash(deductions)), cell('Líquido:'), cell(moneyOrDash(net), 1, true)])])}
+<div class="summary">${table([row([cell('T Bruto:'), cell(moneyOrDash(reportGross)), cell('T CTRB:'), cell(moneyOrDash(totalCtrb)), cell('T Vales:'), cell(moneyOrDash(deductions)), cell('Saldo:'), cell(moneyOrDash(reportSaldo), 1, true)])])}
 ${table(
-  payments.map((p) =>
+  [
     row([
       cell('', 6),
-      cell(p.empresa ?? 'Não cadastrada'),
-      cell(money(p.valor), 1, true),
+      cell(firstPayer),
+      cell(moneyOrDash(reportSaldo), 1, true),
     ]),
-  ),
+    row([
+      cell('', 6),
+      cell('SUBTOTAL CTRB'),
+      cell(moneyOrDash(ctrbSubtotal), 1, true),
+    ]),
+    ...linkedAdvance3333.map((entry) =>
+      row([
+        cell('', 6),
+        cell(entry.numero ?? '3333'),
+        cell(`−${money(entry.valor)}`, 1, true),
+      ]),
+    ),
+    row([
+      cell('', 6),
+      cell('TOTAL CTRB'),
+      cell(moneyOrDash(ctrbFinal), 1, true),
+    ]),
+  ],
   'company',
 )}
 ${extras(aggregate)}
@@ -420,5 +485,5 @@ ${table(
   ),
   'indicators',
 )}</div>
-<div class="notes">Fechamento: ${escape(h.numero ?? 'Prévia')}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} Documento de conferência; não comprova transferência. Líquido conforme fechamento, sem novo desconto de CTRB/adiantamentos. “—”: informação não registrada no histórico.</div></body></html>`;
+<div class="notes">Fechamento: ${escape(h.numero ?? 'Prévia')}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} Documento de conferência; não comprova transferência. Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
 }

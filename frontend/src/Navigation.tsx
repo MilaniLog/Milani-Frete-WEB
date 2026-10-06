@@ -26,11 +26,13 @@ export default function Navigation({
   page,
   navigate,
   logout,
+  title,
 }: {
   session: Session;
   page: Page;
   navigate: (page: Page) => void;
   logout: () => void;
+  title?: string;
 }) {
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -77,6 +79,7 @@ export default function Navigation({
           height="70"
         />
       </a>
+      <strong className="app-page-title">{title ?? ""}</strong>
       <div
         className="menu-disclosure"
         ref={container}

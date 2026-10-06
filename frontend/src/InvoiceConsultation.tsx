@@ -1,6 +1,6 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
 import SortableTable from "./SortableTable";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import DriverSelect from "./DriverSelect";
 
@@ -39,6 +39,11 @@ export default function InvoiceConsultation({
   isAdmin: boolean;
   expired: () => void;
 }) {
+  const noteFormRef = useRef<HTMLElement | null>(null);
+  const selectedRef = useRef<HTMLElement | null>(null);
+  const couponFormRef = useRef<HTMLFormElement | null>(null);
+  const typeFormRef = useRef<HTMLFormElement | null>(null);
+  const deleteRef = useRef<HTMLDivElement | null>(null);
   const [notes, setNotes] = useState<Note[]>([]),
     [types, setTypes] = useState<NoteType[]>([]);
   const [selected, setSelected] = useState<Note | null>(null),
@@ -74,6 +79,41 @@ export default function InvoiceConsultation({
   useEffect(() => {
     void refresh();
   }, [token]);
+  useEffect(() => {
+    if (!form) return;
+    window.setTimeout(
+      () => noteFormRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [form]);
+  useEffect(() => {
+    if (!selected) return;
+    window.setTimeout(
+      () => selectedRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [selected]);
+  useEffect(() => {
+    if (!couponForm) return;
+    window.setTimeout(
+      () => couponFormRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [couponForm]);
+  useEffect(() => {
+    if (!editingType) return;
+    window.setTimeout(
+      () => typeFormRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [editingType]);
+  useEffect(() => {
+    if (!deleting) return;
+    window.setTimeout(
+      () => deleteRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [deleting]);
   async function detail(id: number) {
     setBusy(true);
     setError("");
@@ -187,16 +227,6 @@ export default function InvoiceConsultation({
     editing = !!form || !!couponForm || !!deleting || !!editingType;
   return (
     <div className="content invoice-consultation">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">CONTROLE FINANCEIRO</p>
-          <h2>Consulta de notas e cupons</h2>
-          <p className="muted">
-            Distribua o valor das notas por veículo e semana, acompanhando o
-            saldo disponível.
-          </p>
-        </div>
-      </div>
       {error && (
         <p className="alert" role="alert">
           {error}
@@ -250,6 +280,7 @@ export default function InvoiceConsultation({
           </SortableTable>
         </div>
         <form
+          ref={typeFormRef}
           key={editingType?.id ?? "new-type"}
           onSubmit={(e) => {
             e.preventDefault();
@@ -314,7 +345,7 @@ export default function InvoiceConsultation({
         </form>
       </details>
       {form && (
-        <section className="panel reference-form">
+        <section ref={noteFormRef} className="panel reference-form">
           <h2>{n ? `Editar nota ${n.numero}` : "Nova nota"}</h2>
           <form
             key={n?.id ?? "new"}
@@ -478,7 +509,7 @@ export default function InvoiceConsultation({
         )}
       </section>
       {selected && (
-        <section className="panel reference-form">
+        <section ref={selectedRef} className="panel reference-form">
           <h2>Nota {selected.numero}</h2>
           <p>
             Valor: {money(selected.valor)} · Saldo disponível:{" "}
@@ -578,6 +609,7 @@ export default function InvoiceConsultation({
           </button>
           {couponForm && (
             <form
+              ref={couponFormRef}
               key={c?.id ?? "new"}
               onSubmit={saveCoupon}
               className="legacy-form"
@@ -667,7 +699,7 @@ export default function InvoiceConsultation({
             </form>
           )}
           {deleting && (
-            <div className="alert">
+            <div ref={deleteRef} className="alert">
               <p>
                 {deleting === "note"
                   ? `Excluir a nota ${selected.numero} e todos os seus cupons abertos?`

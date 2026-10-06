@@ -31,7 +31,7 @@ try{
  assert.equal('empresa_sigla' in writes.at(-1),false);
  await page.getByLabel('Buscar motorista pelo nome').fill('joao');await page.getByRole('cell',{name:'João teste',exact:true}).waitFor();
  await nav('Veículos');await page.getByRole('button',{name:'+ Novo veículo'}).click();
- await page.getByLabel('Placa',{exact:true}).fill('ABC1234');await page.getByLabel('Tipo de veículo').selectOption('1');await page.getByLabel('Proprietário',{exact:true}).fill('Proprietário teste');await page.getByLabel('CPF/CNPJ do proprietário').fill('11222333000181');await page.getByLabel('Empresa',{exact:true}).selectOption('AZN');
+ await page.getByLabel('Placa',{exact:true}).fill('ABC1234');await page.locator('select[name="codVehicleType"]').selectOption('1');await page.getByLabel('Proprietário',{exact:true}).fill('Proprietário teste');await page.getByRole('textbox',{name:'CPF/CNPJ do proprietário',exact:true}).fill('11222333000181');await page.getByLabel('Empresa',{exact:true}).selectOption('AZN');
  await mkdir('artifacts/registrations',{recursive:true});await page.screenshot({path:'artifacts/registrations/veiculo.png',fullPage:true});
  await page.getByRole('button',{name:'Salvar cadastro'}).click();await page.getByRole('status').filter({hasText:'Cadastro salvo'}).waitFor();
  assert.equal(writes.at(-1).owner,'11222333000181');assert.equal(writes.at(-1).empresa_sigla,'AZN');assert.equal('second_payer_percent' in writes.at(-1),false);assert.deepEqual(errors,[]);

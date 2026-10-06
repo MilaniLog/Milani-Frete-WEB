@@ -17,20 +17,13 @@ export default function Invoices(props: {
   }
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">CONTROLE FINANCEIRO</p>
-          <h1>Notas e cupons</h1>
-          <p className="muted">
-            Preencha a nota e o cupom no mesmo formulário.
-          </p>
-        </div>
-        {consulting && (
+      {consulting && (
+        <div className="page-actions">
           <button type="button" className="primary" onClick={() => showConsultation(false)}>
             Voltar aos lançamentos
           </button>
-        )}
-      </div>
+        </div>
+      )}
       <div hidden={consulting}>
         <InvoiceLaunchForm {...props} catalogRevision={catalogRevision} saved={() => setRevision((v) => v + 1)} />
       </div>

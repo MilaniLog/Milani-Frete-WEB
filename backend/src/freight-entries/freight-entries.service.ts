@@ -14,7 +14,7 @@ import { EntryDto } from './dto/entry.dto';
 import { StandaloneEntryDto } from './dto/standalone-entry.dto';
 import { ExpenseDto } from './dto/expense.dto';
 import { companyExpenses } from './company-expenses';
-import { assertPeriodWritable, getWeek } from '../weeks/period-policy';
+import { getWeek, periodForDate } from '../weeks/period-policy';
 
 type Change =
   | { kind: 'create'; dto: EntryDto }
@@ -78,11 +78,9 @@ export class FreightEntriesService {
               throw new ConflictException(
                 'Lançamento sem placa. Revise o cadastro antes de excluir.',
               );
-            await assertPeriodWritable(
+            await periodForDate(
               tx,
               entry.data_lancamento,
-              entry.placa,
-              user,
               entry.semana ?? undefined,
             );
             await tx.frete_lancamentos.delete({
@@ -157,11 +155,9 @@ export class FreightEntriesService {
                 throw new ConflictException(
                   'Lançamento pago ou fechado não pode ser alterado.',
                 );
-              await assertPeriodWritable(
+              await periodForDate(
                 tx,
                 existing.data_lancamento,
-                existing.placa ?? dto.placa,
-                user,
                 existing.semana ?? undefined,
               );
             }
@@ -192,11 +188,9 @@ export class FreightEntriesService {
                 'Despesa não encontrada ou inativa nesta unidade.',
               );
             const date = new Date(`${dto.data_lancamento}T00:00:00.000Z`);
-            const week = await assertPeriodWritable(
+            const week = await periodForDate(
               tx,
               date,
-              dto.placa,
-              user,
               dto.semana,
             );
             const last = existing
@@ -331,18 +325,15 @@ export class FreightEntriesService {
                 'A placa não corresponde ao manifesto.',
               );
             if (
-              manifest.fechamento_id != null ||
-              manifest.num_fechamento != null
+              manifest.fechamento_id != null
             ) {
               throw new ConflictException(
                 'Manifesto fechado não permite alterar lançamentos.',
               );
             }
-            await assertPeriodWritable(
+            await periodForDate(
               tx,
               manifest.semana,
-              manifest.placa,
-              user,
             );
             if (change.kind !== 'create') {
               const entry = await tx.frete_lancamentos.findFirst({
@@ -360,11 +351,9 @@ export class FreightEntriesService {
                 throw new ConflictException(
                   'Lançamento pago ou fechado não pode ser alterado.',
                 );
-              await assertPeriodWritable(
+              await periodForDate(
                 tx,
                 entry.data_lancamento,
-                entry.placa ?? manifest.placa,
-                user,
                 entry.semana ?? undefined,
               );
             }
@@ -394,11 +383,9 @@ export class FreightEntriesService {
               const entryDate = new Date(
                 `${change.dto.data_lancamento}T00:00:00.000Z`,
               );
-              const week = await assertPeriodWritable(
+              const week = await periodForDate(
                 tx,
                 entryDate,
-                manifest.placa,
-                user,
                 change.dto.semana,
               );
               const data = {

@@ -1,5 +1,5 @@
 import SortableTable from "./SortableTable";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { EntryWeek } from "./FreightEntries";
 
@@ -63,6 +63,8 @@ export default function ManifestEntries({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const entryFormRef = useRef<HTMLFormElement | null>(null);
+  const removeRef = useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = useState<Entry | "new" | null>(null);
   const [removing, setRemoving] = useState<Entry | null>(null);
   const base = `/manifests/${manifestId}/entries`;
@@ -98,6 +100,20 @@ export default function ManifestEntries({
       setStarted(true);
     }
   }, [startCreating, started, loading, error, locked, expenses.length, date]);
+  useEffect(() => {
+    if (!editing) return;
+    window.setTimeout(
+      () => entryFormRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [editing]);
+  useEffect(() => {
+    if (!removing) return;
+    window.setTimeout(
+      () => removeRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [removing]);
   async function mutate(method: string, id?: number, payload?: unknown) {
     if (busy) return;
     setBusy(true);
@@ -279,7 +295,7 @@ export default function ManifestEntries({
         </>
       )}
       {removing && (
-        <div className="alert">
+        <div ref={removeRef} className="alert">
           <p>
             Excluir o lançamento {removing.numero}, de{" "}
             {currency(removing.valor)}? O manifesto será recalculado. Esta ação
@@ -305,6 +321,7 @@ export default function ManifestEntries({
       )}
       {editing && (
         <form
+          ref={entryFormRef}
           className="launch-form"
           key={current?.id ?? "new"}
           onSubmit={save}

@@ -1,6 +1,6 @@
 import { normalizeWeek } from "./field-formats";
 import SortableTable from "./SortableTable";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 
 type Week = { codigo: string; data_inicio: string; data_fim: string };
@@ -31,6 +31,7 @@ export default function ReferenceData({
   const path = weeks ? "/weeks" : "/freight-expenses";
   const canEdit = isAdmin;
   const [rows, setRows] = useState<Row[]>([]);
+  const formRef = useRef<HTMLElement | null>(null);
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -55,6 +56,13 @@ export default function ReferenceData({
   useEffect(() => {
     if (!weeks || isAdmin) void load();
   }, [path, token, canEdit]);
+  useEffect(() => {
+    if (!editing) return;
+    window.setTimeout(
+      () => formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [editing]);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !canEdit) return;
@@ -118,15 +126,6 @@ export default function ReferenceData({
   return (
     <div className="content">
       <div className="page-heading">
-        <div>
-          <p className="eyebrow">CADASTROS</p>
-          <h1>{weeks ? "Semanas" : "Despesas"}</h1>
-          <p className="muted">
-            {weeks
-              ? "Organize os períodos usados pelos manifestos e lançamentos."
-              : "Configure os créditos, débitos e adiantamentos da sua unidade."}
-          </p>
-        </div>
         {canEdit && (
           <button
             className="primary"
@@ -161,7 +160,7 @@ export default function ReferenceData({
       )}
       {!weeks && !isAdmin && <p className="muted">Somente administradores podem incluir, editar ou desativar despesas. As despesas ativas continuam disponíveis nos lançamentos.</p>}
       {editing && (
-        <section className="panel reference-form">
+        <section ref={formRef} className="panel reference-form">
           <h2>{current ? "Editar cadastro" : "Novo cadastro"}</h2>
           <form
             key={current?.codigo ?? "new"}

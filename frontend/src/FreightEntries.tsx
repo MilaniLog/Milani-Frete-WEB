@@ -1,4 +1,5 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
+import { comparableManifestNumber, formatManifestNumber } from "./manifest-number";
 import SearchableSelect from "./SearchableSelect";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
@@ -154,13 +155,13 @@ export default function FreightEntries({
   async function lookup() {
     if (editMode) return;
     const text = number.trim();
-    if (!text || manifest?.manifestos === text) return;
+    if (!text || (manifest?.manifestos && comparableManifestNumber(manifest.manifestos) === comparableManifestNumber(text))) return;
     const request = ++sequence.current;
     setSearching(true);
     setError("");
     try {
       const rows = await api<Manifest[]>(
-        `/manifests?number=${encodeURIComponent(text)}`,
+        `/manifests?number=${encodeURIComponent(formatManifestNumber(text) ?? text)}`,
         token,
       );
       if (request !== sequence.current) return;
@@ -287,7 +288,7 @@ export default function FreightEntries({
     }
     setError("");
     setSuccess("");
-    if (number.trim() && manifest?.manifestos !== number.trim()) {
+    if (number.trim() && (!manifest?.manifestos || comparableManifestNumber(manifest.manifestos) !== comparableManifestNumber(number.trim()))) {
       setError("Confira o manifesto antes de salvar ou deixe o campo vazio.");
       return;
     }

@@ -100,9 +100,24 @@ export class ReportsService {
               ),
             },
           },
-          select: { id: true, manifestos: true },
+          select: {
+            id: true,
+            manifestos: true,
+            manifesto_adicional_1: true,
+            manifesto_adicional_2: true,
+            manifesto_adicional_3: true,
+          },
         });
-        const numbers = new Map(manifests.map((m) => [m.id, m.manifestos]));
+        const manifestLabel = (m: (typeof manifests)[number]) =>
+          [
+            m.manifestos,
+            m.manifesto_adicional_1,
+            m.manifesto_adicional_2,
+            m.manifesto_adicional_3,
+          ]
+            .filter(Boolean)
+            .join(' / ');
+        const numbers = new Map(manifests.map((m) => [m.id, manifestLabel(m)]));
         const records = [
           ...entries.map((e) => ({
             origin: 'Lançamento',

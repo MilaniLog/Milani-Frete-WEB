@@ -136,6 +136,9 @@ export type Frete_carregamento_manifestosMinAggregateOutputType = {
   origem: string | null
   semana: Date | null
   manifestos: string | null
+  manifesto_adicional_1: string | null
+  manifesto_adicional_2: string | null
+  manifesto_adicional_3: string | null
   hora: string | null
   placa: string | null
   motorista: string | null
@@ -206,6 +209,9 @@ export type Frete_carregamento_manifestosMaxAggregateOutputType = {
   origem: string | null
   semana: Date | null
   manifestos: string | null
+  manifesto_adicional_1: string | null
+  manifesto_adicional_2: string | null
+  manifesto_adicional_3: string | null
   hora: string | null
   placa: string | null
   motorista: string | null
@@ -276,6 +282,9 @@ export type Frete_carregamento_manifestosCountAggregateOutputType = {
   origem: number
   semana: number
   manifestos: number
+  manifesto_adicional_1: number
+  manifesto_adicional_2: number
+  manifesto_adicional_3: number
   hora: number
   placa: number
   motorista: number
@@ -452,6 +461,9 @@ export type Frete_carregamento_manifestosMinAggregateInputType = {
   origem?: true
   semana?: true
   manifestos?: true
+  manifesto_adicional_1?: true
+  manifesto_adicional_2?: true
+  manifesto_adicional_3?: true
   hora?: true
   placa?: true
   motorista?: true
@@ -522,6 +534,9 @@ export type Frete_carregamento_manifestosMaxAggregateInputType = {
   origem?: true
   semana?: true
   manifestos?: true
+  manifesto_adicional_1?: true
+  manifesto_adicional_2?: true
+  manifesto_adicional_3?: true
   hora?: true
   placa?: true
   motorista?: true
@@ -592,6 +607,9 @@ export type Frete_carregamento_manifestosCountAggregateInputType = {
   origem?: true
   semana?: true
   manifestos?: true
+  manifesto_adicional_1?: true
+  manifesto_adicional_2?: true
+  manifesto_adicional_3?: true
   hora?: true
   placa?: true
   motorista?: true
@@ -749,6 +767,9 @@ export type Frete_carregamento_manifestosGroupByOutputType = {
   origem: string
   semana: Date
   manifestos: string
+  manifesto_adicional_1: string | null
+  manifesto_adicional_2: string | null
+  manifesto_adicional_3: string | null
   hora: string
   placa: string
   motorista: string
@@ -842,6 +863,9 @@ export type frete_carregamento_manifestosWhereInput = {
   origem?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   semana?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
   manifestos?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
+  manifesto_adicional_1?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_2?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_3?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
   hora?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   placa?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   motorista?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
@@ -912,6 +936,9 @@ export type frete_carregamento_manifestosOrderByWithRelationInput = {
   origem?: Prisma.SortOrder
   semana?: Prisma.SortOrder
   manifestos?: Prisma.SortOrder
+  manifesto_adicional_1?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_adicional_2?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_adicional_3?: Prisma.SortOrderInput | Prisma.SortOrder
   hora?: Prisma.SortOrder
   placa?: Prisma.SortOrder
   motorista?: Prisma.SortOrder
@@ -986,6 +1013,9 @@ export type frete_carregamento_manifestosWhereUniqueInput = Prisma.AtLeast<{
   origem?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   semana?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
   manifestos?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
+  manifesto_adicional_1?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_2?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_3?: Prisma.StringNullableFilter<"frete_carregamento_manifestos"> | string | null
   hora?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   placa?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
   motorista?: Prisma.StringFilter<"frete_carregamento_manifestos"> | string
@@ -1056,6 +1086,9 @@ export type frete_carregamento_manifestosOrderByWithAggregationInput = {
   origem?: Prisma.SortOrder
   semana?: Prisma.SortOrder
   manifestos?: Prisma.SortOrder
+  manifesto_adicional_1?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_adicional_2?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_adicional_3?: Prisma.SortOrderInput | Prisma.SortOrder
   hora?: Prisma.SortOrder
   placa?: Prisma.SortOrder
   motorista?: Prisma.SortOrder
@@ -1134,6 +1167,9 @@ export type frete_carregamento_manifestosScalarWhereWithAggregatesInput = {
   origem?: Prisma.StringWithAggregatesFilter<"frete_carregamento_manifestos"> | string
   semana?: Prisma.DateTimeWithAggregatesFilter<"frete_carregamento_manifestos"> | Date | string
   manifestos?: Prisma.StringWithAggregatesFilter<"frete_carregamento_manifestos"> | string
+  manifesto_adicional_1?: Prisma.StringNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_2?: Prisma.StringNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | string | null
+  manifesto_adicional_3?: Prisma.StringNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | string | null
   hora?: Prisma.StringWithAggregatesFilter<"frete_carregamento_manifestos"> | string
   placa?: Prisma.StringWithAggregatesFilter<"frete_carregamento_manifestos"> | string
   motorista?: Prisma.StringWithAggregatesFilter<"frete_carregamento_manifestos"> | string
@@ -1203,6 +1239,9 @@ export type frete_carregamento_manifestosCreateInput = {
   origem?: string
   semana: Date | string
   manifestos: string
+  manifesto_adicional_1?: string | null
+  manifesto_adicional_2?: string | null
+  manifesto_adicional_3?: string | null
   hora: string
   placa: string
   motorista: string
@@ -1273,6 +1312,9 @@ export type frete_carregamento_manifestosUncheckedCreateInput = {
   origem?: string
   semana: Date | string
   manifestos: string
+  manifesto_adicional_1?: string | null
+  manifesto_adicional_2?: string | null
+  manifesto_adicional_3?: string | null
   hora: string
   placa: string
   motorista: string
@@ -1342,6 +1384,9 @@ export type frete_carregamento_manifestosUpdateInput = {
   origem?: Prisma.StringFieldUpdateOperationsInput | string
   semana?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   manifestos?: Prisma.StringFieldUpdateOperationsInput | string
+  manifesto_adicional_1?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hora?: Prisma.StringFieldUpdateOperationsInput | string
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1412,6 +1457,9 @@ export type frete_carregamento_manifestosUncheckedUpdateInput = {
   origem?: Prisma.StringFieldUpdateOperationsInput | string
   semana?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   manifestos?: Prisma.StringFieldUpdateOperationsInput | string
+  manifesto_adicional_1?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hora?: Prisma.StringFieldUpdateOperationsInput | string
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1482,6 +1530,9 @@ export type frete_carregamento_manifestosCreateManyInput = {
   origem?: string
   semana: Date | string
   manifestos: string
+  manifesto_adicional_1?: string | null
+  manifesto_adicional_2?: string | null
+  manifesto_adicional_3?: string | null
   hora: string
   placa: string
   motorista: string
@@ -1551,6 +1602,9 @@ export type frete_carregamento_manifestosUpdateManyMutationInput = {
   origem?: Prisma.StringFieldUpdateOperationsInput | string
   semana?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   manifestos?: Prisma.StringFieldUpdateOperationsInput | string
+  manifesto_adicional_1?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hora?: Prisma.StringFieldUpdateOperationsInput | string
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1621,6 +1675,9 @@ export type frete_carregamento_manifestosUncheckedUpdateManyInput = {
   origem?: Prisma.StringFieldUpdateOperationsInput | string
   semana?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   manifestos?: Prisma.StringFieldUpdateOperationsInput | string
+  manifesto_adicional_1?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_2?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manifesto_adicional_3?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hora?: Prisma.StringFieldUpdateOperationsInput | string
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1697,6 +1754,9 @@ export type frete_carregamento_manifestosCountOrderByAggregateInput = {
   origem?: Prisma.SortOrder
   semana?: Prisma.SortOrder
   manifestos?: Prisma.SortOrder
+  manifesto_adicional_1?: Prisma.SortOrder
+  manifesto_adicional_2?: Prisma.SortOrder
+  manifesto_adicional_3?: Prisma.SortOrder
   hora?: Prisma.SortOrder
   placa?: Prisma.SortOrder
   motorista?: Prisma.SortOrder
@@ -1819,6 +1879,9 @@ export type frete_carregamento_manifestosMaxOrderByAggregateInput = {
   origem?: Prisma.SortOrder
   semana?: Prisma.SortOrder
   manifestos?: Prisma.SortOrder
+  manifesto_adicional_1?: Prisma.SortOrder
+  manifesto_adicional_2?: Prisma.SortOrder
+  manifesto_adicional_3?: Prisma.SortOrder
   hora?: Prisma.SortOrder
   placa?: Prisma.SortOrder
   motorista?: Prisma.SortOrder
@@ -1889,6 +1952,9 @@ export type frete_carregamento_manifestosMinOrderByAggregateInput = {
   origem?: Prisma.SortOrder
   semana?: Prisma.SortOrder
   manifestos?: Prisma.SortOrder
+  manifesto_adicional_1?: Prisma.SortOrder
+  manifesto_adicional_2?: Prisma.SortOrder
+  manifesto_adicional_3?: Prisma.SortOrder
   hora?: Prisma.SortOrder
   placa?: Prisma.SortOrder
   motorista?: Prisma.SortOrder
@@ -2021,6 +2087,9 @@ export type frete_carregamento_manifestosSelect<ExtArgs extends runtime.Types.Ex
   origem?: boolean
   semana?: boolean
   manifestos?: boolean
+  manifesto_adicional_1?: boolean
+  manifesto_adicional_2?: boolean
+  manifesto_adicional_3?: boolean
   hora?: boolean
   placa?: boolean
   motorista?: boolean
@@ -2093,6 +2162,9 @@ export type frete_carregamento_manifestosSelectScalar = {
   origem?: boolean
   semana?: boolean
   manifestos?: boolean
+  manifesto_adicional_1?: boolean
+  manifesto_adicional_2?: boolean
+  manifesto_adicional_3?: boolean
   hora?: boolean
   placa?: boolean
   motorista?: boolean
@@ -2157,7 +2229,7 @@ export type frete_carregamento_manifestosSelectScalar = {
   updated_at?: boolean
 }
 
-export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
+export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "manifesto_adicional_1" | "manifesto_adicional_2" | "manifesto_adicional_3" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
 
 export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_carregamento_manifestos"
@@ -2168,6 +2240,9 @@ export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.
     origem: string
     semana: Date
     manifestos: string
+    manifesto_adicional_1: string | null
+    manifesto_adicional_2: string | null
+    manifesto_adicional_3: string | null
     hora: string
     placa: string
     motorista: string
@@ -2604,6 +2679,9 @@ export interface frete_carregamento_manifestosFieldRefs {
   readonly origem: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
   readonly semana: Prisma.FieldRef<"frete_carregamento_manifestos", 'DateTime'>
   readonly manifestos: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
+  readonly manifesto_adicional_1: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
+  readonly manifesto_adicional_2: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
+  readonly manifesto_adicional_3: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
   readonly hora: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
   readonly placa: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>
   readonly motorista: Prisma.FieldRef<"frete_carregamento_manifestos", 'String'>

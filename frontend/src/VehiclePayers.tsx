@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 type Vehicle = {
   plate: string;
@@ -16,6 +16,7 @@ export default function VehiclePayers({
   isAdmin: boolean;
   expired: () => void;
 }) {
+  const vehicleRef = useRef<HTMLElement | null>(null);
   const [plate, setPlate] = useState(""),
     [vehicle, setVehicle] = useState<Vehicle | null>(null),
     [first, setFirst] = useState(""),
@@ -28,6 +29,13 @@ export default function VehiclePayers({
     if (e instanceof ApiError && e.status === 401) expired();
     else setError((e as Error).message);
   }
+  useEffect(() => {
+    if (!vehicle) return;
+    window.setTimeout(
+      () => vehicleRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [vehicle]);
   function show(v: Vehicle) {
     setVehicle(v);
     setFirst(v.first_payer ?? "");
@@ -102,15 +110,6 @@ export default function VehiclePayers({
   }
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">CADASTRO DE VEÍCULOS</p>
-          <h1>Empresas pagadoras</h1>
-          <p className="muted">
-            Consulte a configuração de pagamento por placa.
-          </p>
-        </div>
-      </div>
       {error && (
         <p role="alert" className="alert">
           {error}
@@ -146,7 +145,7 @@ export default function VehiclePayers({
         </form>
       </section>
       {vehicle && (
-        <section className="panel reference-form">
+        <section ref={vehicleRef} className="panel reference-form">
           <h2>
             {vehicle.plate} · {vehicle.vehicleType?.typeName}
           </h2>

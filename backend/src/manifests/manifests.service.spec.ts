@@ -34,7 +34,15 @@ describe('Manutenção de manifestos', () => {
     );
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { unit: 301, manifestos: '301000123-4' },
+        where: {
+          unit: 301,
+          OR: [
+            { manifestos: '301000123-4' },
+            { manifesto_adicional_1: '301000123-4' },
+            { manifesto_adicional_2: '301000123-4' },
+            { manifesto_adicional_3: '301000123-4' },
+          ],
+        },
         take: 50,
       }),
     );
@@ -198,7 +206,16 @@ describe('Manutenção de manifestos', () => {
     });
     expect(db.frete_carregamento_manifestos.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { unit: 101, manifestos: dto.manifestos, id: { not: 1 } },
+        where: expect.objectContaining({
+          unit: 101,
+          id: { not: 1 },
+          OR: [
+            { manifestos: { in: [dto.manifestos] } },
+            { manifesto_adicional_1: { in: [dto.manifestos] } },
+            { manifesto_adicional_2: { in: [dto.manifestos] } },
+            { manifesto_adicional_3: { in: [dto.manifestos] } },
+          ],
+        }),
       }),
     );
     expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
@@ -239,7 +256,7 @@ describe('Manutenção de manifestos', () => {
     );
   });
 
-  it.each(['fechamento_id', 'num_fechamento'])(
+  it.each(['fechamento_id'])(
     'bloqueia edição e exclusão com %s',
     async (field) => {
       manifest[field] = 1;
@@ -252,6 +269,16 @@ describe('Manutenção de manifestos', () => {
       expect(db.frete_lancamentos.deleteMany).not.toHaveBeenCalled();
     },
   );
+
+  it('permite editar e excluir manifesto numerado mas ainda aberto', async () => {
+    manifest.num_fechamento = 26390001;
+    await expect(service.update(1, dto, user)).resolves.toMatchObject({
+      num_fechamento: 26390001,
+    });
+    await expect(service.remove(1, user)).resolves.toMatchObject({
+      deleted: true,
+    });
+  });
 
   it.each(['pago', 'fechamento_id', 'unit'])(
     'bloqueia quando lançamento possui %s incompatível',

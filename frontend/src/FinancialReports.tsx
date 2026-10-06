@@ -1,6 +1,6 @@
 import { formatDocument, normalizePlate, normalizeWeek } from "./field-formats";
 import SortableTable from "./SortableTable";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { downloadReport } from "./report-download";
 type Report = {
@@ -27,6 +27,7 @@ export default function FinancialReports({
   const payments = kind === "payments";
   const endpoint = payments ? "payments" : "financial";
   const filename = payments ? "pagamentos" : kind === "coupons" ? "cupons" : "lancamentos";
+  const reportRef = useRef<HTMLElement | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]),
     [vehicles, setVehicles] = useState<{ plate: string; codVehicleType: number }[]>([]),
     [types, setTypes] = useState<{ codVehicleType: number; typeName: string }[]>([]),
@@ -81,6 +82,13 @@ export default function FinancialReports({
       active = false;
     };
   }, [token, kind]);
+  useEffect(() => {
+    if (!report) return;
+    window.setTimeout(
+      () => reportRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+      0,
+    );
+  }, [report]);
   function change(key: keyof typeof form, value: string | boolean) {
     setForm((f) => ({
       ...f,
@@ -160,16 +168,6 @@ export default function FinancialReports({
   const company = companies.find((c) => c.sigla === form.empresa);
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">RELATÓRIOS</p>
-          <h1>
-            {payments
-              ? "Planilha de pagamentos"
-              : kind === "coupons" ? "Relatório de cupons" : "Relatório de lançamentos"}
-          </h1>
-        </div>
-      </div>
       {error && (
         <p role="alert" className="alert">
           {error}
@@ -263,7 +261,7 @@ export default function FinancialReports({
         </form>
       </section>
       {report && (
-        <section className="panel report-results">
+        <section ref={reportRef} className="panel report-results">
           <h2>{report.title}</h2>
           {report.notes.map((n, i) => (
             <p className="muted" key={i}>

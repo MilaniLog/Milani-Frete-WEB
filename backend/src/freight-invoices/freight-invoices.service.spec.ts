@@ -303,11 +303,13 @@ describe('Notas e cupons financeiros', () => {
     ).rejects.toBeInstanceOf(ConflictException);
     expect(coupons).toHaveLength(1);
   });
-  it('respeita bloqueio de período da placa', async () => {
+  it('permite cupom aberto mesmo com fechamento anterior na placa', async () => {
     db.frete_fechamentos.findFirst.mockResolvedValue({ id: 1 });
     await expect(
       service.changeCoupon(1, user, { kind: 'create', dto }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).resolves.toMatchObject({
+      coupon: { placa: dto.placa },
+    });
   });
   it('repete conflito de serialização', async () => {
     db.$transaction.mockRejectedValueOnce({ code: 'P2034' });

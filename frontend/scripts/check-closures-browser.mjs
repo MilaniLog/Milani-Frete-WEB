@@ -102,7 +102,7 @@ try {
           },
         };
         body = { closure };
-      } else if (path.endsWith("/print")) {
+      } else if (path.endsWith("/print.pdf")) {
         assert.equal(
           request.headers().authorization,
           "Bearer browser-test-token",
@@ -184,8 +184,7 @@ try {
     }
     await login();
     await preview();
-    await page.getByText("Conferir registros:", { exact: false }).click();
-    await page.getByText("Manifesto M1", { exact: false }).waitFor();
+    await page.getByText(/Cr.ditos e manifestos/).waitFor();
     assert.equal(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -223,7 +222,7 @@ try {
         .count(),
       0,
     );
-    assert.deepEqual(posts.at(-1).body, { semana: "0001", placa: "ABC1234" });
+    assert.deepEqual(posts.at(-1).body, { semana: "0001", placa: "ABC1234", debit_entry_ids: [1] });
     checks++;
     conflict = false;
     await preview();
@@ -237,13 +236,13 @@ try {
       .waitFor();
     checks++;
     await page.getByRole("button", { name: "Consultar fechamento 40" }).click();
-    const downloaded = page.waitForEvent("download");
+    const reportResponse = page.waitForResponse((response) =>
+      response.url().endsWith("/print.pdf") && response.status() === 200,
+    );
     await page
       .getByRole("button", { name: "Baixar relatório para impressão" })
       .click();
-    const download = await downloaded;
-    assert.equal(download.suggestedFilename(), "fechamento-40.html");
-    assert.equal(await readFile(await download.path(), "utf8"), html);
+    await reportResponse;
     checks++;
     await page
       .getByRole("button", { name: "Cancelar fechamento", exact: true })

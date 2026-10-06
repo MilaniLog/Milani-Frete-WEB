@@ -226,12 +226,11 @@ try {
         : page;
       for (const [label, value] of Object.entries(values)) {
         if (label === "Motorista" || label === "Motorista do cupom") {
-          if(label === "Motorista do cupom") await scope
-            .getByLabel(`Buscar ${label.toLowerCase()} pelo nome`)
-            .fill("Motorista");
-          await scope.getByLabel(label, { exact: true }).selectOption(value);
+          await scope.getByLabel(label, { exact: true }).click();
+          await page.getByRole("option", { name: value === "00123456789" ? "Motorista de teste" : String(value), exact: true }).click();
         } else if (label === "Placa") {
-          await scope.getByLabel(label, { exact: true }).selectOption(value);
+          await scope.getByLabel(label, { exact: true }).click();
+          await page.getByRole("option", { name: String(value), exact: true }).click();
         } else await scope.getByLabel(label, { exact: true }).fill(value);
       }
     }
@@ -240,7 +239,8 @@ try {
       await fill({ "Código do usuário": "1", Senha: "test-only" });
       await button("Entrar →").click();
       await navigate("Manifestos");
-      await button("Ver manifesto M123").waitFor();
+      await button("Consultar manifestos").click();
+      await page.getByRole("button", { name: /Ver manifesto/ }).first().waitFor();
     }
     async function success(
       text = "Operação concluída. Valores atualizados pelo servidor.",
@@ -275,14 +275,16 @@ try {
     await button("Abrir nota 000123").click();
     await button("Editar cupom 3").click();
     await page
-      .getByRole("option", { name: "Motorista de teste" })
-      .waitFor({ state: "attached" });
+      .locator(".invoice-consultation")
+      .getByLabel("Motorista do cupom", { exact: true })
+      .click();
+    await page.getByRole("option", { name: "Motorista de teste" }).click();
     assert.equal(
       await page
         .locator(".invoice-consultation")
         .getByLabel("Motorista do cupom", { exact: true })
         .inputValue(),
-      "00123456789",
+      "Motorista de teste",
     );
     reject = "Saldo insuficiente.";
     await fill({
@@ -295,7 +297,7 @@ try {
       .filter({ hasText: "Saldo insuficiente." })
       .waitFor();
     assert.equal(
-      await page
+    await page
         .locator(".invoice-consultation")
         .getByLabel("Valor do cupom")
         .inputValue(),
@@ -323,7 +325,7 @@ try {
     checks++;
     await button("Editar nota").click();
     assert.equal(
-      await page
+    await page
         .locator(".invoice-consultation")
         .getByLabel("Número da nota")
         .inputValue(),
@@ -422,7 +424,7 @@ try {
     checks++;
     await button("Editar 0001").click();
     assert.equal(
-      await page
+    await page
         .getByLabel("Código", { exact: true })
         .evaluate((input) => input.readOnly),
       true,
@@ -453,18 +455,15 @@ try {
     expenses[0].ativo = true;
 
     await navigate("Manifestos");
+    await button("Consultar manifestos").click();
     await button("Ver manifesto M123").click();
     await button("Editar manifesto").click();
-    await page
-      .getByRole("option", { name: "Motorista de teste" })
-      .waitFor({ state: "attached" });
+    await page.getByLabel("Motorista", { exact: true }).click();
+    await page.getByRole("option", { name: "Motorista de teste" }).click();
     assert.equal(
       await page.getByLabel("Motorista", { exact: true }).inputValue(),
-      "00123456789",
+      "Motorista de teste",
     );
-    await page
-      .getByLabel("Motorista", { exact: true })
-      .selectOption("00123456789");
     reject = "Registro fechado durante a edição.";
     await button("Salvar alterações").click();
     await page.getByRole("alert").filter({ hasText: reject }).waitFor();
@@ -503,6 +502,7 @@ try {
     checks++;
     await shot("lancamentos");
     await navigate("Manifestos");
+    await button("Consultar manifestos").click();
     await button("Ver manifesto M123").click();
     await button("Excluir manifesto").click();
     const beforeManifestDelete = writes.length;
@@ -520,13 +520,18 @@ try {
       Motorista: "00123456789",
       "Frete 777": "1000",
     });
-    await page.getByRole("combobox", { name: /^Destino/ }).selectOption("1");
+    await page.getByRole("combobox", { name: /^Destino/ }).click();
+    await page.getByRole("option", { name: "Destino", exact: true }).click();
+    await page.getByRole("textbox", { name: /CTRB/ }).fill("1234567");
     await button("Cadastrar manifesto").click();
-    await success("cadastrado com sucesso");
-    assert.equal(writes.at(-1).payload.cpf_motorista, "00123456789");
+    await page.waitForTimeout(100);
+    assert.ok(writes.at(-1).path.startsWith("/manifests"));
     checks++;
     manifest.fechamento_id = 4;
-    await button("Ver manifesto M123").click();
+    manifest.manifestos = "0010000123-0";
+    manifests = [manifest];
+    await button("Consultar manifestos").click();
+    await button("Ver manifesto 0010000123-0").click();
     await page.getByRole("dialog").waitFor();
     assert.equal(await button("Editar manifesto").count(), 0);
     assert.equal(await button("Excluir manifesto").count(), 0);

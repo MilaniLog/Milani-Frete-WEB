@@ -1,3 +1,19 @@
+
+function focusPrimaryAction(field: HTMLElement) {
+  const scope = field.closest('form') ?? field.closest('[role="dialog"]') ?? field.closest('.content') ?? document.body;
+  const action = Array.from(scope.querySelectorAll<HTMLElement>('button, input[type="submit"]'))
+    .find(el =>
+      el.tabIndex >= 0 &&
+      !el.matches(':disabled, [readonly], [type="hidden"], [data-form-help]') &&
+      el.getClientRects().length > 0 &&
+      (
+        el.matches('[type="submit"], .primary') ||
+        /salvar|cadastrar|finalizar|confirmar|gerar|imprimir/i.test(el.textContent ?? '')
+      )
+    );
+  action?.focus();
+}
+
 export function focusNextField(field: HTMLElement) {
   const scope = field.closest('form') ?? field.closest('[role="dialog"]') ?? document.body;
   const controls = Array.from(scope.querySelectorAll<HTMLElement>('input, select, textarea, button'))
@@ -10,10 +26,16 @@ export function focusNextField(field: HTMLElement) {
 /** Delegation also covers forms opened later in dialogs and other pages. */
 export function installSelectAllFields(root: Document) {
   const advance = (event: KeyboardEvent) => {
-    if (event.key !== 'Enter' || event.defaultPrevented || event.isComposing || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.defaultPrevented || event.isComposing || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
     const field = event.target;
     if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
     if (field instanceof HTMLInputElement && ['submit','button','reset','file'].includes(field.type)) return;
+    if (event.key === '+' || event.code === 'NumpadAdd') {
+      event.preventDefault();
+      focusPrimaryAction(field);
+      return;
+    }
+    if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
     focusNextField(field);
   };

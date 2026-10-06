@@ -942,6 +942,7 @@ aside {
 .searchable-select{position:relative;width:100%;min-width:0}.searchable-select input{width:100%}.searchable-options{position:absolute;top:100%;left:0;right:0;z-index:100;max-height:240px;overflow-y:auto;background:white;border:1px solid #aaa;box-shadow:0 4px 10px #0002;color:#222}.searchable-options [role="option"],.searchable-options [role="status"]{padding:8px 10px;cursor:pointer}.searchable-options [role="option"]:hover,.searchable-options [aria-selected="true"]{background:#eee6fa}
 .searchable-select::after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#555}.searchable-select input{padding-right:30px}
 .manifest-number-field{display:flex;flex-direction:column;gap:6px;min-width:0}.manifest-number-parts{display:flex;gap:6px}.manifest-number-parts input:first-child{flex:0 0 64px;width:64px;text-align:center}.manifest-number-parts input:last-child{flex:1;min-width:0}
+.manifest-add-button,.manifest-remove-button{border:1px solid var(--border);background:#fff;color:var(--primary);font-weight:700;border-radius:6px;min-width:30px;height:30px;cursor:pointer}.manifest-add-button:disabled{opacity:.45;cursor:not-allowed}.manifest-number-extra .manifest-number-parts input{flex:1;min-width:0}.manifest-number-extra .manifest-number-parts input:first-child{width:auto;flex:1;text-align:left}
 .manifest-compact .legacy-group{padding:10px;margin-bottom:10px}
 .manifest-compact label{display:grid;grid-template-columns:120px minmax(0,1fr);align-items:center;font-size:12px;margin-bottom:4px;gap:6px;min-width:0}
 .manifest-compact input:not([type="checkbox"]),.manifest-compact select{min-width:0;min-height:28px;height:28px;padding:3px 6px;font-size:13px;margin:0}
@@ -961,6 +962,7 @@ aside {
 .manifest-compact .manifest-number-field{flex-direction:row;align-items:center;gap:8px;font-size:12px;margin-bottom:6px}
 .manifest-compact .manifest-number-field>span{flex-shrink:0}
 .manifest-compact .manifest-number-parts{flex:1;min-width:0}
+.manifest-compact .manifest-add-button{flex:0 0 30px}.manifest-compact .manifest-number-extra{grid-column:auto}
 .manifest-compact .muted{font-size:12px;margin:4px 0 8px}
 .manifest-compact .searchable-select input{padding-right:26px}
 @media(min-width:1000px){.manifest-compact .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.manifest-compact .legacy-manifest-header{grid-template-columns:280px 140px 190px;max-width:none}.manifest-compact .legacy-manifest-header label{grid-template-columns:auto minmax(0,1fr)}}
@@ -977,3 +979,100 @@ aside {
   .manifest-compact>fieldset>label,.manifest-compact>fieldset>button{grid-column:1/-1}
   .manifest-compact>fieldset>button{justify-self:start}
 }
+
+.closure-values-summary{margin-bottom:8px}
+.closure-payment-line{font-size:12px;margin:4px 0 8px;line-height:1.25}
+.closure-records-compact{border:1px solid #d7dde8;border-radius:10px;padding:8px;margin:8px 0;background:#fff}
+.closure-records-compact h3{font-size:14px;margin:0 0 6px}
+.closure-record-list{border-top:1px solid #e6eaf2;padding-top:5px;margin-top:5px}
+.closure-record-list:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.closure-record-title{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:3px}
+.closure-record-title span{font-weight:600;color:#28344a;white-space:nowrap}
+.closure-record-list table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.closure-record-list td{padding:2px 4px;border-bottom:1px solid #eef1f6;line-height:1.15;vertical-align:middle}
+.closure-record-list td:first-child{width:88px;color:#46556e}
+.closure-record-list td:last-child{width:120px}
+.closure-record-list .right{text-align:right;white-space:nowrap}
+.closure-record-actions{display:flex;gap:10px;margin:-2px 0 3px;font-size:12px}
+.closure-record-list input[type="checkbox"]{width:14px;height:14px;margin:0;vertical-align:middle}
+.closure-record-list .muted-row{opacity:.58}
+
+.closure-values-summary{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:4px;margin-bottom:6px}
+.closure-values-summary div{padding:4px 6px;min-height:auto}
+.closure-values-summary dt{font-size:10px;line-height:1.1;margin:0}
+.closure-values-summary dd{font-size:12px;line-height:1.15;margin:1px 0 0}
+
+.closure-record-title{font-size:13px}
+.closure-record-list table{font-size:13px}
+.closure-record-actions{font-size:13px}
+
+@media(min-width:1100px){
+  .manifest-compact>fieldset{
+    display:block;
+  }
+  .manifest-compact>fieldset>.legacy-group,
+  .manifest-compact>fieldset>.manifest-side-blocks,
+  .manifest-side-blocks>.legacy-group{
+    width:100%;
+    min-width:0;
+    margin:0 0 10px;
+  }
+  .manifest-side-blocks{
+    display:block;
+  }
+  .manifest-compact>fieldset>.legacy-group:not(:first-of-type):not(:last-of-type) .form-grid,
+  .manifest-compact .manifest-side-blocks .form-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .manifest-compact>fieldset>.legacy-group:last-of-type .form-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+
+/* Compact header and page titles to keep more work area visible. */
+h1{font-size:24px;line-height:1.15;margin-bottom:4px;letter-spacing:-.4px}
+h2{font-size:18px;line-height:1.2;margin-bottom:8px}
+h3{font-size:15px;margin-top:14px;margin-bottom:8px}
+.eyebrow{font-size:10px;letter-spacing:1.4px;margin-bottom:3px}
+.content{padding:18px 32px 28px}
+.page-heading{margin-bottom:10px;gap:12px;align-items:center}
+.page-heading .muted{margin-bottom:0;line-height:1.3;font-size:13px}
+.app-navigation{min-height:58px;padding:6px 28px;border-top-width:4px;gap:16px;position:sticky;top:0;background:#fff}
+.app-navigation .brand{padding:4px 0}
+.app-navigation .brand img{width:138px;height:auto;display:block}
+.app-page-title{margin-right:auto;font-size:18px;line-height:1.1;color:#2f2242;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu-trigger{font-size:14px;min-width:92px;padding:8px 12px;border-radius:7px;gap:10px}
+.menu-dropdown{top:calc(100% + 6px);width:min(270px,calc(100vw - 32px));max-height:calc(100dvh - 70px);padding:6px;border-radius:8px;font-size:13px}
+.menu-account{gap:2px;padding:6px 8px 8px;font-size:12px}
+.menu-dropdown .nav-button{padding:7px 9px;line-height:1.15;margin:0 0 2px;border-radius:6px}
+.menu-dropdown .menu-logout{margin-top:4px;padding-top:8px}
+.primary{padding:9px 14px}.secondary{padding:8px 12px}
+.panel{padding-top:16px;padding-bottom:16px}
+@media(max-width:720px){.app-page-title{font-size:15px}.content{padding:14px 16px 24px}.app-navigation{padding:6px 12px}.app-navigation .brand img{width:112px}.page-heading{align-items:start;flex-direction:column}}
+
+/* Page title already appears in the compact app header. Keep only page actions here. */
+.content>.page-heading{justify-content:flex-end;margin-bottom:8px;min-height:0}
+.content>.page-heading>div{display:none}
+.content>.page-heading:has(> div:only-child){display:none}
+
+.content>.page-heading{margin:0;padding:0;min-height:0}
+.content>.page-heading:empty{display:none}
+.page-actions{display:flex;justify-content:flex-end;margin:0;padding:0}
+
+.content{padding-top:8px}
+.content>.page-heading+.panel,
+.content>.page-heading+.manifest-create-panel{margin-top:0}
+.manifest-create-panel{margin-top:0}
+
+.manifest-create-panel{padding:8px 10px 10px}
+.manifest-create-panel>h2{font-size:15px;line-height:1.1;margin:0 0 6px}
+.manifest-create-panel .legacy-form>fieldset{padding:0;border:0;margin:0}
+.manifest-create-panel .legacy-group{padding:7px 8px;margin-bottom:6px;border-radius:6px}
+.manifest-create-panel .legacy-group legend{font-size:12px;padding:0 5px;line-height:1.1}
+.manifest-create-panel .form-grid{gap:0 8px}
+.manifest-create-panel .legacy-identity{gap:0 8px;margin-bottom:2px}
+.manifest-create-panel .manifest-number-field{margin-bottom:3px}
+.manifest-create-panel label{margin-bottom:2px}
+.manifest-create-panel .muted{margin:2px 0 5px}
+.manifest-create-panel button[type="submit"]{margin-top:2px}
+@media(min-width:1100px){.manifest-create-panel .manifest-side-blocks>.legacy-group,.manifest-create-panel .legacy-group{margin-bottom:6px}}

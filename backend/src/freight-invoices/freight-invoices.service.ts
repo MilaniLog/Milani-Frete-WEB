@@ -9,7 +9,7 @@ import { Decimal } from '@prisma/client/runtime/client';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
-import { assertPeriodWritable, getWeek } from '../weeks/period-policy';
+import { getWeek, periodForDate } from '../weeks/period-policy';
 import {
   CouponDto,
   InvoiceDto,
@@ -151,11 +151,9 @@ export class FreightInvoicesService {
       throw new ConflictException(
         'Cupom pago ou fechado não pode ser alterado.',
       );
-    await assertPeriodWritable(
+    await periodForDate(
       tx,
       coupon.data_cobranca,
-      coupon.placa,
-      user,
       coupon.semana,
     );
   }
@@ -310,11 +308,9 @@ export class FreightInvoicesService {
           'Tipo de veículo ou motorista não encontrado.',
         );
       const week = await getWeek(tx, dto.semana);
-      await assertPeriodWritable(
+      await periodForDate(
         tx,
         week.data_inicio,
-        vehicle.plate,
-        user,
         week.codigo,
       );
       const data = {

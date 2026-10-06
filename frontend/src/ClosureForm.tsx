@@ -69,9 +69,6 @@ export default function ClosureForm({
     [types, setTypes] = useState<
       { codVehicleType: number; typeName: string }[]
     >([]),
-    [expenses, setExpenses] = useState<
-      { codigo: string; nome: string; tipo: string }[]
-    >([]),
     [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -79,14 +76,12 @@ export default function ClosureForm({
       api<typeof weeks>("/weeks", token),
       api<typeof vehicles>("/registrations/vehicles", token),
       api<typeof types>("/registrations/vehicle-types", token),
-      api<typeof expenses>("/freight-expenses", token),
     ])
-      .then(([w, v, t, e]) => {
+      .then(([w, v, t]) => {
         if (active) {
           setWeeks(w);
           setVehicles(v);
           setTypes(t);
-          setExpenses(e);
         }
       })
       .catch((e) => {
@@ -106,7 +101,6 @@ export default function ClosureForm({
   const typeName = types.find(
     (t) => t.codVehicleType === vehicle?.codVehicleType,
   )?.typeName;
-  const expense = expenses.find((e) => e.codigo === filters.despesa);
   return (
     <form className="closure-vba-form" onSubmit={conference}>
       <fieldset disabled={busy}>
@@ -126,7 +120,7 @@ export default function ClosureForm({
               pattern="[0-9]{4}"
               onChange={(e) => {
                 setWeek(normalizeWeek(e.target.value));
-                setFilters({...filters,inicio:'',fim:''});
+                setFilters({ ...filters, inicio: "", fim: "" });
               }}
             />
             <datalist id="closure-weeks">
@@ -185,26 +179,6 @@ export default function ClosureForm({
               }}
             />
           </label>
-          <label>
-            Despesa
-            <select
-              aria-label="Despesa"
-              value={filters.despesa}
-              onChange={(e) => change("despesa", e.target.value)}
-            >
-              <option value="">Todas</option>
-              {expenses
-                .filter((e) => e.codigo)
-                .map((e) => (
-                  <option key={e.codigo} value={e.codigo}>
-                    {e.codigo} · {e.nome}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <p className="muted">
-            {expense ? `${expense.nome} · ${expense.tipo}` : ""}
-          </p>
           <label>
             Usuário
             <input

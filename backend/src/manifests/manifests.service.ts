@@ -8,13 +8,20 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma/client';
 import { companyExpenses } from '../freight-entries/company-expenses';
-import { assertPeriodWritable, getWeek } from '../weeks/period-policy';
+import { getWeek, periodForDate } from '../weeks/period-policy';
 
 import { FreightCalculationService } from '../freight-calculation/freight-calculation.service';
 
 import { CreateManifestDto } from './dto/create-manifest.dto';
 import { PreviewManifestDto } from './dto/preview-manifest.dto';
 import type { AuthUser } from '../auth/auth-user.types';
+
+function normalizeManifestSearch(value?: string) {
+  const text = value?.trim() ?? '';
+  const digits = text.replace(/\D/g, '');
+  if (/^\d{10}$/.test(digits)) return `${digits.slice(0, 9)}-${digits.slice(9)}`;
+  return text;
+}
 
 @Injectable()
 export class ManifestsService {
@@ -67,6 +74,7 @@ export class ManifestsService {
 
   async findAll(user: AuthUser, weekCode?: string, number?: string, recent = false) {
     const week = weekCode ? await getWeek(this.prisma, weekCode) : undefined;
+    const manifestNumber = normalizeManifestSearch(number);
     const today = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(new Date());
@@ -75,7 +83,16 @@ export class ManifestsService {
       where: {
         unit: user.unit,
         ...(recent ? { data_hora: { gte: new Date(midnight - 86400000), lt: new Date(midnight + 86400000) } } : {}),
-        ...(number ? { manifestos: number } : {}),
+        ...(manifestNumber
+          ? {
+              OR: [
+                { manifestos: manifestNumber },
+                { manifesto_adicional_1: manifestNumber },
+                { manifesto_adicional_2: manifestNumber },
+                { manifesto_adicional_3: manifestNumber },
+              ],
+            }
+          : {}),
         ...(week
           ? { semana: { gte: week.data_inicio, lte: week.data_fim } }
           : {}),
@@ -93,6 +110,9 @@ export class ManifestsService {
         semana: true,
         origem: true,
         manifestos: true,
+        manifesto_adicional_1: true,
+        manifesto_adicional_2: true,
+        manifesto_adicional_3: true,
         hora: true,
         placa: true,
         motorista: true,
@@ -221,15 +241,12 @@ export class ManifestsService {
         id,
         companyExpenses(entries),
       );
-      for (const entry of entries) {
-        await assertPeriodWritable(
+      for (const entry of entries)
+        await periodForDate(
           tx,
           entry.data_lancamento,
-          data.placa,
-          user,
           entry.semana ?? undefined,
         );
-      }
       const updated = await tx.frete_carregamento_manifestos.update({
         where: { id, unit: user.unit },
         data,
@@ -276,7 +293,7 @@ export class ManifestsService {
       where: { id, unit: user.unit },
     });
     if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
-    if (manifest.fechamento_id != null || manifest.num_fechamento != null) {
+    if (manifest.fechamento_id != null) {
       throw new ConflictException(
         'Manifesto fechado não pode ser alterado ou excluído.',
       );
@@ -294,16 +311,13 @@ export class ManifestsService {
         'O manifesto possui lançamentos pagos, fechados ou de outra unidade.',
       );
     }
-    await assertPeriodWritable(tx, manifest.semana, manifest.placa, user);
-    for (const entry of entries) {
-      await assertPeriodWritable(
+    await periodForDate(tx, manifest.semana);
+    for (const entry of entries)
+      await periodForDate(
         tx,
         entry.data_lancamento,
-        entry.placa ?? manifest.placa,
-        user,
         entry.semana ?? undefined,
       );
-    }
     return { manifest, entries };
   }
 
@@ -346,25 +360,41 @@ export class ManifestsService {
 
     const placa = dto.placa.trim().toUpperCase();
 
-    const numeroManifesto = dto.manifestos.trim();
+    const manifestNumbers = this.manifestNumbers(dto);
+    const numeroManifesto = manifestNumbers[0];
+    const [
+      ,
+      manifestoAdicional1 = null,
+      manifestoAdicional2 = null,
+      manifestoAdicional3 = null,
+    ] = manifestNumbers;
 
     const origem = dto.origem?.trim().toUpperCase() || 'SP';
-    await assertPeriodWritable(
-      database,
-      new Date(`${dto.semana}T00:00:00.000Z`),
-      placa,
-      user,
-    );
+    const semana = new Date(`${dto.semana}T00:00:00.000Z`);
+    const week = await periodForDate(database, semana);
 
     // =======================================================
     // VERIFICA MANIFESTO DUPLICADO
     // =======================================================
 
+    const repeated = manifestNumbers.find(
+      (number, index) => manifestNumbers.indexOf(number) !== index,
+    );
+    if (repeated)
+      throw new ConflictException(
+        `O manifesto ${repeated} foi informado mais de uma vez.`,
+      );
+
     const manifestoExistente =
       await database.frete_carregamento_manifestos.findFirst({
         where: {
           unit: user.unit,
-          manifestos: numeroManifesto,
+          OR: [
+            { manifestos: { in: manifestNumbers } },
+            { manifesto_adicional_1: { in: manifestNumbers } },
+            { manifesto_adicional_2: { in: manifestNumbers } },
+            { manifesto_adicional_3: { in: manifestNumbers } },
+          ],
           ...(excludeId === undefined ? {} : { id: { not: excludeId } }),
         },
 
@@ -626,7 +656,13 @@ export class ManifestsService {
     // DATA
     // =======================================================
 
-    const semana = new Date(`${dto.semana}T00:00:00.000Z`);
+    const numFechamento = await this.resolveClosureNumber(
+      database,
+      user,
+      placa,
+      week,
+      excludeId,
+    );
 
     // =======================================================
     // SALVA
@@ -644,6 +680,9 @@ export class ManifestsService {
       semana,
 
       manifestos: numeroManifesto,
+      manifesto_adicional_1: manifestoAdicional1,
+      manifesto_adicional_2: manifestoAdicional2,
+      manifesto_adicional_3: manifestoAdicional3,
 
       hora: dto.hora.trim(),
 
@@ -798,11 +837,90 @@ export class ManifestsService {
 
       carga_mista: dto.carga_mista ?? false,
 
+      num_fechamento: numFechamento,
+
       // =================================================
       // USUÁRIO
       // =================================================
 
       usuario: String(user.cod),
     };
+  }
+
+  private manifestNumbers(dto: CreateManifestDto) {
+    return [
+      dto.manifestos,
+      dto.manifesto_adicional_1,
+      dto.manifesto_adicional_2,
+      dto.manifesto_adicional_3,
+    ]
+      .map((value) => value?.trim())
+      .filter((value): value is string => !!value);
+  }
+
+  private async resolveClosureNumber(
+    database: Prisma.TransactionClient,
+    user: AuthUser,
+    placa: string,
+    week: Awaited<ReturnType<typeof periodForDate>>,
+    excludeId?: number,
+  ) {
+    const open = await database.frete_carregamento_manifestos.findFirst({
+      where: {
+        unit: user.unit,
+        placa,
+        semana: { gte: week.data_inicio, lte: week.data_fim },
+        fechamento_id: null,
+        num_fechamento: { not: null },
+        ...(excludeId === undefined ? {} : { id: { not: excludeId } }),
+      },
+      orderBy: { id: 'asc' },
+      select: { num_fechamento: true },
+    });
+    if (open?.num_fechamento != null) return open.num_fechamento;
+
+    if (excludeId !== undefined) {
+      const current = await database.frete_carregamento_manifestos.findFirst({
+        where: {
+          id: excludeId,
+          unit: user.unit,
+          placa,
+          semana: { gte: week.data_inicio, lte: week.data_fim },
+          fechamento_id: null,
+        },
+        select: { num_fechamento: true },
+      });
+      if (current?.num_fechamento != null) return current.num_fechamento;
+    }
+
+    const base = Number(week.codigo) * 10000;
+    const range = { gte: base + 1, lte: base + 9999 };
+    const [lastManifest, lastClosure] = await Promise.all([
+      database.frete_carregamento_manifestos.findFirst({
+        where: {
+          unit: user.unit,
+          num_fechamento: range,
+        },
+        orderBy: { num_fechamento: 'desc' },
+        select: { num_fechamento: true },
+      }),
+      database.frete_fechamentos.findFirst({
+        where: {
+          unit: user.unit,
+          numero: range,
+        },
+        orderBy: { numero: 'desc' },
+        select: { numero: true },
+      }),
+    ]);
+    const last = Math.max(
+      lastManifest?.num_fechamento ?? base,
+      lastClosure?.numero ?? base,
+    );
+    if (last >= base + 9999)
+      throw new ConflictException(
+        `A semana ${week.codigo} atingiu o limite de 9999 fechamentos.`,
+      );
+    return last + 1;
   }
 }

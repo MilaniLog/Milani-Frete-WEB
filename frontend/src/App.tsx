@@ -2,8 +2,8 @@ import SortableTable from "./SortableTable";
 import SearchableSelect from "./SearchableSelect";
 import HelpTip from "./HelpTip";
 import AdminDeletionApproval from "./AdminDeletionApproval";
-import { formatCiot } from "./field-formats";
-import { formatManifestNumber } from "./manifest-number";
+import { formatCiot, formatCtrb, maskCiot } from "./field-formats";
+import { comparableManifestNumber, formatManifestNumber } from "./manifest-number";
 import { formatQuickTime, parseQuickDate } from "./quick-date-time";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError, type Session } from "./api";
@@ -23,6 +23,9 @@ import { installSelectAllFields } from "./select-all-fields";
 type Manifest = {
   id: number;
   manifestos: string;
+  manifesto_adicional_1?: string | null;
+  manifesto_adicional_2?: string | null;
+  manifesto_adicional_3?: string | null;
   semana: string;
   placa: string;
   motorista: string;
@@ -42,8 +45,15 @@ const money = (value: unknown) =>
   });
 const date = (value: string) =>
   value.slice(0, 10).split("-").reverse().join("/");
-const closed = (m: Manifest) =>
-  m.fechamento_id != null || m.num_fechamento != null;
+const closed = (m: Manifest) => m.fechamento_id != null;
+const manifestNumbers = (m: Partial<Manifest>) =>
+  [
+    m.manifestos,
+    m.manifesto_adicional_1,
+    m.manifesto_adicional_2,
+    m.manifesto_adicional_3,
+  ].filter((value): value is string => typeof value === "string" && value.trim() !== "");
+const manifestLabel = (m: Partial<Manifest>) => manifestNumbers(m).join(" / ");
 
 export default function App() {
   useEffect(() => installSelectAllFields(document), []);
@@ -64,6 +74,34 @@ export default function App() {
       />
     );
   const allowed = canAccessPage(session, page);
+  const pageTitle =
+    page === "destinations"
+      ? "Destinos"
+      : page === "financial-report"
+        ? "Relat?rio de lan?amentos"
+        : page === "coupons-report"
+          ? "Relat?rio de cupons"
+          : page === "payments-report"
+            ? "Planilha de pagamentos"
+            : page === "home"
+              ? "Home"
+              : page === "manifests"
+                ? "Manifestos"
+                : page === "entries"
+                  ? "Lan?amentos"
+                  : page === "weeks"
+                    ? "Semanas"
+                    : page === "closures"
+                      ? "Fechamentos"
+                      : page === "invoices"
+                        ? "Notas e cupons"
+                        : page === "payers"
+                          ? "Empresas"
+                          : page === "drivers"
+                            ? "Motoristas"
+                            : page === "vehicles"
+                              ? "Ve?culos"
+                              : "Despesas";
   return (
     <div className="shell">
       <AdminDeletionApproval />
@@ -75,39 +113,9 @@ export default function App() {
           setPage(next);
         }}
         logout={() => setSession(null)}
+        title={pageTitle}
       />
       <main>
-        <header className="page-context">
-          <span>
-            {page === "destinations"
-              ? "Cadastros / Destinos"
-              : page === "financial-report"
-                ? "Relatórios / Lançamentos"
-                : page === "coupons-report" ? "Relatórios / Cupons"
-                : page === "payments-report"
-                  ? "Relatórios / Planilha de pagamentos"
-                  : page === "home"
-                    ? "Home"
-                    : page === "manifests"
-                      ? "Operação / Manifestos"
-                      : page === "entries"
-                        ? "Operação / Lançamentos"
-                        : page === "weeks"
-                          ? "Cadastros / Semanas"
-                          : page === "closures"
-                            ? "Financeiro / Fechamentos"
-                            : page === "invoices"
-                              ? "Financeiro / Notas e cupons"
-                              : page === "payers"
-                                ? "Cadastros / Empresas"
-                                : page === "drivers"
-                                  ? "Cadastros / Motoristas"
-                                  : page === "vehicles"
-                                    ? "Cadastros / Veículos"
-                                    : "Cadastros / Despesas"}
-          </span>
-          <span className="unit">Unidade {session.user.unit}</span>
-        </header>
         {allowed ? (
           page === "home" ? (
             <section className="content home-content">
@@ -387,11 +395,15 @@ function Manifests({
       active = false;
     };
   }, []);
-  const filtered = rows.filter((m) =>
-    `${m.manifestos} ${m.placa} ${m.motorista}`
-      .toLocaleLowerCase()
-      .includes(search.toLocaleLowerCase()),
-  );
+  const filtered = rows.filter((m) => {
+    const normalizedSearch = search.toLocaleLowerCase();
+    const manifestSearch = comparableManifestNumber(search);
+    const text = `${manifestLabel(m)} ${m.placa} ${m.motorista}`.toLocaleLowerCase();
+    return (
+      text.includes(normalizedSearch) ||
+      (!!manifestSearch && manifestNumbers(m).some((value) => comparableManifestNumber(value).includes(manifestSearch)))
+    );
+  });
   async function detail(id: number) {
     setError("");
     try {
@@ -403,9 +415,6 @@ function Manifests({
   return (
     <div className="content">
       <div className="page-heading">
-        <div>
-          <h1>Manifestos</h1>
-        </div>
         <button
           className="secondary"
           disabled={saving}
@@ -481,7 +490,7 @@ function Manifests({
                 filtered.map((m) => (
                   <tr key={m.id}>
                     <td>
-                      <b>{m.manifestos}</b>
+                      <b>{manifestLabel(m)}</b>
                       <small>{date(m.semana)}</small>
                     </td>
                     <td>
@@ -499,7 +508,7 @@ function Manifests({
                       <button
                         className="text-button"
                         onClick={() => void detail(m.id)}
-                        aria-label={`Ver manifesto ${m.manifestos}`}
+                        aria-label={`Ver manifesto ${manifestLabel(m)}`}
                       >
                         Ver detalhes →
                       </button>
@@ -533,7 +542,7 @@ function Manifests({
       </div>
       {selected && (
         <Modal
-          title={`Manifesto ${selected.manifestos}`}
+          title={`Manifesto ${manifestLabel(selected)}`}
           close={() => setSelected(null)}
           locked={saving}
         >
@@ -588,7 +597,7 @@ function Manifests({
             <DeleteManifest
               key={`delete-${selected.id}`}
               id={selected.id}
-              number={selected.manifestos}
+              number={manifestLabel(selected)}
               token={token}
               disabled={saving}
               onBusy={setSaving}
@@ -604,7 +613,7 @@ function Manifests({
           )}
         </Modal>
       )}
-      {creating && <section className="panel" aria-label="Novo manifesto">
+      {creating && <section className="panel manifest-create-panel" aria-label="Novo manifesto">
         <h2>Novo manifesto</h2>
         <CreateManifest
           key={formVersion}
@@ -615,13 +624,13 @@ function Manifests({
           onBusy={setSaving}
           done={(m) => {
             setFormVersion(version => version + 1);
-            setSuccess(`Manifesto ${m.manifestos} cadastrado com sucesso.`);
+            setSuccess(`Manifesto ${manifestLabel(m)} cadastrado com sucesso.`);
           }}
         />
       </section>}
       {editing && (
         <Modal
-          title={`Editar manifesto ${editing.manifestos}`}
+          title={`Editar manifesto ${manifestLabel(editing)}`}
           close={() => setEditing(null)}
           locked={saving}
         >
@@ -634,7 +643,7 @@ function Manifests({
             onBusy={setSaving}
             done={(m) => {
               setEditing(null);
-              setSuccess(`Manifesto ${m.manifestos} atualizado com sucesso.`);
+              setSuccess(`Manifesto ${manifestLabel(m)} atualizado com sucesso.`);
               void load();
             }}
           />
@@ -728,9 +737,17 @@ function CreateManifest({
   const [vehicles, setVehicles] = useState<{ plate: string; driver_cpf?:string|null; driver_name?:string|null }[]>([]);
   const [suggestedDriver, setSuggestedDriver] = useState({cpf:'',name:initial?.motorista ?? ''});
   const [plate, setPlate] = useState(initial?.placa ?? "");
+  const [vehicleTypeDisplay, setVehicleTypeDisplay] = useState("");
   const legacyManifest = !!initial && !/^\d{3}/.test(initial.manifestos);
   const [manifestPrefix, setManifestPrefix] = useState(initial && !legacyManifest ? initial.manifestos.slice(0,3) : "");
   const [manifestSuffix, setManifestSuffix] = useState(initial ? legacyManifest ? initial.manifestos : initial.manifestos.slice(3) : "");
+  const [additionalManifests, setAdditionalManifests] = useState<string[]>(
+    [
+      initial?.manifesto_adicional_1,
+      initial?.manifesto_adicional_2,
+      initial?.manifesto_adicional_3,
+    ].filter((value): value is string => !!value),
+  );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   useEffect(() => {
     let active = true;
@@ -787,6 +804,11 @@ function CreateManifest({
     }
   }, [initial]);
   const calculation = useManifestCalculation(formRef, token, onExpired, initial?.id);
+  useEffect(() => {
+    if (calculation.preview?.vehicle.type) {
+      setVehicleTypeDisplay(calculation.preview.vehicle.type);
+    }
+  }, [calculation.preview?.vehicle.type]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
@@ -807,12 +829,31 @@ function CreateManifest({
       return;
     }
     if (ciot !== null) payload.ciot = ciot;
+    const ctrb = formatCtrb(String(payload.ctrb_numero ?? ""));
+    if (ctrb && !/^\d{6}-\d$/.test(ctrb)) {
+      setError("Informe o CTRB com seis dígitos, hífen e um dígito. Exemplo: 123456-7.");
+      return;
+    }
+    payload.ctrb_numero = ctrb || null;
     payload.hora = enteredTime;
     const formatted = formatManifestNumber(String(payload.manifestos ?? ''));
     if (formatted) payload.manifestos = formatted;
     else if (!initial || payload.manifestos !== initial.manifestos) {
       setError('Informe os três dígitos da unidade seguidos do número do manifesto. Exemplo: 8503182.');
       return;
+    }
+    for (const key of [
+      "manifesto_adicional_1",
+      "manifesto_adicional_2",
+      "manifesto_adicional_3",
+    ]) {
+      if (!(key in payload)) continue;
+      const formattedAdditional = formatManifestNumber(String(payload[key] ?? ""));
+      if (!formattedAdditional) {
+        setError("Informe os manifestos adicionais com os tres digitos da unidade seguidos do numero.");
+        return;
+      }
+      payload[key] = formattedAdditional;
     }
     for (const key of [
       "destino_id",
@@ -892,7 +933,64 @@ function CreateManifest({
                   }} />
               </div>
               <input type="hidden" name="manifestos" value={`${manifestPrefix}${manifestSuffix}`} />
+              <button
+                type="button"
+                className="manifest-add-button"
+                aria-label="Adicionar manifesto adicional"
+                disabled={additionalManifests.length >= 3}
+                onClick={() =>
+                  setAdditionalManifests((values) =>
+                    values.length >= 3 ? values : [...values, ""],
+                  )
+                }
+              >
+                +
+              </button>
             </div>
+            {additionalManifests.map((value, index) => (
+              <div
+                className="manifest-number-field manifest-number-extra"
+                role="group"
+                aria-label={`Manifesto adicional ${index + 1}`}
+                key={index}
+              >
+                <span>{`Adicional ${index + 1}`}</span>
+                <div className="manifest-number-parts">
+                  <input
+                    aria-label={`NÃºmero do manifesto adicional ${index + 1}`}
+                    name={`manifesto_adicional_${index + 1}`}
+                    value={value}
+                    inputMode="numeric"
+                    maxLength={12}
+                    placeholder="000000000-0"
+                    onChange={(e) => {
+                      const next = [...additionalManifests];
+                      next[index] = e.target.value;
+                      setAdditionalManifests(next);
+                    }}
+                    onBlur={(e) => {
+                      const formatted = formatManifestNumber(e.target.value);
+                      if (!formatted) return;
+                      const next = [...additionalManifests];
+                      next[index] = formatted;
+                      setAdditionalManifests(next);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="manifest-remove-button"
+                    aria-label={`Remover manifesto adicional ${index + 1}`}
+                    onClick={() =>
+                      setAdditionalManifests((values) =>
+                        values.filter((_, current) => current !== index),
+                      )
+                    }
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
+            ))}
             <label>
               Horário
               <input
@@ -936,6 +1034,7 @@ function CreateManifest({
                 onChange={(e) => {
                   const plate = e.target.value;
                   setPlate(plate);
+                  if (!plate) setVehicleTypeDisplay("");
                   const vehicle = vehicles.find(v=>v.plate===plate);
                   setSuggestedDriver({cpf:vehicle?.driver_cpf ?? '',name:vehicle?.driver_name ?? ''});
                 }}
@@ -947,7 +1046,7 @@ function CreateManifest({
                 {vehicles.map((v) => <option key={v.plate} value={v.plate}>{v.plate}</option>)}
               </SearchableSelect>
             </label>
-            {calculation.preview && <span className="manifest-vehicle-type">{calculation.preview.vehicle.type}</span>}
+            {vehicleTypeDisplay && <span className="manifest-vehicle-type">{vehicleTypeDisplay}</span>}
             </div>
             <DriverSelect
               resetKey={plate}
@@ -1006,7 +1105,7 @@ function CreateManifest({
             <label>
               CIOT
               <input name="ciot" maxLength={17} placeholder="000000000000/0000"
-                onChange={e => { e.target.setCustomValidity(''); }}
+                onChange={e => { e.target.value = maskCiot(e.target.value); e.target.setCustomValidity(''); }}
                 onBlur={e => {
                   const formatted = formatCiot(e.target.value);
                   if (formatted !== null) e.target.value = formatted;
@@ -1018,7 +1117,11 @@ function CreateManifest({
               <input
                 aria-label="Número CTRB"
                 name="ctrb_numero"
-                maxLength={30}
+                maxLength={8}
+                placeholder="000000-0"
+                inputMode="numeric"
+                pattern="[0-9]{6}-[0-9]"
+                onChange={e => { e.target.value = formatCtrb(e.target.value); }}
               />
             </label>
             {moneyFields([

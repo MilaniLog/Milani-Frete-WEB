@@ -69,6 +69,9 @@ model frete_carregamento_manifestos {
   origem       String   @default("SP") @db.VarChar(10)
   semana       DateTime @db.Date
   manifestos   String   @db.VarChar(20)
+  manifesto_adicional_1 String? @db.VarChar(20)
+  manifesto_adicional_2 String? @db.VarChar(20)
+  manifesto_adicional_3 String? @db.VarChar(20)
   hora         String   @db.VarChar(10)
   placa        String   @db.VarChar(20)
   motorista    String   @db.VarChar(100)
@@ -162,6 +165,9 @@ model frete_carregamento_manifestos {
 
   @@index([unit], map: "fk_manifesto_unit")
   @@index([manifestos], map: "idx_frete_manifesto_numero")
+  @@index([manifesto_adicional_1], map: "idx_frete_manifesto_adicional_1")
+  @@index([manifesto_adicional_2], map: "idx_frete_manifesto_adicional_2")
+  @@index([manifesto_adicional_3], map: "idx_frete_manifesto_adicional_3")
   @@index([placa], map: "idx_frete_manifesto_placa")
   @@index([semana], map: "idx_frete_manifesto_data")
   @@index([fechamento_id], map: "idx_frete_manifesto_fechamento")

@@ -68,15 +68,6 @@ export default function Destinations({
   );
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">CADASTROS</p>
-          <h1>Destinos</h1>
-          <p className="muted">
-            Cadastre os destinos utilizados nos manifestos da sua unidade.
-          </p>
-        </div>
-      </div>
       {error && (
         <p role="alert" className="alert">
           {error}

@@ -39,7 +39,7 @@ describe('Relatórios de fechamento', () => {
     expect(html).not.toContain('R$ 9.999,00');
     expect(html).toContain('R$ 850,00');
     expect(html).toContain('R$ 860,00');
-    expect(html).toMatch(/Líquido:<\/td><td[^>]*>R\$ 90,00/);
+    expect(html).toMatch(/Saldo:<\/td><td[^>]*>R\$ 50,00/);
     expect(JSON.stringify(report)).toBe(before);
   });
   it('preserva dados ausentes em vez de inventar zeros no histórico', () => {
@@ -83,8 +83,11 @@ describe('Relatórios de fechamento', () => {
     expect(html.match(/>AVULSO</g)).toHaveLength(1);
     expect(html).toContain('12:29');
     expect(html).toContain('R$ 95,00');
-    expect(html.indexOf('VINCULADO')).toBeLessThan(
-      html.indexOf('LANÇAMENTOS AVULSOS'),
+    expect(html.indexOf('DEBITOS E LANCAMENTOS AVULSOS')).toBeLessThan(
+      html.indexOf('VINCULADO'),
+    );
+    expect(html.indexOf('DEBITOS E LANCAMENTOS AVULSOS')).toBeLessThan(
+      html.indexOf('AVULSO'),
     );
   });
   const rows = {

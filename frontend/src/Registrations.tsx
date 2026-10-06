@@ -1,7 +1,7 @@
 import DocumentInput from "./DocumentInput";
 import { formatDocument, normalizePlate } from "./field-formats";
 import SortableTable from "./SortableTable";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import SearchableSelect from './SearchableSelect';
 type Company = { sigla: string; matriz: string; nome: string; cor: string };
@@ -32,6 +32,7 @@ export default function Registrations({
     [types, setTypes] = useState<
       { codVehicleType: number; typeName: string }[]
     >([]);
+  const formRef = useRef<HTMLElement | null>(null);
   const [ownerIsDriver, setOwnerIsDriver] = useState(false);
   const [vehicleDriver, setVehicleDriver] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -85,6 +86,12 @@ export default function Registrations({
     setVehicleDriver(current?.driver_cpf ?? '');
     setOwnerName(current?.owner_name ?? '');
     setOwnerDocument(current?.owner ?? '');
+    if (editing) {
+      window.setTimeout(
+        () => formRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }),
+        0,
+      );
+    }
   }, [editing]);
   function selectOwnerAsDriver(checked: boolean) {
     setError('');
@@ -156,10 +163,6 @@ export default function Registrations({
   return (
     <section className="content">
       <div className="page-heading">
-        <div>
-          <p className="eyebrow">CADASTROS</p>
-          <h1>{title}</h1>
-        </div>
         {!catalog && (
           <button
             className="primary"
@@ -175,13 +178,6 @@ export default function Registrations({
           </button>
         )}
       </div>
-      <p className="muted">
-        {catalog
-          ? "Empresas usadas no cadastro dos veículos."
-          : driver
-            ? "Localize o motorista pelo nome."
-            : "Localize o veículo pela placa ou pelo proprietário."}{" "}
-      </p>
       {error && (
         <p className="alert" role="alert">
           {error}
@@ -193,7 +189,7 @@ export default function Registrations({
         </p>
       )}
       {editing && (
-        <section className="panel reference-form">
+        <section ref={formRef} className="panel reference-form">
           <h2>
             {current
               ? "Editar cadastro"

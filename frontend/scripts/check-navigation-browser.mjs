@@ -40,6 +40,8 @@ try {
           "/api/manifests",
           "/api/weeks",
           "/api/destinations",
+          "/api/drivers",
+          "/api/registrations/vehicles",
         ].includes(path)
       )
         errors.push(`Unexpected request: ${path}`);
@@ -94,9 +96,7 @@ try {
     checks++;
     await menu.click();
     await page.getByRole("button", { name: "Manifestos", exact: true }).click();
-    await page
-      .getByRole("heading", { name: "Manifestos", exact: true })
-      .waitFor();
+    await page.locator(".app-page-title", { hasText: "Manifestos" }).waitFor();
     assert.equal(await page.getByRole("navigation").count(), 0);
     await page.getByRole("link", { name: "Milani — Página inicial" }).click();
     await page

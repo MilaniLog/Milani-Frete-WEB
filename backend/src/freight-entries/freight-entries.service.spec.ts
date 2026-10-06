@@ -257,7 +257,7 @@ describe('Lançamentos vinculados ao manifesto', () => {
     );
   });
 
-  it.each(['fechamento_id', 'num_fechamento'])(
+  it.each(['fechamento_id'])(
     'bloqueia manifesto com %s',
     async (field) => {
       manifest[field] = 10;
@@ -266,6 +266,15 @@ describe('Lançamentos vinculados ao manifesto', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     },
   );
+
+  it('permite lancamento em manifesto numerado mas ainda aberto', async () => {
+    manifest.num_fechamento = 26390001;
+    await expect(
+      service.changeEntry(1, user, { kind: 'create', dto }),
+    ).resolves.toMatchObject({
+      entry: { manifesto_id: 1 },
+    });
+  });
 
   it.each(['pago', 'fechamento_id'])(
     'bloqueia edição e exclusão de lançamento com %s',

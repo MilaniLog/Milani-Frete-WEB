@@ -65,12 +65,12 @@ describe('Excluir lançamento pelo formulário', () => {
       expect(db.frete_lancamentos.delete).not.toHaveBeenCalled();
     },
   );
-  it('bloqueia período fechado para usuário comum', async () => {
+  it('permite excluir registro aberto mesmo com fechamento anterior na placa', async () => {
     db.frete_fechamentos.findFirst.mockResolvedValue({ id: 9 });
-    await expect(service.removeStandalone(4, user)).rejects.toMatchObject({
-      status: 409,
+    await expect(service.removeStandalone(4, user)).resolves.toMatchObject({
+      entry: { id: 4 },
     });
-    expect(db.frete_lancamentos.delete).not.toHaveBeenCalled();
+    expect(db.frete_lancamentos.delete).toHaveBeenCalled();
   });
   it('não exclui de outra unidade', async () => {
     await expect(
