@@ -633,6 +633,7 @@ function Manifests({
           title={`Editar manifesto ${manifestLabel(editing)}`}
           close={() => setEditing(null)}
           locked={saving}
+          className="manifest-edit-dialog"
         >
           <CreateManifest
             unit={session.user.unit}
@@ -658,11 +659,13 @@ function Modal({
   close,
   children,
   locked = false,
+  className,
 }: {
   title: string;
   close: () => void;
   children: React.ReactNode;
   locked?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -676,6 +679,7 @@ function Modal({
         if (!locked) close();
       }}
       aria-label={title}
+      className={className}
     >
       <div className="modal-heading">
         <h2>{title}</h2>
@@ -955,7 +959,15 @@ function CreateManifest({
                 +
               </button>
             </div>
-            {additionalManifests.map((value, index) => (
+            {additionalManifests.map((value, index) => {
+              const additionalPrefix = /^\d{3}/.test(value) ? value.slice(0, 3) : "";
+              const additionalSuffix = /^\d{3}/.test(value) ? value.slice(3) : value;
+              const updateAdditional = (prefix: string, suffix: string) => {
+                const next = [...additionalManifests];
+                next[index] = `${prefix}${suffix}`;
+                setAdditionalManifests(next);
+              };
+              return (
               <div
                 className="manifest-number-field manifest-number-extra"
                 role="group"
@@ -965,25 +977,29 @@ function CreateManifest({
                 <span>{`Adicional ${index + 1}`}</span>
                 <div className="manifest-number-parts">
                   <input
-                    aria-label={`NÃºmero do manifesto adicional ${index + 1}`}
-                    name={`manifesto_adicional_${index + 1}`}
-                    value={value}
+                    aria-label={`Unidade do manifesto adicional ${index + 1}`}
+                    value={additionalPrefix}
                     inputMode="numeric"
-                    maxLength={12}
-                    placeholder="000000000-0"
-                    onChange={(e) => {
-                      const next = [...additionalManifests];
-                      next[index] = e.target.value;
-                      setAdditionalManifests(next);
-                    }}
-                    onBlur={(e) => {
-                      const formatted = formatManifestNumber(e.target.value);
+                    maxLength={3}
+                    placeholder="000"
+                    onChange={(e) => updateAdditional(e.target.value.replace(/\D/g, "").slice(0, 3), additionalSuffix)}
+                  />
+                  <input
+                    aria-label={`N?mero do manifesto adicional ${index + 1}`}
+                    value={additionalSuffix}
+                    inputMode="numeric"
+                    maxLength={8}
+                    placeholder="000000-0"
+                    onChange={(e) => updateAdditional(additionalPrefix, e.target.value)}
+                    onBlur={() => {
+                      const formatted = formatManifestNumber(`${additionalPrefix || "000"}${additionalSuffix}`);
                       if (!formatted) return;
                       const next = [...additionalManifests];
                       next[index] = formatted;
                       setAdditionalManifests(next);
                     }}
                   />
+                  <input type="hidden" name={`manifesto_adicional_${index + 1}`} value={`${additionalPrefix}${additionalSuffix}`} />
                   <button
                     type="button"
                     className="manifest-remove-button"
@@ -998,37 +1014,39 @@ function CreateManifest({
                   </button>
                 </div>
               </div>
-            ))}
-            <label>
-              Horário
-              <input
-                aria-label="Hora"
-                name="hora"
-                type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
-                onChange={e => e.target.setCustomValidity('')}
-                onBlur={e => {
-                  const value = formatQuickTime(e.target.value);
-                  if (value) e.target.value = value;
-                  e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe um horário válido, como 1212 ou 12:12.');
-                }}
-                required
-              />
-            </label>
-            <label>
-              Data
-              <input
-                aria-label="Data do carregamento"
-                name="semana"
-                type="text" inputMode="numeric" maxLength={10} placeholder="DD/MM/AAAA"
-                onChange={e => e.target.setCustomValidity('')}
-                onBlur={e => {
-                  const value = parseQuickDate(e.target.value);
-                  if (value) e.target.value = value.display;
-                  e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe uma data válida, como 121226 ou 12/12/2026.');
-                }}
-                required
-              />
-            </label>
+            );})}
+            <div className="manifest-date-time-row">
+              <label>
+                {"Hor\u00e1rio"}
+                <input
+                  aria-label="Hora"
+                  name="hora"
+                  type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
+                  onChange={e => e.target.setCustomValidity('')}
+                  onBlur={e => {
+                    const value = formatQuickTime(e.target.value);
+                    if (value) e.target.value = value;
+                    e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe um hor\u00e1rio v\u00e1lido, como 1212 ou 12:12.');
+                  }}
+                  required
+                />
+              </label>
+              <label>
+                Data
+                <input
+                  aria-label="Data do carregamento"
+                  name="semana"
+                  type="text" inputMode="numeric" maxLength={10} placeholder="DD/MM/AAAA"
+                  onChange={e => e.target.setCustomValidity('')}
+                  onBlur={e => {
+                    const value = parseQuickDate(e.target.value);
+                    if (value) e.target.value = value.display;
+                    e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe uma data v?lida, como 121226 ou 12/12/2026.');
+                  }}
+                  required
+                />
+              </label>
+            </div>
           </div>
           <div className="legacy-identity">
             <div className="manifest-plate">
@@ -1167,7 +1185,8 @@ function CreateManifest({
                 type="number"
                 min="0"
                 step="0.0001"
-                placeholder="Padrão do veículo"
+                placeholder="Informe o frete"
+                required
               />
             </label>
           </div>

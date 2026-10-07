@@ -241,11 +241,17 @@ export class FreightClosuresService {
         },
         select: { placa: true },
       });
-      const plates = [
+      const candidatePlates = [
         ...new Set(
           [...manifests, ...entries, ...coupons].map((row) => row.placa),
         ),
       ].sort();
+      const registeredVehicles = await tx.vehicle.findMany({
+        where: { plate: { in: candidatePlates } },
+        select: { plate: true },
+      });
+      const registered = new Set(registeredVehicles.map((row) => row.plate));
+      const plates = candidatePlates.filter((placa) => registered.has(placa));
       const selectionByPlate = new Map(
         selections.map((selection) => [
           selection.placa,

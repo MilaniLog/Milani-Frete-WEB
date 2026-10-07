@@ -33,6 +33,11 @@ export function previewReport(data: Row): ClosureReport {
       placa: data.placa,
       periodo_inicio: data.periodo_inicio,
       periodo_fim: data.periodo_fim,
+      numero:
+        data.numero ??
+        data.closureNumber ??
+        data.manifests?.find((row: Row) => row.num_fechamento != null)
+          ?.num_fechamento,
       status: 'PRÉVIA — NÃO FINALIZADO',
     },
     manifests: data.manifests,
@@ -300,6 +305,10 @@ export function renderClosureReport(report: ClosureReport): string {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date());
+  const closureNumber =
+    h.numero ??
+    report.manifests.find((m) => m.num_fechamento != null)?.num_fechamento ??
+    'Prévia';
   const gross = report.totals.total_bruto;
   const net = report.totals.total_liquido;
   const totalValePedagio = sum('vale_pedagio') ?? new Decimal(0);
@@ -367,9 +376,9 @@ export function renderClosureReport(report: ClosureReport): string {
   const warnings = `${report.origem === 'PREVIA' ? '<p>PRÉVIA — NÃO FINALIZADO. Conferência provisória.</p>' : report.origem !== 'FINALIZACAO' ? '<p>Fechamento legado: sem cópia original da finalização; dados dos vínculos atuais ou do cancelamento.</p>' : ''}${h.status && h.status !== 'FINALIZADO' && report.origem !== 'PREVIA' ? `<p>${escape(h.status)}</p>` : ''}${h.cancelamento ? `<p>Cancelado em ${escape(date(h.cancelamento.em))}. Usuário: ${escape(h.cancelamento.usuario?.cod)}. Motivo: ${escape(h.cancelamento.motivo)}</p>` : ''}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(report.titulo)}</title><style>
 @page{size:A4 portrait;margin:2mm 1mm 12mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:9pt Arial}}
-*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:208mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
+*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:208mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
 </style></head><body><h1>CONFERÊNCIA DE FRETES E LANÇAMENTOS</h1>
-${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(`UNIDADE:${h.unit ?? '—'}`, 2)])], 'metadata')}
+${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(`UNIDADE:${h.unit ?? '—'}`), cell(`FECH:${closureNumber}`)])], 'metadata')}
 ${table([row([cell('PLACA:'), cell(h.placa), cell('', 2), cell('PROPRIETÁRIO'), cell(owner, 3)])], 'owner')}
 <div class="warnings">${warnings}</div><p class="screen">Ctrl+P para imprimir ou salvar em PDF.</p>
 ${
@@ -485,5 +494,5 @@ ${table(
   ),
   'indicators',
 )}</div>
-<div class="notes">Fechamento: ${escape(h.numero ?? 'Prévia')}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} Documento de conferência; não comprova transferência. Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
+<div class="notes">Fechamento: ${escape(closureNumber)}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} Documento de conferência; não comprova transferência. Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
 }

@@ -28,10 +28,11 @@ export function useManifestCalculation(form: RefObject<HTMLFormElement | null>, 
   const version = useRef(0);
   function changed(e: FormEvent<HTMLFormElement>) {
     const target = e.target as HTMLInputElement;
-    if (target.name === "frete_veiculo") manual.current = target.value !== "";
-    if (target.name === "placa" && !manual.current) {
+    if (target.name === "frete_veiculo") manual.current = true;
+    if (target.name === "placa") {
+      manual.current = initialId != null;
       const input = form.current?.elements.namedItem("frete_veiculo") as HTMLInputElement | null;
-      if (input) input.value = "";
+      if (input && initialId == null) input.value = "";
     }
     version.current++;
     setPreview(null);
@@ -60,7 +61,7 @@ export function useManifestCalculation(form: RefObject<HTMLFormElement | null>, 
           setPreview(result);
           if (!manual.current) {
             const input = form.current?.elements.namedItem("frete_veiculo") as HTMLInputElement | null;
-            if (input) input.value = String(result.frete_veiculo);
+            if (input && input.value === "") input.value = String(result.frete_veiculo);
           }
         })
         .catch((e) => {

@@ -456,10 +456,19 @@ export default function Closures({
     }
   }
   function batchSelectionsPayload() {
-    return (conferenceGroups ?? []).map((group) => ({
-      placa: group.placa,
-      debit_entry_ids: batchDebitSelections[group.placa] ?? [],
-    }));
+    if (conferenceGroups?.length)
+      return conferenceGroups.map((group) => ({
+        placa: group.placa,
+        debit_entry_ids: batchDebitSelections[group.placa] ?? [],
+      }));
+    if (preview?.placa)
+      return [
+        {
+          placa: preview.placa,
+          debit_entry_ids: selectedDebitIds,
+        },
+      ];
+    return [];
   }
   function activeConferenceWeek() {
     return week || batchWeek || conferenceGroups?.[0]?.semana || "";

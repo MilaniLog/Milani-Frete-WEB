@@ -67,6 +67,7 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   fireEvent.click(
     await screen.findByRole("button", { name: "Editar manifesto" }),
   );
+  await waitFor(() => expect((screen.getByRole("spinbutton", { name: /Frete do ve.culo/ }) as HTMLInputElement).value).toBe("250"));
   await screen.findByRole("option", { name: "Motorista de teste", hidden: true });
   expect(screen.queryByLabelText("Buscar motorista pelo nome")).toBeNull();
   expect((screen.getByLabelText("Hora") as HTMLInputElement).value).toBe(
@@ -292,7 +293,7 @@ it("calcula retenções e líquido automaticamente sem descontar vale-pedágio",
   expect(vi.mocked(fetch).mock.calls.some(([p, o]) => p === "/api/manifests" && o?.method === "POST")).toBe(false);
 });
 
-it("preenche frete padrão, mostra cálculos e mantém frete manual", async () => {
+it("preenche frete pela placa, respeita campo apagado e mant?m frete manual", async () => {
   await login();
   await screen.findByText("M123");
   fireEvent.click(screen.getByRole("button", { name: "+ Novo manifesto" }));
@@ -300,13 +301,18 @@ it("preenche frete padrão, mostra cálculos e mantém frete manual", async () =
   fireEvent.focus(screen.getByLabelText("Placa"));
   fireEvent.click(await screen.findByRole("option", {name:"ABC1234"}));
   await screen.findByLabelText("Frete 777 calculado");
-  expect((screen.getByLabelText("Frete do veículo") as HTMLInputElement).value).toBe("250");
-  fireEvent.change(screen.getByLabelText("Frete do veículo"), { target: { value: "333" } });
-  fireEvent.change(screen.getByLabelText("Volume (m³)"), { target: { value: "11" } });
+  const freightInput = () => screen.getByRole("spinbutton", { name: /Frete do ve.culo/ }) as HTMLInputElement;
+  expect(freightInput().value).toBe("250");
+  expect(freightInput().required).toBe(true);
+  fireEvent.change(freightInput(), { target: { value: "" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: /Volume/ }), { target: { value: "11" } });
   await screen.findByText(/A cubagem permitida/);
-  expect((screen.getByLabelText("Frete do veículo") as HTMLInputElement).value).toBe("333");
-  const calls = vi.mocked(fetch).mock.calls.filter(([p]) => p === "/api/manifests/preview");
-  expect(JSON.parse(String(calls.at(-1)?.[1]?.body)).frete_veiculo).toBe(333);
+  expect(freightInput().value).toBe("");
+  fireEvent.change(freightInput(), { target: { value: "333" } });
+  await waitFor(() => {
+    const calls = vi.mocked(fetch).mock.calls.filter(([p]) => p === "/api/manifests/preview");
+    expect(JSON.parse(String(calls.at(-1)?.[1]?.body)).frete_veiculo).toBe(333);
+  });
 });
 
 it("abre na home, recolhe o menu e volta para a home pelo logo sem perder a sessão", async () => {

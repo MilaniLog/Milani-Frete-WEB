@@ -50,7 +50,7 @@ export default function SearchableSelect(props: SelectHTMLAttributes<HTMLSelectE
       onClick={()=>setOpen(true)}
       onChange={e=>{const value = props.name === 'placa' ? normalizePlate(e.target.value) : e.target.value;setText(value);setFilter(true);setOpen(true);setActive(-1);change('');e.target.setCustomValidity(value ? 'Selecione uma opção da lista.' : '');}}
       onKeyDown={e=>{
-        if(e.key==='ArrowDown' || e.key==='ArrowUp') {e.preventDefault();setOpen(true);setFilter(false);setActive(i=>Math.max(0,Math.min(matches.length-1,i+(e.key==='ArrowDown'?1:-1))));}
+        if(e.key==='ArrowDown' || e.key==='ArrowUp') {e.preventDefault();setOpen(true);setActive(i=>Math.max(0,Math.min(matches.length-1,i+(e.key==='ArrowDown'?1:-1))));}
         if(e.key==='Escape') {e.preventDefault();setOpen(false);}
         if(e.key==='Enter' && open && !e.nativeEvent.isComposing) {
           e.preventDefault();

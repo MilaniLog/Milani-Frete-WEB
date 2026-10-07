@@ -67,7 +67,7 @@ export class ConferenceService {
                 }
               : all
                 ? {}
-                : { fechamento_id: null, num_fechamento: null }),
+                : { fechamento_id: null }),
           },
           orderBy:
             dto.ordenar_data === 'true'
@@ -157,6 +157,11 @@ export class ConferenceService {
             {
               semana: dto.semana ?? '',
               placa: v.plate,
+              motorista:
+                m.find((x) => x.motorista)?.motorista ??
+                e.find((x) => x.motorista)?.motorista ??
+                c.find((x) => x.motorista)?.motorista ??
+                null,
               periodo_inicio: start,
               periodo_fim: end,
               manifests: m,

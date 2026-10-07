@@ -42,6 +42,26 @@ describe('Relatórios de fechamento', () => {
     expect(html).toMatch(/Saldo:<\/td><td[^>]*>R\$ 50,00/);
     expect(JSON.stringify(report)).toBe(before);
   });
+  it('mostra o número do fechamento no canto direito da primeira linha', () => {
+    const html = renderClosureReport(
+      previewReport({
+        semana: '3826',
+        placa: 'AAQ2714',
+        periodo_inicio: '2026-09-13',
+        periodo_fim: '2026-09-19',
+        closureNumber: 38260001,
+        manifests: [{ num_fechamento: 38260001, frete_veiculo: 10 }],
+        entries: [],
+        coupons: [],
+        totals: { total_liquido: 10 },
+      }),
+    );
+    expect(html).toContain('FECH:38260001');
+    expect(html.indexOf('FECH:38260001')).toBeLessThan(
+      html.indexOf('PLACA:'),
+    );
+  });
+
   it('preserva dados ausentes em vez de inventar zeros no histórico', () => {
     const html = renderClosureReport(
       previewReport({
