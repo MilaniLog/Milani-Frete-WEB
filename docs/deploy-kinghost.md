@@ -1,4 +1,4 @@
-﻿# Deploy na KingHost
+# Deploy na KingHost
 
 ## O que vai para produção
 
