@@ -3,7 +3,7 @@
 ## O que vai para produção
 
 - `frontend/dist`: arquivos estáticos do site React.
-- `backend`: aplicação Node/Nest que atende a API.
+- `backend`: aplicação Node/Nest que atende a API e pode servir o frontend pronto.
 - Banco MariaDB/MySQL configurado pelas variáveis do `.env`.
 
 ## Build local validado
@@ -29,21 +29,21 @@ DATABASE_NAME="nome_do_banco"
 JWT_SECRET="chave_grande_e_segura"
 JWT_EXPIRES_IN="28800"
 PORT="porta_definida_pela_kinghost"
+FRONTEND_DIST="/caminho/para/frontend/dist" # opcional se o dist ficar fora do padrão
 ```
 
 `DATABASE_URL` pode existir também, mas a API usa principalmente `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD` e `DATABASE_NAME` no `PrismaService`.
 
 ## Configuração esperada no servidor
 
-1. Criar uma aplicação Node.js no painel da KingHost para o backend.
-2. Apontar a aplicação para a pasta do backend.
-3. Instalar dependências com `npm install`.
-4. Rodar `npm run build`.
+1. Criar uma aplicação Node.js no painel da KingHost.
+2. Subir a pasta `backend` e a pasta `frontend/dist`.
+3. Instalar dependências do backend com `npm install`.
+4. Rodar `npm run build` no backend.
 5. Comando de inicialização: `npm run start:prod`.
-6. Publicar o conteúdo de `frontend/dist` como site estático.
-7. Configurar a rota `/api` para encaminhar para o backend removendo o prefixo `/api`.
+6. Manter o `frontend/dist` no caminho padrão `../frontend/dist` em relação à pasta do backend, ou configurar `FRONTEND_DIST` apontando para a pasta `dist` do frontend.
 
-O frontend chama a API sempre com `/api/...`. O backend tem rotas como `/auth/login`, `/manifests`, `/freight-closures`, etc. Por isso, em produção, `/api/auth/login` precisa chegar ao backend como `/auth/login`.
+O frontend chama a API sempre com `/api/...` e o backend atende as rotas com esse prefixo em produção. Exemplo: `/api/auth/login`.
 
 ## Conferências após subir
 
