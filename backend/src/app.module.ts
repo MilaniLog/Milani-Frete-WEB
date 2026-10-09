@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'path';
 import { ReportsModule } from './reports/reports.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { ConfigModule } from '@nestjs/config';
@@ -20,12 +21,16 @@ import { FreightClosuresModule } from './freight-closures/freight-closures.modul
 
 @Module({
   imports: [
-    ReportsModule,
-    RegistrationsModule,
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        join(process.cwd(), '.env'),
+        join(__dirname, '..', '..', '.env'),
+      ],
     }),
 
+    ReportsModule,
+    RegistrationsModule,
     PrismaModule,
     ManifestsModule,
     AuthModule,
