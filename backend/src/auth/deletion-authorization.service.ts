@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import * as argon2 from 'argon2';
+import { verifyPassword } from './passwords';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -27,9 +27,7 @@ export class DeletionAuthorizationService {
     if (Number.isSafeInteger(cod) && cod > 0 && typeof password === 'string' && password.length > 0 && password.length <= 256) {
       const admin = await this.db.employees.findUnique({ where: { cod }, select: { isAdmin: true, password: true } });
       if (admin?.isAdmin && admin.password) {
-        valid = admin.password.startsWith('$argon2')
-          ? await argon2.verify(admin.password, password).catch(() => false)
-          : admin.password === password;
+        valid = await verifyPassword(admin.password, password).catch(() => false);
       }
     }
     if (!valid) {

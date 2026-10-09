@@ -2,9 +2,8 @@ import { DeletionAuthorizationService } from './deletion-authorization.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 jest.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
 jest.mock('@nestjs/jwt', () => ({ JwtService: class {} }));
-jest.mock('argon2', () => ({ verify: jest.fn(async (_hash, password) => password === 'correct') }));
 function setup() {
-  const db = { employees: { findUnique: jest.fn(async ({where}) => where.cod === 2 ? {id: 1, isAdmin: false} : {isAdmin: true, password: '$argon2-test'}) } };
+  const db = { employees: { findUnique: jest.fn(async ({where}) => where.cod === 2 ? {id: 1, isAdmin: false} : {isAdmin: true, password: 'correct'}) } };
   const service = new DeletionAuthorizationService(db as any);
   const request: any = { method: 'DELETE', path: '/registrations/vehicles/ABC1234', user: {sub:1,cod:2,unit:100,isAdmin:false}, body: {} };
   return { db, service, request };

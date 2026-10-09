@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
+import { hashPassword, isPasswordHash, verifyPassword } from './passwords';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
@@ -31,38 +31,21 @@ export class AuthService {
     }
 
     const senhaBanco = user.password;
-
-    let senhaCorreta = false;
-    let senhaJaTemHash = false;
-
-    /*
-     * Senhas novas terão hash Argon2.
-     * Senhas antigas do sistema ainda podem estar em texto puro.
-     */
-    if (senhaBanco.startsWith('$argon2')) {
-      senhaJaTemHash = true;
-
-      try {
-        senhaCorreta = await argon2.verify(senhaBanco, password);
-      } catch {
-        senhaCorreta = false;
-      }
-    } else {
-      senhaCorreta = senhaBanco === password;
-    }
+    const senhaCorreta = await verifyPassword(senhaBanco, password);
+    const senhaJaTemHash = isPasswordHash(senhaBanco);
 
     if (!senhaCorreta) {
-      throw new UnauthorizedException('Código ou senha inválidos.');
+      throw new UnauthorizedException('C?digo ou senha inv?lidos.');
     }
 
     /*
-     * Migração automática da senha antiga.
+     * Migra??o autom?tica da senha antiga.
      *
-     * Se o usuário entrou corretamente usando uma senha que
-     * ainda estava em texto puro, transformamos em Argon2.
+     * Se o usu?rio entrou corretamente usando uma senha que
+     * ainda estava em texto puro, transformamos em hash port?til.
      */
     if (!senhaJaTemHash) {
-      const passwordHash = await argon2.hash(password);
+      const passwordHash = await hashPassword(password);
 
       await this.prisma.employees.update({
         where: {
