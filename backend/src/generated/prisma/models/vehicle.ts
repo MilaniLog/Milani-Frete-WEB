@@ -29,12 +29,14 @@ export type AggregateVehicle = {
 export type VehicleAvgAggregateOutputType = {
   codVehicleType: number | null
   second_payer_percent: runtime.Decimal | null
+  unit: number | null
   user: number | null
 }
 
 export type VehicleSumAggregateOutputType = {
   codVehicleType: number | null
   second_payer_percent: runtime.Decimal | null
+  unit: number | null
   user: number | null
 }
 
@@ -49,6 +51,7 @@ export type VehicleMinAggregateOutputType = {
   second_payer: string | null
   second_payer_percent: runtime.Decimal | null
   canceled: boolean | null
+  unit: number | null
   user: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -65,6 +68,7 @@ export type VehicleMaxAggregateOutputType = {
   second_payer: string | null
   second_payer_percent: runtime.Decimal | null
   canceled: boolean | null
+  unit: number | null
   user: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -81,6 +85,7 @@ export type VehicleCountAggregateOutputType = {
   second_payer: number
   second_payer_percent: number
   canceled: number
+  unit: number
   user: number
   created_at: number
   updated_at: number
@@ -91,12 +96,14 @@ export type VehicleCountAggregateOutputType = {
 export type VehicleAvgAggregateInputType = {
   codVehicleType?: true
   second_payer_percent?: true
+  unit?: true
   user?: true
 }
 
 export type VehicleSumAggregateInputType = {
   codVehicleType?: true
   second_payer_percent?: true
+  unit?: true
   user?: true
 }
 
@@ -111,6 +118,7 @@ export type VehicleMinAggregateInputType = {
   second_payer?: true
   second_payer_percent?: true
   canceled?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -127,6 +135,7 @@ export type VehicleMaxAggregateInputType = {
   second_payer?: true
   second_payer_percent?: true
   canceled?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -143,6 +152,7 @@ export type VehicleCountAggregateInputType = {
   second_payer?: true
   second_payer_percent?: true
   canceled?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -246,6 +256,7 @@ export type VehicleGroupByOutputType = {
   second_payer: string | null
   second_payer_percent: runtime.Decimal
   canceled: boolean
+  unit: number
   user: number
   created_at: Date
   updated_at: Date
@@ -285,6 +296,7 @@ export type vehicleWhereInput = {
   second_payer?: Prisma.StringNullableFilter<"vehicle"> | string | null
   second_payer_percent?: Prisma.DecimalFilter<"vehicle"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFilter<"vehicle"> | boolean
+  unit?: Prisma.IntFilter<"vehicle"> | number
   user?: Prisma.IntFilter<"vehicle"> | number
   created_at?: Prisma.DateTimeFilter<"vehicle"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"vehicle"> | Date | string
@@ -301,6 +313,7 @@ export type vehicleOrderByWithRelationInput = {
   second_payer?: Prisma.SortOrderInput | Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
   canceled?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -321,6 +334,7 @@ export type vehicleWhereUniqueInput = Prisma.AtLeast<{
   second_payer?: Prisma.StringNullableFilter<"vehicle"> | string | null
   second_payer_percent?: Prisma.DecimalFilter<"vehicle"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFilter<"vehicle"> | boolean
+  unit?: Prisma.IntFilter<"vehicle"> | number
   user?: Prisma.IntFilter<"vehicle"> | number
   created_at?: Prisma.DateTimeFilter<"vehicle"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"vehicle"> | Date | string
@@ -337,6 +351,7 @@ export type vehicleOrderByWithAggregationInput = {
   second_payer?: Prisma.SortOrderInput | Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
   canceled?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -361,6 +376,7 @@ export type vehicleScalarWhereWithAggregatesInput = {
   second_payer?: Prisma.StringNullableWithAggregatesFilter<"vehicle"> | string | null
   second_payer_percent?: Prisma.DecimalWithAggregatesFilter<"vehicle"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolWithAggregatesFilter<"vehicle"> | boolean
+  unit?: Prisma.IntWithAggregatesFilter<"vehicle"> | number
   user?: Prisma.IntWithAggregatesFilter<"vehicle"> | number
   created_at?: Prisma.DateTimeWithAggregatesFilter<"vehicle"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"vehicle"> | Date | string
@@ -377,6 +393,7 @@ export type vehicleCreateInput = {
   second_payer?: string | null
   second_payer_percent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: boolean
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -393,6 +410,7 @@ export type vehicleUncheckedCreateInput = {
   second_payer?: string | null
   second_payer_percent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: boolean
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -409,6 +427,7 @@ export type vehicleUpdateInput = {
   second_payer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   second_payer_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -425,6 +444,7 @@ export type vehicleUncheckedUpdateInput = {
   second_payer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   second_payer_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +461,7 @@ export type vehicleCreateManyInput = {
   second_payer?: string | null
   second_payer_percent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: boolean
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -457,6 +478,7 @@ export type vehicleUpdateManyMutationInput = {
   second_payer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   second_payer_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -473,6 +495,7 @@ export type vehicleUncheckedUpdateManyInput = {
   second_payer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   second_payer_percent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -495,6 +518,7 @@ export type vehicleCountOrderByAggregateInput = {
   second_payer?: Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
   canceled?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -503,6 +527,7 @@ export type vehicleCountOrderByAggregateInput = {
 export type vehicleAvgOrderByAggregateInput = {
   codVehicleType?: Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
 }
 
@@ -517,6 +542,7 @@ export type vehicleMaxOrderByAggregateInput = {
   second_payer?: Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
   canceled?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -533,6 +559,7 @@ export type vehicleMinOrderByAggregateInput = {
   second_payer?: Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
   canceled?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -541,6 +568,7 @@ export type vehicleMinOrderByAggregateInput = {
 export type vehicleSumOrderByAggregateInput = {
   codVehicleType?: Prisma.SortOrder
   second_payer_percent?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
 }
 
@@ -557,6 +585,7 @@ export type vehicleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   second_payer?: boolean
   second_payer_percent?: boolean
   canceled?: boolean
+  unit?: boolean
   user?: boolean
   created_at?: boolean
   updated_at?: boolean
@@ -575,12 +604,13 @@ export type vehicleSelectScalar = {
   second_payer?: boolean
   second_payer_percent?: boolean
   canceled?: boolean
+  unit?: boolean
   user?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type vehicleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"driver_cpf" | "empresa_sigla" | "owner_name" | "plate" | "codVehicleType" | "owner" | "first_payer" | "second_payer" | "second_payer_percent" | "canceled" | "user" | "created_at" | "updated_at", ExtArgs["result"]["vehicle"]>
+export type vehicleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"driver_cpf" | "empresa_sigla" | "owner_name" | "plate" | "codVehicleType" | "owner" | "first_payer" | "second_payer" | "second_payer_percent" | "canceled" | "unit" | "user" | "created_at" | "updated_at", ExtArgs["result"]["vehicle"]>
 
 export type $vehiclePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "vehicle"
@@ -596,6 +626,7 @@ export type $vehiclePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     second_payer: string | null
     second_payer_percent: runtime.Decimal
     canceled: boolean
+    unit: number
     user: number
     created_at: Date
     updated_at: Date
@@ -978,6 +1009,7 @@ export interface vehicleFieldRefs {
   readonly second_payer: Prisma.FieldRef<"vehicle", 'String'>
   readonly second_payer_percent: Prisma.FieldRef<"vehicle", 'Decimal'>
   readonly canceled: Prisma.FieldRef<"vehicle", 'Boolean'>
+  readonly unit: Prisma.FieldRef<"vehicle", 'Int'>
   readonly user: Prisma.FieldRef<"vehicle", 'Int'>
   readonly created_at: Prisma.FieldRef<"vehicle", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"vehicle", 'DateTime'>

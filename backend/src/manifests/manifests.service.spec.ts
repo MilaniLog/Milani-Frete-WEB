@@ -21,7 +21,7 @@ it('filtra inclusões de ontem e hoje no horário de São Paulo antes do limite'
 });
 
 describe('Manutenção de manifestos', () => {
-  it('busca por número antes do limite, preservando o escopo da unidade', async () => {
+  it('busca por número antes do limite sem limitar unidade para administrador', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const lookup = new ManifestsService(
       { frete_carregamento_manifestos: { findMany } } as any,
@@ -35,7 +35,6 @@ describe('Manutenção de manifestos', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          unit: 301,
           OR: [
             { manifestos: '301000123-4' },
             { manifesto_adicional_1: '301000123-4' },

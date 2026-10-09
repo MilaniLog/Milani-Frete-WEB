@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 
 export class ConferenceDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) unit?: number;
   @IsOptional() @Matches(/^\d{4}$/) semana?: string;
   @IsOptional()
   @Transform(({ value }) =>
@@ -51,6 +52,12 @@ export class CancelClosureDto {
 }
 
 export class ClosureDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  unit?: number;
+
   @Matches(/^\d{4}$/)
   semana: string;
 
@@ -85,6 +92,12 @@ class WeekClosureSelectionDto {
 }
 
 export class WeekClosureDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  unit?: number;
+
   @Matches(/^\d{4}$/)
   semana: string;
 

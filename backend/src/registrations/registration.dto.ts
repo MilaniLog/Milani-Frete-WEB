@@ -13,10 +13,12 @@ import {
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 export class DriverRegistrationDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) unit?: number;
   @Matches(/^\d{11}$/) cpf: string;
   @Transform(trim) @IsString() @MinLength(4) @MaxLength(50) name: string;
 }
 export class VehicleRegistrationDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) unit?: number;
   @IsOptional() @IsBoolean() owner_is_driver?: boolean;
   @IsOptional()
   @Transform(({ value }) => typeof value === 'string' && /^\d{1,11}$/.test(value.trim()) ? value.trim().padStart(11, '0') : value)

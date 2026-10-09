@@ -21,6 +21,14 @@ import {
 export class FreightInvoicesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private unitWhere(user: AuthUser, unit?: number) {
+    return user.isAdmin ? (unit == null ? {} : { unit }) : { unit: user.unit };
+  }
+
+  private operationUnit(user: AuthUser, row?: { unit: number }) {
+    return row?.unit ?? user.unit;
+  }
+
   private async transaction<T>(
     action: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
@@ -47,7 +55,7 @@ export class FreightInvoicesService {
 
   listTypes(user: AuthUser) {
     return this.prisma.frete_tipos_nota.findMany({
-      where: { unit: user.unit },
+      where: this.unitWhere(user),
       orderBy: { codigo: 'asc' },
     });
   }
@@ -56,11 +64,11 @@ export class FreightInvoicesService {
     return this.transaction(async (tx) => {
       if (id !== undefined) {
         const type = await tx.frete_tipos_nota.findFirst({
-          where: { id, unit: user.unit },
+          where: { id, ...this.unitWhere(user) },
         });
         if (!type) throw new NotFoundException('Tipo de nota não encontrado.');
         return tx.frete_tipos_nota.update({
-          where: { id, unit: user.unit },
+          where: { id },
           data: dto,
         });
       }
@@ -70,7 +78,7 @@ export class FreightInvoicesService {
 
   list(user: AuthUser) {
     return this.prisma.frete_notas.findMany({
-      where: { unit: user.unit },
+      where: this.unitWhere(user),
       orderBy: { id: 'desc' },
       take: 50,
     });
@@ -82,7 +90,7 @@ export class FreightInvoicesService {
     user: AuthUser,
   ) {
     const note = await tx.frete_notas.findFirst({
-      where: { id, unit: user.unit },
+      where: { id, ...this.unitWhere(user) },
     });
     if (!note)
       throw new NotFoundException('Nota não encontrada nesta unidade.');
@@ -95,7 +103,7 @@ export class FreightInvoicesService {
 
   async findByNumber(numero: string, user: AuthUser) {
     const note = await this.prisma.frete_notas.findFirst({
-      where: { numero: numero.trim(), unit: user.unit },
+      where: { numero: numero.trim(), ...this.unitWhere(user) },
     });
     if (!note)
       throw new NotFoundException('Nota não encontrada nesta unidade.');
@@ -105,7 +113,7 @@ export class FreightInvoicesService {
   findLaunch(id: number, user: AuthUser) {
     return this.transaction(async (tx) => {
       const coupon = await tx.frete_cupons.findFirst({
-        where: { id, unit: user.unit },
+        where: { id, ...this.unitWhere(user) },
       });
       if (!coupon)
         throw new NotFoundException('Lançamento não encontrado nesta unidade.');
@@ -168,29 +176,30 @@ export class FreightInvoicesService {
     user: AuthUser,
     id?: number,
   ) {
+    const existingInvoice = id === undefined ? null : await this.invoice(tx, id, user);
+    const targetUnit = this.operationUnit(user, existingInvoice ?? undefined);
     if (id !== undefined) {
-      await this.invoice(tx, id, user);
       const coupons = await tx.frete_cupons.findMany({
-        where: { nota_id: id, unit: user.unit },
+        where: { nota_id: id, unit: targetUnit },
       });
       for (const coupon of coupons) await this.editableCoupon(tx, coupon, user);
     }
     const type = await tx.frete_tipos_nota.findFirst({
-      where: { id: dto.tipo_id, unit: user.unit, ativo: true },
+      where: { id: dto.tipo_id, unit: targetUnit, ativo: true },
     });
     if (!type)
       throw new NotFoundException('Tipo de nota não encontrado ou inativo.');
     if (type.tipo !== 'Debito')
       throw new BadRequestException('Tipo de nota não suportado.');
     const total =
-      id === undefined ? new Decimal(0) : await this.totalCoupons(tx, id, user);
+      id === undefined ? new Decimal(0) : await this.totalCoupons(tx, id, targetUnit);
     const saldo = new Decimal(dto.valor).minus(total);
     if (saldo.isNegative())
       throw new BadRequestException(
         'O valor da nota não pode ser menor que a soma dos cupons.',
       );
     const data = {
-      unit: user.unit,
+      unit: targetUnit,
       numero: dto.numero,
       valor: dto.valor,
       saldo,
@@ -205,7 +214,7 @@ export class FreightInvoicesService {
     };
     return id === undefined
       ? tx.frete_notas.create({ data })
-      : tx.frete_notas.update({ where: { id, unit: user.unit }, data });
+      : tx.frete_notas.update({ where: { id }, data });
   }
 
   async remove(id: number, user: AuthUser) {
@@ -214,26 +223,26 @@ export class FreightInvoicesService {
         'Somente administradores podem excluir notas e seus cupons.',
       );
     return this.transaction(async (tx) => {
-      await this.invoice(tx, id, user);
+      const note = await this.invoice(tx, id, user);
       const coupons = await tx.frete_cupons.findMany({
-        where: { nota_id: id, unit: user.unit },
+        where: { nota_id: id, unit: note.unit },
       });
       for (const coupon of coupons) await this.editableCoupon(tx, coupon, user);
       const deleted = await tx.frete_cupons.deleteMany({
-        where: { nota_id: id, unit: user.unit },
+        where: { nota_id: id, unit: note.unit },
       });
-      await tx.frete_notas.delete({ where: { id, unit: user.unit } });
+      await tx.frete_notas.delete({ where: { id } });
       return { id, deleted: true, deletedCoupons: deleted.count };
     });
   }
 
   async listCoupons(id: number, user: AuthUser, weekCode?: string) {
-    await this.invoice(this.prisma, id, user);
+    const note = await this.invoice(this.prisma, id, user);
     if (weekCode) await getWeek(this.prisma, weekCode);
     return this.prisma.frete_cupons.findMany({
       where: {
         nota_id: id,
-        unit: user.unit,
+        unit: note.unit,
         ...(weekCode ? { semana: weekCode } : {}),
       },
       orderBy: { id: 'asc' },
@@ -243,10 +252,10 @@ export class FreightInvoicesService {
   private async totalCoupons(
     tx: Prisma.TransactionClient,
     id: number,
-    user: AuthUser,
+    unit: number,
   ) {
     const result = await tx.frete_cupons.aggregate({
-      where: { nota_id: id, unit: user.unit },
+      where: { nota_id: id, unit },
       _sum: { valor: true },
     });
     return new Decimal(result._sum.valor ?? 0);
@@ -277,7 +286,7 @@ export class FreightInvoicesService {
     const note = await this.invoice(tx, id, user);
     if (change.kind !== 'create') {
       const current = await tx.frete_cupons.findFirst({
-        where: { id: change.couponId, nota_id: id, unit: user.unit },
+        where: { id: change.couponId, nota_id: id, unit: note.unit },
       });
       if (!current)
         throw new NotFoundException('Cupom não encontrado nesta nota.');
@@ -327,22 +336,22 @@ export class FreightInvoicesService {
       coupon =
         change.kind === 'create'
           ? await tx.frete_cupons.create({
-              data: { ...data, unit: user.unit, nota_id: id },
+              data: { ...data, unit: note.unit, nota_id: id },
             })
           : await tx.frete_cupons.update({
-              where: { id: change.couponId, unit: user.unit, nota_id: id },
+              where: { id: change.couponId, unit: note.unit, nota_id: id },
               data,
             });
     }
     const saldo = new Decimal(note.valor).minus(
-      await this.totalCoupons(tx, id, user),
+      await this.totalCoupons(tx, id, note.unit),
     );
     if (saldo.isNegative())
       throw new BadRequestException(
         'A soma dos cupons não pode ultrapassar o valor da nota.',
       );
     const updated = await tx.frete_notas.update({
-      where: { id, unit: user.unit },
+      where: { id },
       data: { saldo },
     });
     return { coupon, nota: updated };

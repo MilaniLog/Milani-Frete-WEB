@@ -14,6 +14,12 @@ import { validDocument } from './document';
 @Injectable()
 export class RegistrationsService {
   constructor(private readonly db: PrismaService) {}
+
+  private registrationUnit(dto: { unit?: number }, user: AuthUser) {
+    if (!user.isAdmin) return user.unit;
+    if (!dto.unit) throw new BadRequestException('Informe a unidade de cadastro.');
+    return dto.unit;
+  }
   companies() {
     return this.db.frete_empresas.findMany({ orderBy: { matriz: 'asc' } });
   }
@@ -27,7 +33,7 @@ export class RegistrationsService {
     return (
       await this.db.driver.findMany({
         orderBy: { name: 'asc' },
-        select: { cpf: true, name: true },
+        select: { cpf: true, name: true, unit: true },
       })
     ).map((d) => ({ ...d, cpf: d.cpf.toString().padStart(11, '0') }));
   }
@@ -42,6 +48,7 @@ export class RegistrationsService {
         owner_name: true,
         empresa_sigla: true,
         driver_cpf: true,
+        unit: true,
       },
     });
     const drivers = await this.db.driver.findMany({
@@ -67,11 +74,13 @@ export class RegistrationsService {
           throw new ConflictException(
             'CPF já cadastrado. Localize o motorista pelo nome para editar.',
           );
+        const unit = this.registrationUnit(dto, user);
         const data = {
           name: dto.name,
+          unit,
           user: user.cod,
         };
-        const select = { cpf: true, name: true };
+        const select = { cpf: true, name: true, unit: true };
         const saved = key
           ? await tx.driver.update({ where: { cpf: BigInt(key) }, data, select })
           : await tx.driver.create({ data: { ...data, cpf: BigInt(dto.cpf) }, select });
@@ -132,7 +141,7 @@ export class RegistrationsService {
             data: { cnpj: dto.owner, fantasy_name: dto.owner_name },
           });
         // Registration only: no percentage or historic settlement changes.
-        const { owner_is_driver, ...registration } = dto;
+        const { owner_is_driver, unit: _dtoUnit, ...registration } = dto;
         if (owner_is_driver) {
           const driver = dto.driver_cpf ? await tx.driver.findUnique({ where: { cpf: BigInt(dto.driver_cpf) }, select: { cpf: true, name: true } }) : null;
           if (!driver)
@@ -141,7 +150,8 @@ export class RegistrationsService {
           if (normalize(driver.name) !== normalize(dto.owner_name))
             throw new BadRequestException('Selecione o motorista com o nome do proprietário.');
         }
-        const data = { ...registration, user: user.cod,
+        const unit = this.registrationUnit(dto, user);
+        const data = { ...registration, unit, user: user.cod,
           first_payer: dto.empresa_sigla, second_payer: null, second_payer_percent: 0 };
         return key
           ? tx.vehicle.update({ where: { plate: key }, data })

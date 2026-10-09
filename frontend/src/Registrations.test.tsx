@@ -38,6 +38,7 @@ function mount(kind: "drivers" | "vehicles", admin = true) {
       kind={kind}
       token="token"
       isAdmin={admin}
+      userUnit={100}
       expired={vi.fn()}
     />,
   );
@@ -105,7 +106,7 @@ it('exige confirmação para excluir veículo e atualiza a lista para usuário c
       ? [{ plate: 'ABC1D23', owner: '52998224725', owner_name: 'Exemplo', codVehicleType: 1, empresa_sigla: 'AZN' }]
       : []), { status: 200 });
   }));
-  render(<Registrations kind="vehicles" token="token" isAdmin={false} expired={vi.fn()} />);
+  render(<Registrations kind="vehicles" token="token" isAdmin={false} userUnit={100} expired={vi.fn()} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Editar ABC1D23' }));
   fireEvent.click(screen.getByRole('button', { name: 'Excluir veículo' }));
   expect(deleted).toBe(false);

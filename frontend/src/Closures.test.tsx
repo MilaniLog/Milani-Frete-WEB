@@ -96,7 +96,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 function mount(isAdmin = false) {
-  render(<Closures token="token" isAdmin={isAdmin} expired={vi.fn()} />);
+  render(<Closures token="token" isAdmin={isAdmin} userUnit={100} expired={vi.fn()} />);
 }
 async function preview() {
   fireEvent.change(screen.getByLabelText("Código da semana"), {

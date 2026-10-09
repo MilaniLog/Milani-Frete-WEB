@@ -11,6 +11,12 @@ import { ConferenceDto } from './freight-closures.dto';
 @Injectable()
 export class ConferenceService {
   constructor(private readonly db: PrismaService) {}
+
+  private unitWhere(user: AuthUser, unit?: number) {
+    const targetUnit = user.isAdmin ? unit : user.unit;
+    return targetUnit == null ? {} : { unit: targetUnit };
+  }
+
   async report(dto: ConferenceDto, user: AuthUser) {
     if ((dto.inicio && !dto.fim) || (!dto.inicio && dto.fim))
       throw new BadRequestException('Preencha início e fim.');
@@ -30,7 +36,7 @@ export class ConferenceService {
         const dates = { gte: start, lte: end };
         const closure = dto.numero
           ? await tx.frete_fechamentos.findFirst({
-              where: { unit: user.unit, numero: Number(dto.numero) },
+              where: { numero: Number(dto.numero), ...this.unitWhere(user) },
             })
           : null;
         if (dto.numero && !closure)
@@ -54,7 +60,7 @@ export class ConferenceService {
         const plates = vehicles.map((v) => v.plate);
         let manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
-            unit: user.unit,
+            ...this.unitWhere(user, closure?.unit),
             placa: { in: plates },
             semana: dates,
             ...(dto.usuario ? { usuario: dto.usuario } : {}),
@@ -85,7 +91,7 @@ export class ConferenceService {
         const ids = manifests.map((m) => m.id);
         const entries = await tx.frete_lancamentos.findMany({
           where: {
-            unit: user.unit,
+            ...this.unitWhere(user, closure?.unit),
             placa: { in: plates },
             ...(dto.usuario ? { responsavel_cod: Number(dto.usuario) } : {}),
             ...(closure
@@ -113,7 +119,7 @@ export class ConferenceService {
             ? []
             : await tx.frete_cupons.findMany({
                 where: {
-                  unit: user.unit,
+                  ...this.unitWhere(user, closure?.unit),
                   placa: { in: plates },
                   data_cobranca: dates,
                   ...(dto.usuario

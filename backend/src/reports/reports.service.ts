@@ -25,6 +25,16 @@ const date = (v: unknown) =>
 @Injectable()
 export class ReportsService {
   constructor(private readonly db: PrismaService) {}
+
+  private unitWhere(user: AuthUser, unit?: number) {
+    const targetUnit = user.isAdmin ? unit : user.unit;
+    return targetUnit == null ? {} : { unit: targetUnit };
+  }
+
+  private unitLabel(user: AuthUser) {
+    return user.isAdmin ? 'Todas as unidades' : `Unidade ${user.unit}`;
+  }
+
   private async period(tx: Prisma.TransactionClient, q: ReportQuery) {
     if (q.semana && (q.inicio || q.fim))
       throw new BadRequestException('Escolha semana ou início e fim.');
@@ -52,7 +62,7 @@ export class ReportsService {
           lt: new Date(p.end.getTime() + 86400000),
         };
         const scope = {
-          unit: user.unit,
+          ...this.unitWhere(user),
           ...(q.placa ? { placa: q.placa } : {}),
           ...(q.departamento ? { departamento: q.departamento } : {}),
           ...(q.usuario ? { responsavel_cod: Number(q.usuario) } : {}),
@@ -93,7 +103,7 @@ export class ReportsService {
               });
         const manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
-            unit: user.unit,
+            ...this.unitWhere(user),
             id: {
               in: entries.flatMap((e) =>
                 e.manifesto_id == null ? [] : [e.manifesto_id],
@@ -191,7 +201,7 @@ export class ReportsService {
           financialKind: q.lancamentos === 'false' ? 'coupons' : q.cupons === 'false' ? 'entries' : 'combined',
           title: q.lancamentos === 'false' ? 'Conferência de cupons' : q.cupons === 'false' ? 'Conferência de lançamentos' : 'Conferência de lançamentos e cupons',
           notes: [
-            `Unidade ${user.unit} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`,
+            `${this.unitLabel(user)} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`,
             `Data: ${inclusion ? 'inclusão no site' : 'despesa/cobrança'} · Situação: ${q.situacao ?? 'abertos'}${q.placa ? ` · Placa ${q.placa}` : ''}${q.departamento ? ` · Departamento ${q.departamento}` : ''}${q.usuario ? ` · Usuário ${q.usuario}` : ''}`,
           ],
           columns: [
@@ -241,7 +251,7 @@ export class ReportsService {
         : await this.period(tx, q);
     const closures = await tx.frete_fechamentos.findMany({
       where: {
-        unit: user.unit,
+        ...this.unitWhere(user),
         ...(onlyClosed ? { status: 'FECHADO' } : {}),
         ...(q.numero ? { numero: Number(q.numero) } : {}),
         ...(q.placa ? { placa: q.placa } : {}),
@@ -261,7 +271,7 @@ export class ReportsService {
     }[];
     for (const closure of closures) {
       const h = closure.historico as any;
-      const where = { unit: user.unit, fechamento_id: closure.id };
+      const where = { unit: closure.unit, fechamento_id: closure.id };
       const detail =
         h?.finalizacao?.dados || h?.cancelamento?.dados
           ? { closure, manifests: [], entries: [], coupons: [] }
@@ -353,7 +363,7 @@ export class ReportsService {
             money(gross.minus(ctrb)),
             money(gross.minus(net)),
             money(net.minus(ctrb)),
-            String(user.unit),
+            String(closure.unit),
             ctrbNet,
           ]);
         }
@@ -392,7 +402,7 @@ export class ReportsService {
           numeric,
           totals,
           notes: [
-            `Unidade ${user.unit}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.empresa ? ` · Empresa ${q.empresa}` : ''}`,
+            `${this.unitLabel(user)}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.empresa ? ` · Empresa ${q.empresa}` : ''}`,
             'Somente fechamentos finalizados. LIQ PAGAR = líquido do fechamento − CTRB bruto, conforme a planilha VBA. Nenhum pagamento é executado; não há rateio percentual.',
             ...(legacy
               ? [

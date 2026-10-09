@@ -256,6 +256,7 @@ export const VehicleScalarFieldEnum = {
   second_payer: 'second_payer',
   second_payer_percent: 'second_payer_percent',
   canceled: 'canceled',
+  unit: 'unit',
   user: 'user',
   created_at: 'created_at',
   updated_at: 'updated_at'
@@ -282,6 +283,7 @@ export const DriverScalarFieldEnum = {
   empresa_sigla: 'empresa_sigla',
   cpf: 'cpf',
   name: 'name',
+  unit: 'unit',
   user: 'user',
   created_at: 'created_at',
   updated_at: 'updated_at'

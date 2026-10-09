@@ -132,10 +132,12 @@ const withSelectedDebits = (data: Preview, selectedIds: number[]): Preview => {
 export default function Closures({
   token,
   isAdmin,
+  userUnit,
   expired,
 }: {
   token: string;
   isAdmin: boolean;
+  userUnit: number;
   expired: () => void;
 }) {
   const [rows, setRows] = useState<Closure[]>([]);
@@ -174,6 +176,7 @@ export default function Closures({
   }
   function query() {
     const p = new URLSearchParams();
+    if (isAdmin && filters.unit.trim()) p.set("unit", filters.unit.trim());
     if (week) p.set("semana", week);
     if (plate.trim()) p.set("placa", plate.trim().toUpperCase());
     for (const [k, v] of Object.entries(filters)) {
@@ -218,6 +221,7 @@ export default function Closures({
       !week ||
       !plate ||
       Object.entries(filters).some(([k, v]) =>
+        k === "unit" ? false :
         k === "categoria" ? v !== "Todos" : v !== "" && v !== false,
       );
     if (advanced) {
@@ -248,7 +252,11 @@ export default function Closures({
     setSuccess("");
     try {
       const data = await api<Preview>(
-        `/freight-closures/preview?semana=${encodeURIComponent(week)}&placa=${encodeURIComponent(plate.trim().toUpperCase())}`,
+        `/freight-closures/preview?${new URLSearchParams({
+          ...(isAdmin && filters.unit.trim() ? { unit: filters.unit.trim() } : {}),
+          semana: week,
+          placa: plate.trim().toUpperCase(),
+        }).toString()}`,
         token,
       );
       setPreview(data);
@@ -272,7 +280,10 @@ export default function Closures({
     setSuccess("");
     if (!plate.trim()) {
       try {
-        const q = new URLSearchParams({ semana: week }).toString();
+        const q = new URLSearchParams({
+          ...(isAdmin && filters.unit.trim() ? { unit: filters.unit.trim() } : {}),
+          semana: week,
+        }).toString();
         const data = await api<{ groups: Preview[] }>(
           `/freight-closures/conference?${q}`,
           token,
@@ -291,7 +302,11 @@ export default function Closures({
     }
     try {
       const data = await api<Preview>(
-        `/freight-closures/preview?semana=${encodeURIComponent(week)}&placa=${encodeURIComponent(plate.trim().toUpperCase())}`,
+        `/freight-closures/preview?${new URLSearchParams({
+          ...(isAdmin && filters.unit.trim() ? { unit: filters.unit.trim() } : {}),
+          semana: week,
+          placa: plate.trim().toUpperCase(),
+        }).toString()}`,
         token,
       );
       setPreview(data);
@@ -357,6 +372,7 @@ export default function Closures({
         {
           method: "POST",
           body: JSON.stringify({
+            ...(isAdmin && filters.unit.trim() ? { unit: Number(filters.unit.trim()) } : {}),
             semana: preview.semana,
             placa: preview.placa,
             debit_entry_ids: selectedDebitIds,
@@ -395,7 +411,11 @@ export default function Closures({
         token,
         {
           method: "POST",
-          body: JSON.stringify({ semana: batchWeek, selections }),
+          body: JSON.stringify({
+            ...(isAdmin && filters.unit.trim() ? { unit: Number(filters.unit.trim()) } : {}),
+            semana: batchWeek,
+            selections,
+          }),
         },
       );
       invalidate();
@@ -497,6 +517,7 @@ export default function Closures({
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
+            ...(isAdmin && filters.unit.trim() ? { unit: Number(filters.unit.trim()) } : {}),
             semana: selectedWeek,
             selections: batchSelectionsPayload(),
           }),
@@ -584,6 +605,7 @@ export default function Closures({
           token={token}
           busy={busy}
           isAdmin={isAdmin}
+          userUnit={userUnit}
           week={week}
           plate={plate}
           filters={filters}
@@ -732,7 +754,11 @@ export default function Closures({
               disabled={busy}
               onClick={() =>
                 void download(
-                  `/freight-closures/preview/print.pdf?semana=${preview.semana}&placa=${preview.placa}`,
+                  `/freight-closures/preview/print.pdf?${new URLSearchParams({
+                    ...(isAdmin && filters.unit.trim() ? { unit: filters.unit.trim() } : {}),
+                    semana: preview.semana,
+                    placa: preview.placa,
+                  }).toString()}`,
                   "conferencia.pdf",
                 )
               }

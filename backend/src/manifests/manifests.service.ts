@@ -31,6 +31,35 @@ export class ManifestsService {
     private readonly freightCalculationService: FreightCalculationService,
   ) {}
 
+  private async operationalUnits(user: AuthUser) {
+    if (user.isAdmin) return undefined;
+    if (!this.prisma.user_permissions?.findMany) return [user.unit];
+    const rows = await this.prisma.user_permissions.findMany({
+      where: {
+        cod_user: user.cod,
+        OR: [{ freight_service: true }, { freight_closure: true }],
+      },
+      select: { unit: true },
+    });
+    return [...new Set([user.unit, ...rows.map((row) => row.unit)])];
+  }
+
+  private async operationalUnitWhere(user: AuthUser, unit?: number) {
+    if (user.isAdmin) return unit == null ? {} : { unit };
+    const units = await this.operationalUnits(user);
+    if (unit != null) {
+      if (!units!.includes(unit))
+        throw new NotFoundException('Registro nao encontrado nesta unidade.');
+      return { unit };
+    }
+    return units!.length === 1 ? { unit: units![0] } : { unit: { in: units } };
+  }
+
+  private unitFromManifestNumber(value: string) {
+    const prefix = value.trim().slice(0, 3);
+    return /^\d{3}$/.test(prefix) ? Number(prefix) : undefined;
+  }
+
   async preview(dto: PreviewManifestDto, user: AuthUser) {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { plate: dto.placa },
@@ -46,13 +75,13 @@ export class ManifestsService {
     let originalFreight: number | undefined;
     if (dto.manifesto_id != null) {
       const manifest = await this.prisma.frete_carregamento_manifestos.findFirst({
-        where: { id: dto.manifesto_id, unit: user.unit },
-        select: { frete_veiculo: true },
+        where: { id: dto.manifesto_id, ...(await this.operationalUnitWhere(user)) },
+        select: { frete_veiculo: true, unit: true },
       });
       if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
       originalFreight = Number(manifest.frete_veiculo);
       expenses = companyExpenses(await this.prisma.frete_lancamentos.findMany({
-        where: { manifesto_id: dto.manifesto_id, unit: user.unit },
+        where: { manifesto_id: dto.manifesto_id, ...(await this.operationalUnitWhere(user, manifest.unit)) },
         select: { tipo_despesa: true, valor: true },
       }));
     }
@@ -81,7 +110,7 @@ export class ManifestsService {
     const midnight = new Date(`${today}T00:00:00-03:00`).getTime();
     return this.prisma.frete_carregamento_manifestos.findMany({
       where: {
-        unit: user.unit,
+        ...(await this.operationalUnitWhere(user)),
         ...(recent ? { data_hora: { gte: new Date(midnight - 86400000), lt: new Date(midnight + 86400000) } } : {}),
         ...(manifestNumber
           ? {
@@ -203,7 +232,7 @@ export class ManifestsService {
       {
         where: {
           id,
-          unit: user.unit,
+          ...(await this.operationalUnitWhere(user)),
         },
       },
     );
@@ -221,7 +250,9 @@ export class ManifestsService {
 
   async create(dto: CreateManifestDto, user: AuthUser) {
     return this.mutate(async (tx) => {
-      const data = await this.buildData(tx, dto, user);
+      const manifestUnit = this.unitFromManifestNumber(dto.manifestos) ?? user.unit;
+      await this.operationalUnitWhere(user, manifestUnit);
+      const data = await this.buildData(tx, dto, user, undefined, 0, manifestUnit);
       return tx.frete_carregamento_manifestos.create({ data });
     });
   }
@@ -240,6 +271,7 @@ export class ManifestsService {
         user,
         id,
         companyExpenses(entries),
+        manifest.unit,
       );
       for (const entry of entries)
         await periodForDate(
@@ -248,12 +280,12 @@ export class ManifestsService {
           entry.semana ?? undefined,
         );
       const updated = await tx.frete_carregamento_manifestos.update({
-        where: { id, unit: user.unit },
+        where: { id },
         data,
       });
       // Vínculo por ID preserva os lançamentos quando o número muda.
       await tx.frete_lancamentos.updateMany({
-        where: { manifesto_id: id, unit: user.unit },
+        where: { manifesto_id: id, unit: manifest.unit },
         data: {
           placa: updated.placa,
           motorista: updated.motorista,
@@ -268,17 +300,17 @@ export class ManifestsService {
 
   async remove(id: number, user: AuthUser) {
     return this.mutate(async (tx) => {
-      await this.editable(tx, id, user);
+      const { manifest } = await this.editable(tx, id, user);
       const entries = await tx.frete_lancamentos.deleteMany({
         where: {
           manifesto_id: id,
-          unit: user.unit,
+          unit: manifest.unit,
           pago: false,
           fechamento_id: null,
         },
       });
       await tx.frete_carregamento_manifestos.delete({
-        where: { id, unit: user.unit },
+        where: { id },
       });
       return { id, deleted: true, deletedEntries: entries.count };
     });
@@ -290,7 +322,7 @@ export class ManifestsService {
     user: AuthUser,
   ) {
     const manifest = await tx.frete_carregamento_manifestos.findFirst({
-      where: { id, unit: user.unit },
+      where: { id, ...(await this.operationalUnitWhere(user)) },
     });
     if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
     if (manifest.fechamento_id != null) {
@@ -304,7 +336,7 @@ export class ManifestsService {
     if (
       entries.some(
         (entry) =>
-          entry.unit !== user.unit || entry.pago || entry.fechamento_id != null,
+          entry.unit !== manifest.unit || entry.pago || entry.fechamento_id != null,
       )
     ) {
       throw new ConflictException(
@@ -353,6 +385,7 @@ export class ManifestsService {
     user: AuthUser,
     excludeId?: number,
     expenses = 0,
+    targetUnit = user.unit,
   ): Promise<Prisma.frete_carregamento_manifestosUncheckedCreateInput> {
     // =======================================================
     // NORMALIZAÇÕES
@@ -388,7 +421,7 @@ export class ManifestsService {
     const manifestoExistente =
       await database.frete_carregamento_manifestos.findFirst({
         where: {
-          unit: user.unit,
+          unit: targetUnit,
           OR: [
             { manifestos: { in: manifestNumbers } },
             { manifesto_adicional_1: { in: manifestNumbers } },
@@ -460,7 +493,7 @@ export class ManifestsService {
     // =======================================================
     // DESTINO
     //
-    // Só aceita destino:
+    // So aceita destino:
     // - da mesma unidade
     // - ativo
     // =======================================================
@@ -475,7 +508,7 @@ export class ManifestsService {
 
     if (!destination) {
       throw new NotFoundException(
-        'Destino não encontrado ou inativo nesta unidade.',
+        'Destino nao encontrado ou inativo na unidade do usuario.',
       );
     }
 
@@ -658,7 +691,7 @@ export class ManifestsService {
 
     const numFechamento = await this.resolveClosureNumber(
       database,
-      user,
+      targetUnit,
       placa,
       week,
       excludeId,
@@ -673,7 +706,7 @@ export class ManifestsService {
       // IDENTIFICAÇÃO
       // =================================================
 
-      unit: user.unit,
+      unit: targetUnit,
 
       origem,
 
@@ -860,14 +893,14 @@ export class ManifestsService {
 
   private async resolveClosureNumber(
     database: Prisma.TransactionClient,
-    user: AuthUser,
+    unit: number,
     placa: string,
     week: Awaited<ReturnType<typeof periodForDate>>,
     excludeId?: number,
   ) {
     const open = await database.frete_carregamento_manifestos.findFirst({
       where: {
-        unit: user.unit,
+        unit,
         placa,
         semana: { gte: week.data_inicio, lte: week.data_fim },
         fechamento_id: null,
@@ -883,7 +916,7 @@ export class ManifestsService {
       const current = await database.frete_carregamento_manifestos.findFirst({
         where: {
           id: excludeId,
-          unit: user.unit,
+          unit,
           placa,
           semana: { gte: week.data_inicio, lte: week.data_fim },
           fechamento_id: null,
@@ -898,7 +931,7 @@ export class ManifestsService {
     const [lastManifest, lastClosure] = await Promise.all([
       database.frete_carregamento_manifestos.findFirst({
         where: {
-          unit: user.unit,
+          unit,
           num_fechamento: range,
         },
         orderBy: { num_fechamento: 'desc' },
@@ -906,7 +939,7 @@ export class ManifestsService {
       }),
       database.frete_fechamentos.findFirst({
         where: {
-          unit: user.unit,
+          unit,
           numero: range,
         },
         orderBy: { numero: 'desc' },

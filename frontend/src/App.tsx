@@ -54,6 +54,15 @@ const manifestNumbers = (m: Partial<Manifest>) =>
     m.manifesto_adicional_3,
   ].filter((value): value is string => typeof value === "string" && value.trim() !== "");
 const manifestLabel = (m: Partial<Manifest>) => manifestNumbers(m).join(" / ");
+type ManifestParts = { prefix: string; suffix: string };
+const splitManifestParts = (value?: string | null): ManifestParts => {
+  const text = String(value ?? "");
+  return /^\d{3}/.test(text)
+    ? { prefix: text.slice(0, 3), suffix: text.slice(3) }
+    : { prefix: "", suffix: text };
+};
+const joinManifestParts = (parts: ManifestParts) => `${parts.prefix}${parts.suffix}`;
+
 
 export default function App() {
   useEffect(() => installSelectAllFields(document), []);
@@ -130,6 +139,8 @@ export default function App() {
           ) : page === "destinations" ? (
             <Destinations
               token={session.accessToken}
+              isAdmin={session.user.isAdmin}
+              userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -162,6 +173,7 @@ export default function App() {
               kind={page === "payers" ? "companies" : page}
               token={session.accessToken}
               isAdmin={session.user.isAdmin}
+              userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -181,6 +193,7 @@ export default function App() {
             <Closures
               token={session.accessToken}
               isAdmin={session.user.isAdmin}
+              userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -746,12 +759,14 @@ function CreateManifest({
   const legacyManifest = !!initial && !/^\d{3}/.test(initial.manifestos);
   const [manifestPrefix, setManifestPrefix] = useState(initial && !legacyManifest ? initial.manifestos.slice(0,3) : "");
   const [manifestSuffix, setManifestSuffix] = useState(initial ? legacyManifest ? initial.manifestos : initial.manifestos.slice(3) : "");
-  const [additionalManifests, setAdditionalManifests] = useState<string[]>(
+  const [additionalManifests, setAdditionalManifests] = useState<ManifestParts[]>(
     [
       initial?.manifesto_adicional_1,
       initial?.manifesto_adicional_2,
       initial?.manifesto_adicional_3,
-    ].filter((value): value is string => !!value),
+    ]
+      .filter((value): value is string => !!value)
+      .map(splitManifestParts),
   );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   useEffect(() => {
@@ -952,7 +967,7 @@ function CreateManifest({
                 disabled={additionalManifests.length >= 3}
                 onClick={() =>
                   setAdditionalManifests((values) =>
-                    values.length >= 3 ? values : [...values, ""],
+                    values.length >= 3 ? values : [...values, { prefix: "", suffix: "" }],
                   )
                 }
               >
@@ -960,12 +975,12 @@ function CreateManifest({
               </button>
             </div>
             {additionalManifests.map((value, index) => {
-              const additionalPrefix = /^\d{3}/.test(value) ? value.slice(0, 3) : "";
-              const additionalSuffix = /^\d{3}/.test(value) ? value.slice(3) : value;
-              const updateAdditional = (prefix: string, suffix: string) => {
-                const next = [...additionalManifests];
-                next[index] = `${prefix}${suffix}`;
-                setAdditionalManifests(next);
+              const updateAdditional = (parts: Partial<ManifestParts>) => {
+                setAdditionalManifests((values) =>
+                  values.map((current, currentIndex) =>
+                    currentIndex === index ? { ...current, ...parts } : current,
+                  ),
+                );
               };
               return (
               <div
@@ -978,28 +993,27 @@ function CreateManifest({
                 <div className="manifest-number-parts">
                   <input
                     aria-label={`Unidade do manifesto adicional ${index + 1}`}
-                    value={additionalPrefix}
+                    value={value.prefix}
                     inputMode="numeric"
                     maxLength={3}
+                    pattern="[0-9]{3}"
                     placeholder="000"
-                    onChange={(e) => updateAdditional(e.target.value.replace(/\D/g, "").slice(0, 3), additionalSuffix)}
+                    onChange={(e) => updateAdditional({ prefix: e.target.value.replace(/\D/g, "").slice(0, 3) })}
                   />
                   <input
-                    aria-label={`N?mero do manifesto adicional ${index + 1}`}
-                    value={additionalSuffix}
+                    aria-label={`Número do manifesto adicional ${index + 1}`}
+                    value={value.suffix}
                     inputMode="numeric"
                     maxLength={8}
                     placeholder="000000-0"
-                    onChange={(e) => updateAdditional(additionalPrefix, e.target.value)}
+                    onChange={(e) => updateAdditional({ suffix: e.target.value })}
                     onBlur={() => {
-                      const formatted = formatManifestNumber(`${additionalPrefix || "000"}${additionalSuffix}`);
+                      const formatted = formatManifestNumber(joinManifestParts(value));
                       if (!formatted) return;
-                      const next = [...additionalManifests];
-                      next[index] = formatted;
-                      setAdditionalManifests(next);
+                      updateAdditional(splitManifestParts(formatted));
                     }}
                   />
-                  <input type="hidden" name={`manifesto_adicional_${index + 1}`} value={`${additionalPrefix}${additionalSuffix}`} />
+                  <input type="hidden" name={`manifesto_adicional_${index + 1}`} value={joinManifestParts(value)} />
                   <button
                     type="button"
                     className="manifest-remove-button"

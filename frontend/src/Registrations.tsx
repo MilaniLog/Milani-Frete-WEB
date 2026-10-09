@@ -15,15 +15,19 @@ type RecordRow = {
   empresa_sigla?: string | null;
   driver_cpf?: string | null;
   driver_name?: string | null;
+  unit?: number | null;
 };
 export default function Registrations({
   kind,
   token,
+  isAdmin,
+  userUnit,
   expired,
 }: {
   kind: "drivers" | "vehicles" | "companies";
   token: string;
   isAdmin: boolean;
+  userUnit: number;
   expired: () => void;
 }) {
   const [rows, setRows] = useState<RecordRow[]>([]),
@@ -122,6 +126,7 @@ export default function Registrations({
       ? {
           cpf: String(data.get("cpf")),
           name: String(data.get("name")).trim(),
+          unit: Number(data.get("unit") || userUnit),
         }
       : {
           plate: String(data.get("plate")).trim().toUpperCase(),
@@ -131,6 +136,7 @@ export default function Registrations({
           empresa_sigla: String(data.get("empresa_sigla")),
           owner_is_driver: ownerIsDriver,
           driver_cpf: String(data.get('driver_cpf') || '') || null,
+          unit: Number(data.get("unit") || userUnit),
         };
     setBusy(true);
     setError("");
@@ -226,6 +232,17 @@ export default function Registrations({
                         defaultValue={current?.name ?? ""}
                       />
                     </label>
+                    <label>
+                      Unidade
+                      <input
+                        name="unit"
+                        required
+                        type="number"
+                        min={1}
+                        readOnly={!isAdmin}
+                        defaultValue={current?.unit ?? userUnit}
+                      />
+                    </label>
                   </>
                 ) : (
                   <>
@@ -239,6 +256,17 @@ export default function Registrations({
                         readOnly={!!current}
                         defaultValue={current?.plate ?? ""}
                         onChange={e => { e.target.value = normalizePlate(e.target.value); }}
+                      />
+                    </label>
+                    <label>
+                      Unidade
+                      <input
+                        name="unit"
+                        required
+                        type="number"
+                        min={1}
+                        readOnly={!isAdmin}
+                        defaultValue={current?.unit ?? userUnit}
                       />
                     </label>
                     <label>
@@ -366,6 +394,7 @@ export default function Registrations({
                   <>
                     <th>{driver ? "Motorista" : "Placa"}</th>
                     <th>{driver ? "CPF" : "Proprietário"}</th>
+                    <th>Unidade</th>
                     {!driver && <><th>CPF/CNPJ do proprietário</th><th>Tipo de veículo</th><th>Empresa</th></>}
                     {!driver && <th>Motorista vinculado</th>}
                     <th>Ações</th>
@@ -388,6 +417,7 @@ export default function Registrations({
                       <td>
                         {driver ? formatDocument(r.cpf, "cpf") : (r.owner_name ?? "Não informado")}
                       </td>
+                      <td>{r.unit ?? "Nao informada"}</td>
                       {!driver && <><td>{r.owner ? formatDocument(r.owner) : "Não informado"}</td><td>{types.find(t => t.codVehicleType === r.codVehicleType)?.typeName ?? r.codVehicleType ?? "Não informado"}</td></>}
                       {!driver && <td>
                         {companies.find((c) => c.sigla === r.empresa_sigla)

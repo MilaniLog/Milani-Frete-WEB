@@ -1,12 +1,16 @@
 import SortableTable from "./SortableTable";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
-type Destination = { id: number; nome: string };
+type Destination = { id: number; unit: number; nome: string };
 export default function Destinations({
   token,
+  isAdmin,
+  userUnit,
   expired,
 }: {
   token: string;
+  isAdmin: boolean;
+  userUnit: number;
   expired: () => void;
 }) {
   const [rows, setRows] = useState<Destination[]>([]),
@@ -42,7 +46,7 @@ export default function Destinations({
     try {
       const row = await api<Destination>("/destinations", token, {
         method: "POST",
-        body: JSON.stringify({ nome: name.trim() }),
+        body: JSON.stringify({ nome: name.trim(), unit: Number(new FormData(e.currentTarget as HTMLFormElement).get("unit") || userUnit) }),
       });
       setName("");
       setFilter("");
@@ -82,6 +86,17 @@ export default function Destinations({
         <h2>Novo destino</h2>
         <form onSubmit={save}>
           <fieldset disabled={busy}>
+            <label>
+              Unidade
+              <input
+                name="unit"
+                type="number"
+                min={1}
+                required
+                readOnly={!isAdmin}
+                defaultValue={userUnit}
+              />
+            </label>
             <label>
               Destino
               <input
@@ -124,7 +139,8 @@ export default function Destinations({
               <SortableTable>
                 <thead>
                   <tr>
-                    <th>Código</th>
+                    <th>Codigo</th>
+                    <th>Unidade</th>
                     <th>Destino</th>
                   </tr>
                 </thead>
@@ -132,6 +148,7 @@ export default function Destinations({
                   {visible.map((r) => (
                     <tr key={r.id}>
                       <td>{r.id}</td>
+                      <td>{r.unit}</td>
                       <td>{r.nome}</td>
                     </tr>
                   ))}

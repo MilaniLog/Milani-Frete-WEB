@@ -28,16 +28,23 @@ export class FreightEntriesService {
     private readonly calculation: FreightCalculationService,
   ) {}
 
-  listExpenses(user: AuthUser) {
+  private unitWhere(user: AuthUser, unit?: number) {
+    return user.isAdmin ? (unit == null ? {} : { unit }) : { unit: user.unit };
+  }
+
+  private unitFromRecord(user: AuthUser, record: { unit: number }) {
+    return user.isAdmin ? record.unit : user.unit;
+  }
+
+  listExpenses(_user: AuthUser) {
     return this.prisma.frete_despesas.findMany({
-      where: { unit: user.unit },
       orderBy: { codigo: 'asc' },
     });
   }
 
   async findByNumber(numero: number, user: AuthUser) {
     const entry = await this.prisma.frete_lancamentos.findFirst({
-      where: { numero, unit: user.unit },
+      where: { numero, ...this.unitWhere(user) },
     });
     if (!entry)
       throw new NotFoundException('Lançamento não encontrado nesta unidade.');
@@ -50,7 +57,7 @@ export class FreightEntriesService {
 
   async removeStandalone(id: number, user: AuthUser) {
     const existing = await this.prisma.frete_lancamentos.findFirst({
-      where: { id, unit: user.unit },
+      where: { id, ...this.unitWhere(user) },
     });
     if (!existing)
       throw new NotFoundException('Lançamento não encontrado nesta unidade.');
@@ -64,7 +71,7 @@ export class FreightEntriesService {
         return await this.prisma.$transaction(
           async (tx) => {
             const entry = await tx.frete_lancamentos.findFirst({
-              where: { id, unit: user.unit, manifesto_id: null },
+              where: { id, ...this.unitWhere(user), manifesto_id: null },
             });
             if (!entry)
               throw new NotFoundException(
@@ -86,7 +93,7 @@ export class FreightEntriesService {
             await tx.frete_lancamentos.delete({
               where: {
                 id,
-                unit: user.unit,
+                unit: entry.unit,
                 manifesto_id: null,
                 pago: false,
                 fechamento_id: null,
@@ -111,7 +118,7 @@ export class FreightEntriesService {
       throw new BadRequestException('Selecione uma semana válida.');
     if (id !== undefined) {
       const existing = await this.prisma.frete_lancamentos.findFirst({
-        where: { id, unit: user.unit },
+        where: { id, ...this.unitWhere(user) },
       });
       if (!existing)
         throw new NotFoundException('Lançamento não encontrado nesta unidade.');
@@ -144,7 +151,7 @@ export class FreightEntriesService {
               id === undefined
                 ? null
                 : await tx.frete_lancamentos.findFirst({
-                    where: { id, unit: user.unit, manifesto_id: null },
+                    where: { id, ...this.unitWhere(user), manifesto_id: null },
                   });
             if (id !== undefined && !existing)
               throw new NotFoundException(
@@ -181,11 +188,11 @@ export class FreightEntriesService {
             if (dto.cpf_motorista && !driver)
               throw new NotFoundException('Motorista não encontrado.');
             const expense = await tx.frete_despesas.findFirst({
-              where: { id: dto.despesa_id, unit: user.unit, ativo: true },
+              where: { id: dto.despesa_id, ativo: true },
             });
             if (!expense)
               throw new NotFoundException(
-                'Despesa não encontrada ou inativa nesta unidade.',
+                'Despesa nao encontrada ou inativa.',
               );
             const date = new Date(`${dto.data_lancamento}T00:00:00.000Z`);
             const week = await periodForDate(
@@ -196,7 +203,7 @@ export class FreightEntriesService {
             const last = existing
               ? null
               : await tx.frete_lancamentos.aggregate({
-                  where: { unit: user.unit },
+                  where: { unit: existing?.unit ?? user.unit },
                   _max: { numero: true },
                 });
             const data = {
@@ -221,7 +228,7 @@ export class FreightEntriesService {
               ? await tx.frete_lancamentos.update({
                   where: {
                     id: existing.id,
-                    unit: user.unit,
+                    unit: existing.unit,
                     manifesto_id: null,
                   },
                   data,
@@ -258,24 +265,24 @@ export class FreightEntriesService {
       return await this.prisma.$transaction(async (tx) => {
         if (id !== undefined) {
           const existing = await tx.frete_despesas.findFirst({
-            where: { id, unit: user.unit },
+            where: { id },
           });
           if (!existing)
             throw new NotFoundException(
-              'Despesa não encontrada nesta unidade.',
+              'Despesa nao encontrada.',
             );
           // Lançamentos existentes preservam seu código, nome e tipo históricos.
           return tx.frete_despesas.update({
-            where: { id, unit: user.unit },
+            where: { id },
             data: { ...dto, updated_at: new Date() },
           });
         }
-        return tx.frete_despesas.create({ data: { ...dto, unit: user.unit } });
+        return tx.frete_despesas.create({ data: { ...dto, unit: 0 } });
       });
     } catch (error) {
       if (error.code === 'P2002')
         throw new ConflictException(
-          'Código de despesa já cadastrado nesta unidade.',
+          'Codigo de despesa ja cadastrado.',
         );
       throw error;
     }
@@ -287,7 +294,7 @@ export class FreightEntriesService {
     user: AuthUser,
   ) {
     const manifest = await tx.frete_carregamento_manifestos.findFirst({
-      where: { id, unit: user.unit },
+      where: { id, ...this.unitWhere(user) },
     });
     if (!manifest)
       throw new NotFoundException('Manifesto não encontrado nesta unidade.');
@@ -295,12 +302,12 @@ export class FreightEntriesService {
   }
 
   async listEntries(manifestId: number, user: AuthUser, weekCode?: string) {
-    await this.getManifest(this.prisma, manifestId, user);
+    const manifest = await this.getManifest(this.prisma, manifestId, user);
     const week = weekCode ? await getWeek(this.prisma, weekCode) : undefined;
     return this.prisma.frete_lancamentos.findMany({
       where: {
         manifesto_id: manifestId,
-        unit: user.unit,
+        unit: manifest.unit,
         ...(week
           ? { data_lancamento: { gte: week.data_inicio, lte: week.data_fim } }
           : {}),
@@ -340,7 +347,7 @@ export class FreightEntriesService {
                 where: {
                   id: change.id,
                   manifesto_id: manifestId,
-                  unit: user.unit,
+                  unit: manifest.unit,
                 },
               });
               if (!entry)
@@ -363,7 +370,7 @@ export class FreightEntriesService {
               entry = await tx.frete_lancamentos.delete({
                 where: {
                   id: change.id,
-                  unit: user.unit,
+                  unit: manifest.unit,
                   manifesto_id: manifestId,
                 },
               });
@@ -371,13 +378,12 @@ export class FreightEntriesService {
               const expense = await tx.frete_despesas.findFirst({
                 where: {
                   id: change.dto.despesa_id,
-                  unit: user.unit,
                   ativo: true,
                 },
               });
               if (!expense)
                 throw new NotFoundException(
-                  'Despesa não encontrada ou inativa nesta unidade.',
+                'Despesa nao encontrada ou inativa.',
                 );
               const tipo = this.expenseType(expense.tipo);
               const entryDate = new Date(
@@ -404,14 +410,14 @@ export class FreightEntriesService {
               };
               if (change.kind === 'create') {
                 const last = await tx.frete_lancamentos.aggregate({
-                  where: { unit: user.unit },
+                  where: { unit: manifest.unit },
                   _max: { numero: true },
                 });
                 entry = await tx.frete_lancamentos.create({
                   data: {
                     ...data,
                     numero: (last._max.numero ?? 0) + 1,
-                    unit: user.unit,
+                    unit: manifest.unit,
                     manifesto_id: manifestId,
                     placa: manifest.placa,
                     motorista: manifest.motorista,
@@ -423,7 +429,7 @@ export class FreightEntriesService {
                 entry = await tx.frete_lancamentos.update({
                   where: {
                     id: change.id,
-                    unit: user.unit,
+                    unit: manifest.unit,
                     manifesto_id: manifestId,
                   },
                   data,
@@ -465,7 +471,7 @@ export class FreightEntriesService {
     user: AuthUser,
   ) {
     const entries = await tx.frete_lancamentos.findMany({
-      where: { manifesto_id: manifest.id, unit: user.unit },
+      where: { manifesto_id: manifest.id, unit: manifest.unit },
     });
     const credit = companyExpenses(entries);
     const result = await this.calculation.calculate(
@@ -501,7 +507,7 @@ export class FreightEntriesService {
       .plus(manifest.paletização)
       .plus(manifest.estadia);
     return tx.frete_carregamento_manifestos.update({
-      where: { id: manifest.id, unit: user.unit },
+      where: { id: manifest.id },
       data: {
         cod_777_15: result.freightsCalculated.freight777,
         cod_888_25: result.freightsCalculated.freight888,

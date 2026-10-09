@@ -17,6 +17,11 @@ import { allocatePayment } from './payment-allocation';
 export class FreightClosuresService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private unitWhere(user: AuthUser, unit?: number) {
+    const targetUnit = user.isAdmin ? unit : user.unit;
+    return targetUnit == null ? {} : { unit: targetUnit };
+  }
+
   // Dates and Decimal amounts are stored as strings, preserving their precision.
   private snapshot(value: unknown): Prisma.InputJsonObject {
     return JSON.parse(JSON.stringify(value));
@@ -51,13 +56,14 @@ export class FreightClosuresService {
     const dates = { gte: week.data_inicio, lte: week.data_fim };
     const manifests = await tx.frete_carregamento_manifestos.findMany({
       where: {
-        unit: user.unit,
+        ...this.unitWhere(user),
         placa: dto.placa,
         semana: dates,
         fechamento_id: null,
       },
       orderBy: { id: 'asc' },
     });
+    const targetUnit = manifests[0]?.unit ?? user.unit;
     const ids = manifests.map((row) => row.id);
     // Linked expenses follow their manifest, including expenses dated outside the week.
     const entries = await tx.frete_lancamentos.findMany({
@@ -65,7 +71,7 @@ export class FreightClosuresService {
         OR: [
           { manifesto_id: { in: ids } },
           {
-            unit: user.unit,
+            unit: targetUnit,
             placa: dto.placa,
             manifesto_id: null,
             data_lancamento: dates,
@@ -101,7 +107,7 @@ export class FreightClosuresService {
     if (
       entries.some(
         (row) =>
-          row.unit !== user.unit ||
+          row.unit !== targetUnit ||
           row.placa !== dto.placa ||
           row.pago ||
           row.fechamento_id !== null,
@@ -130,7 +136,7 @@ export class FreightClosuresService {
       );
     const coupons = await tx.frete_cupons.findMany({
       where: {
-        unit: user.unit,
+        unit: targetUnit,
         placa: dto.placa,
         data_cobranca: dates,
         pago: false,
@@ -182,6 +188,7 @@ export class FreightClosuresService {
         documento: vehicle.owner ?? null,
         nome: vehicle.owner_name ?? null,
       },
+      unit: targetUnit,
       semana: week.codigo,
       placa: dto.placa,
       motorista: manifests.find((row) => row.motorista)?.motorista ?? null,
@@ -218,12 +225,12 @@ export class FreightClosuresService {
       const week = await getWeek(tx, semana);
       const dates = { gte: week.data_inicio, lte: week.data_fim };
       const manifests = await tx.frete_carregamento_manifestos.findMany({
-        where: { unit: user.unit, semana: dates, fechamento_id: null },
+        where: { ...this.unitWhere(user), semana: dates, fechamento_id: null },
         select: { placa: true },
       });
       const entries = await tx.frete_lancamentos.findMany({
         where: {
-          unit: user.unit,
+          ...this.unitWhere(user),
           data_lancamento: dates,
           manifesto_id: null,
           pago: false,
@@ -234,7 +241,7 @@ export class FreightClosuresService {
       });
       const coupons = await tx.frete_cupons.findMany({
         where: {
-          unit: user.unit,
+          ...this.unitWhere(user),
           data_cobranca: dates,
           pago: false,
           fechamento_id: null,
@@ -282,7 +289,7 @@ export class FreightClosuresService {
       const dates = { gte: week.data_inicio, lte: week.data_fim };
       const manifests = await tx.frete_carregamento_manifestos.findMany({
         where: {
-          unit: user.unit,
+          ...this.unitWhere(user),
           semana: dates,
           fechamento_id: null,
         },
@@ -290,7 +297,7 @@ export class FreightClosuresService {
       });
       const entries = await tx.frete_lancamentos.findMany({
         where: {
-          unit: user.unit,
+          ...this.unitWhere(user),
           data_lancamento: dates,
           manifesto_id: null,
           pago: false,
@@ -301,7 +308,7 @@ export class FreightClosuresService {
       });
       const coupons = await tx.frete_cupons.findMany({
         where: {
-          unit: user.unit,
+          ...this.unitWhere(user),
           data_cobranca: dates,
           pago: false,
           fechamento_id: null,
@@ -361,11 +368,11 @@ export class FreightClosuresService {
       );
     const closureNumber =
       data.closureNumber ??
-      (await this.nextClosureNumber(tx, user.unit, data.semana));
+      (await this.nextClosureNumber(tx, data.unit, data.semana));
     const closure = await tx.frete_fechamentos.create({
       data: {
         numero: closureNumber,
-        unit: user.unit,
+        unit: data.unit,
         semana: data.semana,
         placa: data.placa,
         periodo_inicio: data.periodo_inicio,
@@ -387,7 +394,7 @@ export class FreightClosuresService {
     const manifests = await tx.frete_carregamento_manifestos.updateMany({
       where: {
         id: { in: data.manifests.map((row) => row.id) },
-        unit: user.unit,
+        unit: data.unit,
         fechamento_id: null,
       },
       data: { fechamento_id: closure.id, num_fechamento: closure.numero },
@@ -395,7 +402,7 @@ export class FreightClosuresService {
     const entries = await tx.frete_lancamentos.updateMany({
       where: {
         id: { in: data.entries.map((row) => row.id) },
-        unit: user.unit,
+        unit: data.unit,
         pago: false,
         fechamento_id: null,
       },
@@ -404,7 +411,7 @@ export class FreightClosuresService {
     const coupons = await tx.frete_cupons.updateMany({
       where: {
         id: { in: data.coupons.map((row) => row.id) },
-        unit: user.unit,
+        unit: data.unit,
         pago: false,
         fechamento_id: null,
       },
@@ -421,14 +428,14 @@ export class FreightClosuresService {
 
   list(user: AuthUser) {
     return this.prisma.frete_fechamentos.findMany({
-      where: { unit: user.unit },
+      where: this.unitWhere(user),
       orderBy: { id: 'desc' },
       take: 50,
     });
   }
   async findByNumber(numero: number, user: AuthUser) {
     const closure = await this.prisma.frete_fechamentos.findFirst({
-      where: { numero, unit: user.unit },
+      where: { numero, ...this.unitWhere(user) },
     });
     if (!closure)
       throw new NotFoundException('Fechamento não encontrado nesta unidade.');
@@ -447,7 +454,7 @@ export class FreightClosuresService {
       );
     return this.transaction(async (tx) => {
       const closure = await tx.frete_fechamentos.findFirst({
-        where: { id, unit: user.unit },
+        where: { id, ...this.unitWhere(user) },
       });
       if (!closure) throw new NotFoundException('Fechamento não encontrado.');
       if (closure.status !== 'FECHADO')
@@ -463,7 +470,7 @@ export class FreightClosuresService {
       const coupons = await tx.frete_cupons.findMany({ where });
       if (
         [...manifests, ...entries, ...coupons].some(
-          (row) => row.unit !== user.unit || row.placa !== closure.placa,
+          (row) => row.unit !== closure.unit || row.placa !== closure.placa,
         ) ||
         manifests.some((row) => row.num_fechamento !== closure.numero) ||
         [...entries, ...coupons].some((row) => !row.pago)
@@ -493,12 +500,12 @@ export class FreightClosuresService {
         },
       });
       const changed = await tx.frete_fechamentos.updateMany({
-        where: { id, unit: user.unit, status: 'FECHADO' },
+        where: { id, unit: closure.unit, status: 'FECHADO' },
         data: { status: 'CANCELADO', historico },
       });
       if (changed.count !== 1)
         throw new ConflictException('Fechamento alterado simultaneamente.');
-      const scope = { ...where, unit: user.unit };
+      const scope = { ...where, unit: closure.unit };
       const m = await tx.frete_carregamento_manifestos.updateMany({
         where: scope,
         data: { fechamento_id: null, num_fechamento: closure.numero },
@@ -529,10 +536,10 @@ export class FreightClosuresService {
   findOne(id: number, user: AuthUser) {
     return this.transaction(async (tx) => {
       const closure = await tx.frete_fechamentos.findFirst({
-        where: { id, unit: user.unit },
+        where: { id, ...this.unitWhere(user) },
       });
       if (!closure) throw new NotFoundException('Fechamento não encontrado.');
-      const where = { unit: user.unit, fechamento_id: id };
+      const where = { unit: closure.unit, fechamento_id: id };
       return {
         closure,
         manifests: await tx.frete_carregamento_manifestos.findMany({ where }),

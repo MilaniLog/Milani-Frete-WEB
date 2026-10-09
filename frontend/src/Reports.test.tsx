@@ -28,10 +28,10 @@ beforeEach(() =>
     vi.fn(async (p: string, o?: RequestInit) => {
       if (p.endsWith("/destinations"))
         return o?.method
-          ? response({ id: 2, nome: "Campinas" }, 201)
+          ? response({ id: 2, unit: 100, nome: "Campinas" }, 201)
           : response([
               { id: 1, nome: "São Paulo" },
-              { id: 2, nome: "Campinas" },
+              { id: 2, unit: 100, nome: "Campinas" },
             ]);
       if (p.endsWith("/weeks"))
         return response([
@@ -59,7 +59,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
-  render(<Destinations token="t" expired={vi.fn()} />);
+  render(<Destinations token="t" isAdmin={false} userUnit={100} expired={vi.fn()} />);
   await screen.findByText("São Paulo");
   fireEvent.change(screen.getByLabelText("Destino"), {
     target: { value: " Campinas " },
@@ -70,7 +70,7 @@ it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
     "/api/destinations",
     expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ nome: "Campinas" }),
+      body: JSON.stringify({ nome: "Campinas", unit: 100 }),
     }),
   );
   fireEvent.change(screen.getByLabelText("Pesquisar destino"), {

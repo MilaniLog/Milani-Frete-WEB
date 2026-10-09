@@ -5,11 +5,19 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import type { AuthUser } from '../auth/auth-user.types';
 
 @Injectable()
 export class DestinationsService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(nome: string, unit: number) {
+  private unitWhere(user: AuthUser, unit?: number) {
+    return user.isAdmin ? (unit == null ? {} : { unit }) : { unit: user.unit };
+  }
+
+  async create(nome: string, user: AuthUser, requestedUnit?: number) {
+    if (user.isAdmin && requestedUnit == null)
+      throw new ConflictException('Informe a unidade do destino.');
+    const unit = user.isAdmin ? requestedUnit! : user.unit;
     try {
       return await this.prisma.$transaction(
         async (tx) => {
@@ -17,7 +25,7 @@ export class DestinationsService {
             throw new ConflictException('Destino já cadastrado nesta unidade.');
           return tx.frete_destinos.create({
             data: { unit, nome, ativo: true },
-            select: { id: true, nome: true },
+            select: { id: true, unit: true, nome: true },
           });
         },
         { isolationLevel: 'Serializable' },
@@ -31,10 +39,10 @@ export class DestinationsService {
     }
   }
 
-  async findAll(unit: number) {
+  async findAll(user: AuthUser) {
     return this.prisma.frete_destinos.findMany({
       where: {
-        unit,
+        ...this.unitWhere(user),
         ativo: true,
       },
 
@@ -44,21 +52,23 @@ export class DestinationsService {
 
       select: {
         id: true,
+        unit: true,
         nome: true,
       },
     });
   }
 
-  async findById(id: number, unit: number) {
+  async findById(id: number, user: AuthUser) {
     const destination = await this.prisma.frete_destinos.findFirst({
       where: {
         id,
-        unit,
+        ...this.unitWhere(user),
         ativo: true,
       },
 
       select: {
         id: true,
+        unit: true,
         nome: true,
       },
     });

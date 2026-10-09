@@ -28,11 +28,13 @@ export type AggregateDriver = {
 
 export type DriverAvgAggregateOutputType = {
   cpf: number | null
+  unit: number | null
   user: number | null
 }
 
 export type DriverSumAggregateOutputType = {
   cpf: bigint | null
+  unit: number | null
   user: number | null
 }
 
@@ -40,6 +42,7 @@ export type DriverMinAggregateOutputType = {
   empresa_sigla: string | null
   cpf: bigint | null
   name: string | null
+  unit: number | null
   user: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -49,6 +52,7 @@ export type DriverMaxAggregateOutputType = {
   empresa_sigla: string | null
   cpf: bigint | null
   name: string | null
+  unit: number | null
   user: number | null
   created_at: Date | null
   updated_at: Date | null
@@ -58,6 +62,7 @@ export type DriverCountAggregateOutputType = {
   empresa_sigla: number
   cpf: number
   name: number
+  unit: number
   user: number
   created_at: number
   updated_at: number
@@ -67,11 +72,13 @@ export type DriverCountAggregateOutputType = {
 
 export type DriverAvgAggregateInputType = {
   cpf?: true
+  unit?: true
   user?: true
 }
 
 export type DriverSumAggregateInputType = {
   cpf?: true
+  unit?: true
   user?: true
 }
 
@@ -79,6 +86,7 @@ export type DriverMinAggregateInputType = {
   empresa_sigla?: true
   cpf?: true
   name?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -88,6 +96,7 @@ export type DriverMaxAggregateInputType = {
   empresa_sigla?: true
   cpf?: true
   name?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -97,6 +106,7 @@ export type DriverCountAggregateInputType = {
   empresa_sigla?: true
   cpf?: true
   name?: true
+  unit?: true
   user?: true
   created_at?: true
   updated_at?: true
@@ -193,6 +203,7 @@ export type DriverGroupByOutputType = {
   empresa_sigla: string | null
   cpf: bigint
   name: string
+  unit: number
   user: number
   created_at: Date
   updated_at: Date
@@ -225,6 +236,7 @@ export type driverWhereInput = {
   empresa_sigla?: Prisma.StringNullableFilter<"driver"> | string | null
   cpf?: Prisma.BigIntFilter<"driver"> | bigint | number
   name?: Prisma.StringFilter<"driver"> | string
+  unit?: Prisma.IntFilter<"driver"> | number
   user?: Prisma.IntFilter<"driver"> | number
   created_at?: Prisma.DateTimeFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"driver"> | Date | string
@@ -234,6 +246,7 @@ export type driverOrderByWithRelationInput = {
   empresa_sigla?: Prisma.SortOrderInput | Prisma.SortOrder
   cpf?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -247,6 +260,7 @@ export type driverWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.driverWhereInput | Prisma.driverWhereInput[]
   empresa_sigla?: Prisma.StringNullableFilter<"driver"> | string | null
   name?: Prisma.StringFilter<"driver"> | string
+  unit?: Prisma.IntFilter<"driver"> | number
   user?: Prisma.IntFilter<"driver"> | number
   created_at?: Prisma.DateTimeFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"driver"> | Date | string
@@ -256,6 +270,7 @@ export type driverOrderByWithAggregationInput = {
   empresa_sigla?: Prisma.SortOrderInput | Prisma.SortOrder
   cpf?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -273,6 +288,7 @@ export type driverScalarWhereWithAggregatesInput = {
   empresa_sigla?: Prisma.StringNullableWithAggregatesFilter<"driver"> | string | null
   cpf?: Prisma.BigIntWithAggregatesFilter<"driver"> | bigint | number
   name?: Prisma.StringWithAggregatesFilter<"driver"> | string
+  unit?: Prisma.IntWithAggregatesFilter<"driver"> | number
   user?: Prisma.IntWithAggregatesFilter<"driver"> | number
   created_at?: Prisma.DateTimeWithAggregatesFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"driver"> | Date | string
@@ -282,6 +298,7 @@ export type driverCreateInput = {
   empresa_sigla?: string | null
   cpf: bigint | number
   name: string
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -291,6 +308,7 @@ export type driverUncheckedCreateInput = {
   empresa_sigla?: string | null
   cpf: bigint | number
   name: string
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -300,6 +318,7 @@ export type driverUpdateInput = {
   empresa_sigla?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cpf?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -309,6 +328,7 @@ export type driverUncheckedUpdateInput = {
   empresa_sigla?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cpf?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -318,6 +338,7 @@ export type driverCreateManyInput = {
   empresa_sigla?: string | null
   cpf: bigint | number
   name: string
+  unit?: number
   user: number
   created_at?: Date | string
   updated_at?: Date | string
@@ -327,6 +348,7 @@ export type driverUpdateManyMutationInput = {
   empresa_sigla?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cpf?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -336,6 +358,7 @@ export type driverUncheckedUpdateManyInput = {
   empresa_sigla?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cpf?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -351,6 +374,7 @@ export type driverCountOrderByAggregateInput = {
   empresa_sigla?: Prisma.SortOrder
   cpf?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -358,6 +382,7 @@ export type driverCountOrderByAggregateInput = {
 
 export type driverAvgOrderByAggregateInput = {
   cpf?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
 }
 
@@ -365,6 +390,7 @@ export type driverMaxOrderByAggregateInput = {
   empresa_sigla?: Prisma.SortOrder
   cpf?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -374,6 +400,7 @@ export type driverMinOrderByAggregateInput = {
   empresa_sigla?: Prisma.SortOrder
   cpf?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
@@ -381,6 +408,7 @@ export type driverMinOrderByAggregateInput = {
 
 export type driverSumOrderByAggregateInput = {
   cpf?: Prisma.SortOrder
+  unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
 }
 
@@ -398,6 +426,7 @@ export type driverSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   empresa_sigla?: boolean
   cpf?: boolean
   name?: boolean
+  unit?: boolean
   user?: boolean
   created_at?: boolean
   updated_at?: boolean
@@ -409,12 +438,13 @@ export type driverSelectScalar = {
   empresa_sigla?: boolean
   cpf?: boolean
   name?: boolean
+  unit?: boolean
   user?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type driverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"empresa_sigla" | "cpf" | "name" | "user" | "created_at" | "updated_at", ExtArgs["result"]["driver"]>
+export type driverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"empresa_sigla" | "cpf" | "name" | "unit" | "user" | "created_at" | "updated_at", ExtArgs["result"]["driver"]>
 
 export type $driverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "driver"
@@ -423,6 +453,7 @@ export type $driverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     empresa_sigla: string | null
     cpf: bigint
     name: string
+    unit: number
     user: number
     created_at: Date
     updated_at: Date
@@ -798,6 +829,7 @@ export interface driverFieldRefs {
   readonly empresa_sigla: Prisma.FieldRef<"driver", 'String'>
   readonly cpf: Prisma.FieldRef<"driver", 'BigInt'>
   readonly name: Prisma.FieldRef<"driver", 'String'>
+  readonly unit: Prisma.FieldRef<"driver", 'Int'>
   readonly user: Prisma.FieldRef<"driver", 'Int'>
   readonly created_at: Prisma.FieldRef<"driver", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"driver", 'DateTime'>

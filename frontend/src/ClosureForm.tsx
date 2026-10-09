@@ -2,6 +2,7 @@ import { normalizePlate, normalizeWeek } from "./field-formats";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 export type ClosureFilters = {
+  unit: string;
   inicio: string;
   fim: string;
   despesa: string;
@@ -16,6 +17,7 @@ export type ClosureFilters = {
   separar_pagamentos: boolean;
 };
 export const emptyClosureFilters: ClosureFilters = {
+  unit: "",
   inicio: "",
   fim: "",
   despesa: "",
@@ -33,6 +35,7 @@ export default function ClosureForm({
   token,
   busy,
   isAdmin,
+  userUnit,
   week,
   plate,
   filters,
@@ -48,6 +51,7 @@ export default function ClosureForm({
   token: string;
   busy: boolean;
   isAdmin: boolean;
+  userUnit: number;
   week: string;
   plate: string;
   filters: ClosureFilters;
@@ -111,6 +115,17 @@ export default function ClosureForm({
         )}
         <div className="closure-vba-grid">
           <label>
+            Unidade
+            <input
+              value={isAdmin ? filters.unit : String(userUnit)}
+              inputMode="numeric"
+              pattern="[0-9]+"
+              readOnly={!isAdmin}
+              placeholder={isAdmin ? "Todas" : undefined}
+              onChange={(e) => change("unit", e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+          <label>
             Semana
             <input
               aria-label="Código da semana"
@@ -155,7 +170,7 @@ export default function ClosureForm({
             </datalist>
           </label>
           <p className="muted">
-            {typeName ?? "Placa vazia: todos os veículos da unidade."}
+            {typeName ?? "Placa vazia: todos os veículos da unidade selecionada."}
           </p>
           <label>
             Início

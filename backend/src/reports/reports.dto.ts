@@ -1,5 +1,6 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsInt,
   IsOptional,
   Matches,
   IsDateString,
@@ -8,6 +9,7 @@ import {
   MaxLength,
 } from 'class-validator';
 export class ReportQuery {
+  @IsOptional() @Type(() => Number) @IsInt() unit?: number;
   @IsOptional() @Matches(/^\d{4}$/) semana?: string;
   @IsOptional()
   @IsDateString({ strict: true })

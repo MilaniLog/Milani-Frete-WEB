@@ -234,8 +234,8 @@ describe('Lançamentos vinculados ao manifesto', () => {
     expect(entries).toHaveLength(0);
   });
 
-  it.each([4, 5])(
-    'recusa despesa de outra unidade ou inativa: %s',
+  it.each([5])(
+    'recusa despesa inativa: %s',
     async (despesa_id) => {
       await expect(
         service.changeEntry(1, user, {
@@ -246,6 +246,17 @@ describe('Lançamentos vinculados ao manifesto', () => {
       expect(db.frete_lancamentos.create).not.toHaveBeenCalled();
     },
   );
+
+
+
+  it('aceita despesa global mesmo cadastrada em outra unidade', async () => {
+    const created = await service.changeEntry(1, user, {
+      kind: 'create',
+      dto: { ...dto, despesa_id: 4 },
+    });
+    expect(created.entry.codigo_despesa).toBe('04');
+    expect(created.entry.unit).toBe(101);
+  });
 
   it('recusa manifesto de outra unidade na escrita e na leitura', async () => {
     const other = { ...user, unit: 202 };
