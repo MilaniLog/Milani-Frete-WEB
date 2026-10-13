@@ -61,9 +61,20 @@ export class FreightEntriesService {
   }
 
   listExpenses(_user: AuthUser) {
-    return this.prisma.frete_despesas.findMany({
-      orderBy: { codigo: 'asc' },
-    });
+    return this.prisma.$queryRaw<
+      {
+        id: number;
+        unit: number;
+        codigo: string;
+        nome: string;
+        tipo: string;
+        ativo: boolean;
+        created_at: Date;
+        updated_at: Date;
+      }[]
+    >`SELECT id, unit, codigo, nome, tipo, ativo, created_at, updated_at
+      FROM frete_despesas
+      ORDER BY codigo ASC`;
   }
 
   async findByNumber(numero: number, user: AuthUser) {
