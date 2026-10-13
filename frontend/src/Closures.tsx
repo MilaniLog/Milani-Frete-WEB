@@ -1,6 +1,6 @@
 import SortableTable from "./SortableTable";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { api, ApiError } from "./api";
+import { api, apiUrl, ApiError } from "./api";
 import ReprintClosures from "./ReprintClosures";
 import ClosureForm, {
   emptyClosureFilters,
@@ -509,7 +509,7 @@ export default function Closures({
     setError("");
     try {
       const response = await fetch(
-        `/api/freight-closures/conference/adjusted-print.pdf`,
+        apiUrl("/freight-closures/conference/adjusted-print.pdf"),
         {
           method: "POST",
           headers: {
@@ -554,7 +554,7 @@ export default function Closures({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api${path}`, {
+      const response = await fetch(apiUrl(path), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {

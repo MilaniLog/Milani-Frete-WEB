@@ -1,4 +1,10 @@
 import { requestDeletionApproval } from './deletion-approval';
+
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+export function apiUrl(path: string) {
+  return `${configuredApiBase}/api${path}`;
+}
 export type Session = {
   accessToken: string;
   user: {
@@ -30,7 +36,7 @@ export async function api<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(apiUrl(path), {
       ...options,
       headers: {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
