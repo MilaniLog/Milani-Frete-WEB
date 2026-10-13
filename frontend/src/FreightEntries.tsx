@@ -279,10 +279,7 @@ export default function FreightEntries({
       setError("Lançamento pago ou fechado não pode ser alterado.");
       return;
     }
-    if (
-      manifest &&
-      (manifest.fechamento_id != null || manifest.num_fechamento != null)
-    ) {
+    if (manifest && manifest.fechamento_id != null) {
       setError("Manifesto fechado: não é possível incluir lançamentos nele.");
       return;
     }
@@ -367,8 +364,7 @@ export default function FreightEntries({
   }
   const period = weeks.find((w) => w.codigo === week);
   const locked =
-    (!!manifest &&
-      (manifest.fechamento_id != null || manifest.num_fechamento != null)) ||
+    (!!manifest && manifest.fechamento_id != null) ||
     (!!editing && (editing.pago || editing.fechamento_id != null));
   return (
     <section className="content">
