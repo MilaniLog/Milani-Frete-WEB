@@ -32,6 +32,30 @@ export class FreightEntriesService {
     return user.isAdmin ? (unit == null ? {} : { unit }) : { unit: user.unit };
   }
 
+  private async operationalUnits(user: AuthUser) {
+    if (user.isAdmin) return undefined;
+    if (!this.prisma.user_permissions?.findMany) return [user.unit];
+    const rows = await this.prisma.user_permissions.findMany({
+      where: {
+        cod_user: user.cod,
+        OR: [{ freight_service: true }, { freight_closure: true }],
+      },
+      select: { unit: true },
+    });
+    return [...new Set([user.unit, ...rows.map((row) => row.unit)])];
+  }
+
+  private async operationalUnitWhere(user: AuthUser, unit?: number) {
+    if (user.isAdmin) return unit == null ? {} : { unit };
+    const units = await this.operationalUnits(user);
+    if (unit != null) {
+      if (!units!.includes(unit))
+        throw new NotFoundException('Registro nao encontrado nesta unidade.');
+      return { unit };
+    }
+    return units!.length === 1 ? { unit: units![0] } : { unit: { in: units } };
+  }
+
   private unitFromRecord(user: AuthUser, record: { unit: number }) {
     return user.isAdmin ? record.unit : user.unit;
   }
@@ -294,7 +318,7 @@ export class FreightEntriesService {
     user: AuthUser,
   ) {
     const manifest = await tx.frete_carregamento_manifestos.findFirst({
-      where: { id, ...this.unitWhere(user) },
+      where: { id, ...(await this.operationalUnitWhere(user)) },
     });
     if (!manifest)
       throw new NotFoundException('Manifesto não encontrado nesta unidade.');

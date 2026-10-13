@@ -501,14 +501,14 @@ export class ManifestsService {
     const destination = await database.frete_destinos.findFirst({
       where: {
         id: dto.destino_id,
-        unit: user.unit,
+        unit: targetUnit,
         ativo: true,
       },
     });
 
     if (!destination) {
       throw new NotFoundException(
-        'Destino nao encontrado ou inativo na unidade do usuario.',
+        'Destino nao encontrado ou inativo na unidade do manifesto.',
       );
     }
 
