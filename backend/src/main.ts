@@ -13,6 +13,13 @@ async function bootstrap() {
 
   const publicBasePath = process.env.PUBLIC_BASE_PATH || '/frete';
 
+  app.enableCors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   app.use((req: Request, _res: Response, next: NextFunction) => {
     if (publicBasePath && publicBasePath !== '/' && req.url.indexOf(`${publicBasePath}/api`) === 0) {
       req.url = req.url.slice(publicBasePath.length) || '/';
