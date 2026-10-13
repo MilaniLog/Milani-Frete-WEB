@@ -20,6 +20,26 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Vary', 'Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header(
+        'Access-Control-Allow-Methods',
+        'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+      );
+      res.header(
+        'Access-Control-Allow-Headers',
+        req.headers['access-control-request-headers']?.toString() ||
+          'Content-Type,Authorization',
+      );
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
+
   app.use((req: Request, _res: Response, next: NextFunction) => {
     if (publicBasePath && publicBasePath !== '/' && req.url.indexOf(`${publicBasePath}/api`) === 0) {
       req.url = req.url.slice(publicBasePath.length) || '/';
