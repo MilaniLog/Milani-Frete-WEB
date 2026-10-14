@@ -45,7 +45,7 @@ export async function api<T>(
     });
   } catch {
     throw new Error(
-      "Não foi possível conectar ao servidor. Verifique se o backend está disponível.",
+      "NÃ£o foi possível conectar ao servidor. Verifique se o backend estÃ¡ disponível.",
     );
   }
   const data =
@@ -63,9 +63,9 @@ export async function api<T>(
       response.status === 401 && token
         ? "Sua sessão expirou. Entre novamente."
         : Array.isArray(data?.message)
-          ? data.message.join(" • ")
+          ? data.message.join(" â€¢ ")
           : data?.message ||
-            `Não foi possível concluir a solicitação (${response.status}).`,
+            `NÃ£o foi possível concluir a solicitação (${response.status}).`,
     );
   return data as T;
 }
