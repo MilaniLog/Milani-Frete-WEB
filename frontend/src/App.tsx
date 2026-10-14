@@ -1,4 +1,4 @@
-﻿import SortableTable from "./SortableTable";
+import SortableTable from "./SortableTable";
 import SearchableSelect from "./SearchableSelect";
 import HelpTip from "./HelpTip";
 import AdminDeletionApproval from "./AdminDeletionApproval";
@@ -128,11 +128,11 @@ export default function App() {
         {allowed ? (
           page === "home" ? (
             <section className="content home-content">
-              <p className="eyebrow">MILANI LOGÃSTICA & TRANSPORTE</p>
+              <p className="eyebrow">MILANI LOGÍSTICA & TRANSPORTE</p>
               <h1>Sua carga, nosso compromisso.</h1>
               <p>Bem-vindo(a), {session.user.name}.</p>
               <p className="muted">
-                Use o botÃ£o Menu para acessar os cadastros, manifestos e
+                Use o botão Menu para acessar os cadastros, manifestos e
                 fechamentos.
               </p>
             </section>
@@ -143,7 +143,7 @@ export default function App() {
               userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page === "financial-report" || page === "coupons-report" || page === "payments-report" ? (
@@ -153,7 +153,7 @@ export default function App() {
               token={session.accessToken}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page === "entries" ? (
@@ -164,7 +164,7 @@ export default function App() {
               close={() => setPage("home")}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page === "payers" || page === "drivers" || page === "vehicles" ? (
@@ -176,7 +176,7 @@ export default function App() {
               userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page === "invoices" ? (
@@ -186,7 +186,7 @@ export default function App() {
               isAdmin={session.user.isAdmin}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page === "closures" ? (
@@ -196,7 +196,7 @@ export default function App() {
               userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : page !== "manifests" ? (
@@ -207,7 +207,7 @@ export default function App() {
               isAdmin={session.user.isAdmin}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           ) : (
@@ -220,15 +220,15 @@ export default function App() {
               }}
               expired={() => {
                 setSession(null);
-                setNotice("Sua sessÃ£o expirou. Entre novamente.");
+                setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
           )
         ) : (
           <section className="empty">
-            <h1>Acesso nÃ£o disponÃ­vel</h1>
+            <h1>Acesso não disponível</h1>
             <p>
-              Seu usuÃ¡rio nÃ£o tem permissÃ£o para esta seÃ§Ã£o nesta unidade.
+              Seu usuário não tem permissão para esta seção nesta unidade.
               Solicite acesso ao administrador.
             </p>
           </section>
@@ -274,27 +274,27 @@ function Login({
         <div className="brand">
           <img
             src={`${import.meta.env.BASE_URL}brand/milani-logo.png`}
-            alt="Milani â€” LogÃ­stica & Transporte"
+            alt="Milani — Logística & Transporte"
             width="200"
             height="70"
           />
         </div>
         <div>
-          <p className="eyebrow">MILANI â€¢ LOGÃSTICA &amp; TRANSPORTE</p>
+          <p className="eyebrow">MILANI • LOGÍSTICA &amp; TRANSPORTE</p>
           <h1>
             Sua carga,
             <br />
             nosso compromisso.
           </h1>
-          <p>Movendo o Brasil com agilidade, seguranÃ§a e compromisso.</p>
+          <p>Movendo o Brasil com agilidade, segurança e compromisso.</p>
         </div>
-        <small>Milani â€¢ GestÃ£o de fretes â€¢ GRU</small>
+        <small>Milani • Gestão de fretes • GRU</small>
       </div>
       <div className="login-form">
         <form onSubmit={submit}>
           <p className="eyebrow">BEM-VINDO</p>
           <h1>Acesse sua conta</h1>
-          <p className="muted">Use seu cÃ³digo e sua senha do sistema.</p>
+          <p className="muted">Use seu código e sua senha do sistema.</p>
           {notice && (
             <p role="status" className="alert">
               {notice}
@@ -306,7 +306,7 @@ function Login({
             </p>
           )}
           <label>
-            CÃ³digo do usuÃ¡rio
+            Código do usuário
             <input
               name="cod"
               type="number"
@@ -327,7 +327,7 @@ function Login({
             />
           </label>
           <button className="primary" disabled={busy}>
-            {busy ? "Entrandoâ€¦" : "Entrar â†’"}
+            {busy ? "Entrando…" : "Entrar →"}
           </button>
           <p className="muted footnote">
             Problemas para entrar? Procure o administrador da sua unidade.
@@ -450,8 +450,8 @@ function Manifests({
       <div className="stats">
         <article>
           <span>Na consulta</span>
-          <strong>{busy ? "â€”" : rows.length}</strong>
-          <small>AtÃ© 50 registros mais recentes</small>
+          <strong>{busy ? "—" : rows.length}</strong>
+          <small>Até 50 registros mais recentes</small>
         </article>
       </div>
       <section className="panel">
@@ -465,13 +465,13 @@ function Manifests({
             />
           </label>
           <label>
-            PerÃ­odo da consulta
+            Período da consulta
             <select value={week} onChange={(e) => setWeek(e.target.value)}>
-              <option value="recent">Ontem e hoje (data de inclusÃ£o)</option>
+              <option value="recent">Ontem e hoje (data de inclusão)</option>
               <option value="">Todas as semanas</option>
               {weeks.map((w) => (
                 <option key={w.codigo} value={w.codigo}>
-                  {w.codigo} Â· {date(w.data_inicio)} a {date(w.data_fim)}
+                  {w.codigo} · {date(w.data_inicio)} a {date(w.data_fim)}
                 </option>
               ))}
             </select>
@@ -489,12 +489,12 @@ function Manifests({
             <thead>
               <tr>
                 <th>Manifesto / Data</th>
-                <th>VeÃ­culo / Motorista</th>
+                <th>Veículo / Motorista</th>
                 <th>Destino</th>
-                <th>Frete do veÃ­culo</th>
-                <th>SituaÃ§Ã£o</th>
+                <th>Frete do veículo</th>
+                <th>Situação</th>
                 <th>
-                  <span className="sr-only">AÃ§Ãµes</span>
+                  <span className="sr-only">Ações</span>
                 </th>
               </tr>
             </thead>
@@ -523,7 +523,7 @@ function Manifests({
                         onClick={() => void detail(m.id)}
                         aria-label={`Ver manifesto ${manifestLabel(m)}`}
                       >
-                        Ver detalhes â†’
+                        Ver detalhes →
                       </button>
                     </td>
                   </tr>
@@ -533,12 +533,12 @@ function Manifests({
         </div>
         {busy ? (
           <div className="empty" role="status">
-            Carregando manifestosâ€¦
+            Carregando manifestos…
           </div>
         ) : !filtered.length ? (
           <div className="empty">
             <h2>
-              {error ? "Consulta indisponÃ­vel" : "Nenhum manifesto encontrado"}
+              {error ? "Consulta indisponível" : "Nenhum manifesto encontrado"}
             </h2>
             <p>
               {error
@@ -548,7 +548,7 @@ function Manifests({
           </div>
         ) : null}
         <div className="table-footer">
-          {filtered.length} registros exibidos Â· A consulta retorna atÃ© 50
+          {filtered.length} registros exibidos · A consulta retorna até 50
           manifestos.
         </div>
       </section>
@@ -560,24 +560,24 @@ function Manifests({
           locked={saving}
         >
           <p>
-            {selected.placa} Â· {selected.motorista}
+            {selected.placa} · {selected.motorista}
           </p>
           <p>
-            {date(selected.semana)} Â· {selected.destino}
+            {date(selected.semana)} · {selected.destino}
           </p>
           <span className="badge">
             {closed(selected)
-              ? `Fechado Â· ${selected.num_fechamento ?? selected.fechamento_id}`
+              ? `Fechado · ${selected.num_fechamento ?? selected.fechamento_id}`
               : "Em aberto"}
           </span>
           <dl className="detail-grid">
             {[
-              ["Frete do veÃ­culo", "frete_veiculo"],
+              ["Frete do veículo", "frete_veiculo"],
               ["Frete total", "frete_total"],
               ["CTRB total", "ctrb_total"],
-              ["RetenÃ§Ãµes", "total_retencoes"],
-              ["LÃ­quido CTRB", "valor_liquido"],
-              ["Vale-pedÃ¡gio", "vale_pedagio"],
+              ["Retenções", "total_retencoes"],
+              ["Líquido CTRB", "valor_liquido"],
+              ["Vale-pedágio", "vale_pedagio"],
             ].map(([label, key]) => (
               <div key={key}>
                 <dt>{label}</dt>
@@ -585,7 +585,7 @@ function Manifests({
               </div>
             ))}
           </dl>
-          <p>{String(selected.observacao || "Sem observaÃ§Ãµes.")}</p>
+          <p>{String(selected.observacao || "Sem observações.")}</p>
           {!closed(selected) && (
             <button
               className="primary"
@@ -604,7 +604,7 @@ function Manifests({
             disabled={saving}
             onClick={() => openEntries(selected.id)}
           >
-            Abrir lanÃ§amentos
+            Abrir lançamentos
           </button>
           {!closed(selected) && (
             <DeleteManifest
@@ -618,7 +618,7 @@ function Manifests({
               done={(count) => {
                 setSelected(null);
                 setSuccess(
-                  `Manifesto excluÃ­do com ${count} lanÃ§amentos vinculados.`,
+                  `Manifesto excluído com ${count} lançamentos vinculados.`,
                 );
                 void load();
               }}
@@ -702,7 +702,7 @@ function Modal({
           aria-label="Fechar"
           disabled={locked}
         >
-          âœ•
+          ✕
         </button>
       </div>
       {children}
@@ -714,23 +714,23 @@ const amounts = [
   ["cod_777_00", "Frete 777"],
   ["cod_888_00", "Frete 888"],
   ["cod_999_00", "Frete 999"],
-  ["nao_777", "NÃ£o entregue 777"],
-  ["nao_888", "NÃ£o entregue 888"],
-  ["nao_999", "NÃ£o entregue 999"],
+  ["nao_777", "Não entregue 777"],
+  ["nao_888", "Não entregue 888"],
+  ["nao_999", "Não entregue 999"],
   ["outros", "Outros"],
-  ["diaria", "DiÃ¡ria"],
+  ["diaria", "Diária"],
   ["tde", "TDE"],
   ["escada", "Escada"],
-  ["paletizacao", "PaletizaÃ§Ã£o"],
+  ["paletizacao", "Paletização"],
   ["estadia", "Estadia"],
   ["descarga", "Descarga"],
   ["ctrb_total", "CTRB total"],
   ["ctrb_adiantamento", "Adiantamento CTRB"],
   ["sest_senat", "SEST/SENAT"],
   ["irrf", "IRRF"],
-  ["prev_social", "PrevidÃªncia social"],
+  ["prev_social", "Previdência social"],
   ["inss", "INSS"],
-  ["vale_pedagio", "Vale-pedÃ¡gio"],
+  ["vale_pedagio", "Vale-pedágio"],
 ];
 function CreateManifest({
   token,
@@ -846,19 +846,19 @@ function CreateManifest({
     const enteredDate = parseQuickDate(String(payload.semana ?? ''));
     const enteredTime = formatQuickTime(String(payload.hora ?? ''));
     if (!enteredDate || !enteredTime) {
-      setError('Informe uma data vÃ¡lida (DD/MM/AAAA) e um horÃ¡rio vÃ¡lido (HH:MM).');
+      setError('Informe uma data válida (DD/MM/AAAA) e um horário válido (HH:MM).');
       return;
     }
     payload.semana = enteredDate.iso;
     const ciot = formatCiot(String(payload.ciot ?? ''));
     if (ciot === null && (!initial || payload.ciot !== initial.ciot)) {
-      setError('Informe os 12 dÃ­gitos do CIOT e, se disponÃ­veis, os quatro dÃ­gitos finais.');
+      setError('Informe os 12 dígitos do CIOT e, se disponíveis, os quatro dígitos finais.');
       return;
     }
     if (ciot !== null) payload.ciot = ciot;
     const ctrb = formatCtrb(String(payload.ctrb_numero ?? ""));
     if (ctrb && !/^\d{6}-\d$/.test(ctrb)) {
-      setError("Informe o CTRB com seis dÃ­gitos, hÃ­fen e um dÃ­gito. Exemplo: 123456-7.");
+      setError("Informe o CTRB com seis dígitos, hífen e um dígito. Exemplo: 123456-7.");
       return;
     }
     payload.ctrb_numero = ctrb || null;
@@ -866,7 +866,7 @@ function CreateManifest({
     const formatted = formatManifestNumber(String(payload.manifestos ?? ''));
     if (formatted) payload.manifestos = formatted;
     else if (!initial || payload.manifestos !== initial.manifestos) {
-      setError('Informe os trÃªs dÃ­gitos da unidade seguidos do nÃºmero do manifesto. Exemplo: 8503182.');
+      setError('Informe os três dígitos da unidade seguidos do número do manifesto. Exemplo: 8503182.');
       return;
     }
     for (const key of [
@@ -947,11 +947,11 @@ function CreateManifest({
             <div className="manifest-number-field" role="group" aria-label="Manifesto">
               <span>Manifesto</span>
               <div className="manifest-number-parts">
-                <input aria-label="Primeiros trÃªs dÃ­gitos do manifesto" inputMode="numeric"
+                <input aria-label="Primeiros três dígitos do manifesto" inputMode="numeric"
                   maxLength={3} pattern="[0-9]{3}" required={!legacyManifest || !!manifestPrefix}
                   placeholder="000" value={manifestPrefix}
                   onChange={e => setManifestPrefix(e.target.value.replace(/\D/g, '').slice(0,3))} />
-                <input aria-label="NÃºmero do manifesto" inputMode="numeric" maxLength={8} required
+                <input aria-label="Número do manifesto" inputMode="numeric" maxLength={8} required
                   placeholder="000000-0" value={manifestSuffix}
                   onChange={e => setManifestSuffix(e.target.value)}
                   onBlur={() => {
@@ -1001,7 +1001,7 @@ function CreateManifest({
                     onChange={(e) => updateAdditional({ prefix: e.target.value.replace(/\D/g, "").slice(0, 3) })}
                   />
                   <input
-                    aria-label={`NÃºmero do manifesto adicional ${index + 1}`}
+                    aria-label={`Número do manifesto adicional ${index + 1}`}
                     value={value.suffix}
                     inputMode="numeric"
                     maxLength={8}
@@ -1079,7 +1079,7 @@ function CreateManifest({
                   setSuggestedDriver({cpf:vehicle?.driver_cpf ?? '',name:vehicle?.driver_name ?? ''});
                 }}
               >
-                <option value="" disabled>{loadingVehicles ? "Carregando placasâ€¦" : "Selecione a placa"}</option>
+                <option value="" disabled>{loadingVehicles ? "Carregando placas…" : "Selecione a placa"}</option>
                 {initial?.placa && !vehicles.some((v) => v.plate === initial.placa) && (
                   <option value={initial.placa}>{initial.placa}</option>
                 )}
@@ -1112,7 +1112,7 @@ function CreateManifest({
           </div>
           <div className="form-grid">
             {[
-              ["m3", "Cubagem (mÂ³)", "Volume (mÂ³)"],
+              ["m3", "Cubagem (m³)", "Volume (m³)"],
               ["kg", "Peso (kg)", "Peso (kg)"],
               ["qtd_nf", "QNT NF", "Quantidade de notas"],
             ].map(([key, label, accessible]) => (
@@ -1134,13 +1134,13 @@ function CreateManifest({
             {moneyFields(["cod_777_00", "cod_888_00", "cod_999_00"])}
           </div>
           {calculation.preview && !initial && <>
-            {calculation.values.m3 > calculation.preview.vehicle.max_m3 && <p className="alert" role="status">A cubagem permitida para {calculation.preview.vehicle.type} Ã© {calculation.preview.vehicle.max_m3} mÂ³.</p>}
-            {calculation.values.kg > calculation.preview.vehicle.max_weight && <p className="alert" role="status">O peso permitido para {calculation.preview.vehicle.type} Ã© {calculation.preview.vehicle.max_weight} kg.</p>}
+            {calculation.values.m3 > calculation.preview.vehicle.max_m3 && <p className="alert" role="status">A cubagem permitida para {calculation.preview.vehicle.type} é {calculation.preview.vehicle.max_m3} m³.</p>}
+            {calculation.values.kg > calculation.preview.vehicle.max_weight && <p className="alert" role="status">O peso permitido para {calculation.preview.vehicle.type} é {calculation.preview.vehicle.max_weight} kg.</p>}
           </>}
         </fieldset>
         <div className="manifest-side-blocks">
         <fieldset className="legacy-group">
-          <legend>CTRB <HelpTip label="CTRB">Valor lÃ­quido = total CTRB âˆ’ adiantamento âˆ’ retenÃ§Ãµes. Vale-pedÃ¡gio nÃ£o altera o lÃ­quido do CTRB.</HelpTip></legend>
+          <legend>CTRB <HelpTip label="CTRB">Valor líquido = total CTRB − adiantamento − retenções. Vale-pedágio não altera o líquido do CTRB.</HelpTip></legend>
           <div className="form-grid">
             <label>
               CIOT
@@ -1149,13 +1149,13 @@ function CreateManifest({
                 onBlur={e => {
                   const formatted = formatCiot(e.target.value);
                   if (formatted !== null) e.target.value = formatted;
-                  e.target.setCustomValidity(formatted !== null || e.target.value === initial?.ciot ? '' : 'Informe os 12 dÃ­gitos do CIOT e atÃ© quatro dÃ­gitos finais.');
+                  e.target.setCustomValidity(formatted !== null || e.target.value === initial?.ciot ? '' : 'Informe os 12 dígitos do CIOT e até quatro dígitos finais.');
                 }} />
             </label>
             <label>
               CTRB
               <input
-                aria-label="NÃºmero CTRB"
+                aria-label="Número CTRB"
                 name="ctrb_numero"
                 maxLength={8}
                 placeholder="000000-0"
@@ -1173,12 +1173,12 @@ function CreateManifest({
               "inss",
               "vale_pedagio",
             ])}
-            <label>Total de retenÃ§Ãµes<input readOnly value={money(calculation.values.retentions)} /></label>
-            <label>Valor lÃ­quido<input readOnly value={money(calculation.values.net)} /></label>
+            <label>Total de retenções<input readOnly value={money(calculation.values.retentions)} /></label>
+            <label>Valor líquido<input readOnly value={money(calculation.values.net)} /></label>
           </div>
         </fieldset>
         <fieldset className="legacy-group">
-          <legend>NÃ£o entregue</legend>
+          <legend>Não entregue</legend>
           <div className="form-grid">
             {moneyFields(["nao_777", "nao_888", "nao_999"])}
           </div>
@@ -1186,14 +1186,14 @@ function CreateManifest({
         </div>
         <div className="manifest-side-blocks">
         <fieldset className="legacy-group">
-          <legend>A pagar <HelpTip label="A pagar">Os pagamentos vinculados podem ser incluÃ­dos na tela LanÃ§amentos, acessÃ­vel pelo Menu apÃ³s salvar o manifesto.</HelpTip></legend>
+          <legend>A pagar <HelpTip label="A pagar">Os pagamentos vinculados podem ser incluídos na tela Lançamentos, acessível pelo Menu após salvar o manifesto.</HelpTip></legend>
           <div className="form-grid">
             <label>
               Origem
               <input name="origem" defaultValue="SP" maxLength={10} required />
             </label>
             <label>
-              Frete do veÃ­culo
+              Frete do veículo
               <input
                 name="frete_veiculo"
                 type="number"
@@ -1221,40 +1221,40 @@ function CreateManifest({
         </fieldset>
         </div>
         <fieldset className="legacy-group">
-          <legend>CÃ¡lculos do manifesto <HelpTip label="CÃ¡lculos do manifesto">Selecione a placa para calcular o frete. Os cÃ¡lculos sÃ£o atualizados durante o preenchimento e conferidos ao salvar.</HelpTip></legend>
-          {calculation.pending && <p role="status">Calculandoâ€¦</p>}
-          {calculation.error && <p role="alert" className="alert">NÃ£o foi possÃ­vel calcular: {calculation.error}</p>}
+          <legend>Cálculos do manifesto <HelpTip label="Cálculos do manifesto">Selecione a placa para calcular o frete. Os cálculos são atualizados durante o preenchimento e conferidos ao salvar.</HelpTip></legend>
+          {calculation.pending && <p role="status">Calculando…</p>}
+          {calculation.error && <p role="alert" className="alert">Não foi possível calcular: {calculation.error}</p>}
           {calculation.preview && <div className="form-grid">
             {[
               ["Frete 777 calculado", calculation.preview.freightsCalculated.freight777],
               ["Frete 888 calculado", calculation.preview.freightsCalculated.freight888],
               ["Frete 999 calculado", calculation.preview.freightsCalculated.freight999],
-              ["NÃ£o entregue 777 calculado", calculation.preview.freightsCalculated.notDelivery777],
-              ["NÃ£o entregue 888 calculado", calculation.preview.freightsCalculated.notDelivery888],
-              ["NÃ£o entregue 999 calculado", calculation.preview.freightsCalculated.notDelivery999],
+              ["Não entregue 777 calculado", calculation.preview.freightsCalculated.notDelivery777],
+              ["Não entregue 888 calculado", calculation.preview.freightsCalculated.notDelivery888],
+              ["Não entregue 999 calculado", calculation.preview.freightsCalculated.notDelivery999],
               ["Total dos fretes calculados", calculation.preview.totalFretes],
               ["Total a receber", calculation.preview.totalReceive - calculation.preview.discounts],
-              ["LanÃ§amentos a pagar", calculation.preview.despesas_empresa],
-              ["Total do frete do veÃ­culo", calculation.preview.freightVehicle],
+              ["Lançamentos a pagar", calculation.preview.despesas_empresa],
+              ["Total do frete do veículo", calculation.preview.freightVehicle],
             ].map(([label, value]) => <label key={String(label)}>{label}<input readOnly value={money(value)} /></label>)}
             <label>Percentual inicial<input readOnly value={(calculation.preview.initPercent * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%"} /></label>
             <label>Percentual final<input readOnly value={(calculation.preview.finalPercent * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%"} /></label>
           </div>}
         </fieldset>
         <label>
-          ObservaÃ§Ãµes
+          Observações
           <textarea name="observacao" maxLength={255} rows={3} />
         </label>
         <button className="primary" disabled={!destinations.length || busy}>
           {busy
-            ? "Salvandoâ€¦"
+            ? "Salvando…"
             : initial
-              ? "Salvar alteraÃ§Ãµes"
+              ? "Salvar alterações"
               : "Cadastrar manifesto"}
         </button>
         {!destinations.length && (
           <p role="status">
-            Ã‰ necessÃ¡rio um destino ativo cadastrado para salvar.
+            É necessário um destino ativo cadastrado para salvar.
           </p>
         )}
       </fieldset>
