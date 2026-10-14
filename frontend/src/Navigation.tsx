@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import type { Session } from "./api";
 
 export type Page =
@@ -65,7 +65,7 @@ export default function Navigation({
       <a
         className="brand home-link"
         href="#home"
-        aria-label="Milani — Página inicial"
+        aria-label="Milani â€” PÃ¡gina inicial"
         onClick={(event) => {
           event.preventDefault();
           setOpen(false);
@@ -73,8 +73,8 @@ export default function Navigation({
         }}
       >
         <img
-          src="/brand/milani-logo.png"
-          alt="Milani — Logística & Transporte"
+          src={`${import.meta.env.BASE_URL}brand/milani-logo.png`}
+          alt="Milani â€” LogÃ­stica & Transporte"
           width="200"
           height="70"
         />
@@ -96,13 +96,13 @@ export default function Navigation({
           aria-controls="main-navigation"
           onClick={() => setOpen(!open)}
         >
-          Menu <span aria-hidden="true">{open ? "▴" : "▾"}</span>
+          Menu <span aria-hidden="true">{open ? "â–´" : "â–¾"}</span>
         </button>
         {open && (
           <nav
             id="main-navigation"
             className="menu-dropdown"
-            aria-label="Navegação principal"
+            aria-label="NavegaÃ§Ã£o principal"
           >
             <div className="menu-account">
               <strong>{session.user.name}</strong>
@@ -111,17 +111,17 @@ export default function Navigation({
             {(
               [
                 ["manifests", "Manifestos"],
-                ["entries", "Lançamentos"],
+                ["entries", "LanÃ§amentos"],
                 ["weeks", "Semanas"],
                 ["expenses", "Despesas"],
                 ["closures", "Fechamentos"],
                 ["invoices", "Notas e cupons"],
                 ["payers", "Empresas"],
                 ["drivers", "Motoristas"],
-                ["vehicles", "Veículos"],
+                ["vehicles", "VeÃ­culos"],
                 ["destinations", "Destinos"],
-                ["financial-report", "Relatório de lançamentos"],
-                ["coupons-report", "Relatório de cupons"],
+                ["financial-report", "RelatÃ³rio de lanÃ§amentos"],
+                ["coupons-report", "RelatÃ³rio de cupons"],
                 ["payments-report", "Planilha de pagamentos"],
               ] as const
             )
@@ -142,7 +142,7 @@ export default function Navigation({
               className="nav-button menu-logout"
               onClick={logout}
             >
-              Sair da conta →
+              Sair da conta â†’
             </button>
           </nav>
         )}
@@ -150,3 +150,4 @@ export default function Navigation({
     </header>
   );
 }
+
