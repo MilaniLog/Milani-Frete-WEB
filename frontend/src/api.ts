@@ -1,6 +1,11 @@
 import { requestDeletionApproval } from './deletion-approval';
 
-const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const defaultApiBase = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.BASE_URL || '').replace(/\/$/, '');
+const configuredApiBase = (
+  import.meta.env.VITE_API_BASE_URL || defaultApiBase
+).replace(/\/$/, '');
 
 export function apiUrl(path: string) {
   return `${configuredApiBase}/api${path}`;
