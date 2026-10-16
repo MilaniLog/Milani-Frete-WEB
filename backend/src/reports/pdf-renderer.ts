@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-function chromePath() {
+async function chromePath() {
   const candidates = [
     process.env.CHROME_PATH,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -23,12 +23,17 @@ function chromePath() {
     '/usr/bin/chromium',
   ].filter(Boolean) as string[];
   const executable = candidates.find((candidate) => existsSync(candidate));
-  if (!executable) {
+  if (executable) return executable;
+
+  try {
+    const chromium = await import('@sparticuz/chromium');
+    return await chromium.default.executablePath();
+  } catch (error) {
+    const detail = error instanceof Error ? ` ${error.message}` : '';
     throw new Error(
-      'Nenhum navegador Chrome ou Chromium foi encontrado para gerar o PDF.',
+      `Nenhum navegador compativel foi encontrado para gerar o PDF.${detail}`,
     );
   }
-  return executable;
 }
 
 export async function renderHtmlPdf(html: string) {
@@ -38,7 +43,7 @@ export async function renderHtmlPdf(html: string) {
   try {
     await writeFile(input, html, 'utf8');
     await execFileAsync(
-      chromePath(),
+      await chromePath(),
       [
         '--headless=new',
         '--disable-gpu',
