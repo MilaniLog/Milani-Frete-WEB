@@ -1,4 +1,5 @@
-﻿import { execFile } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,7 +22,13 @@ function chromePath() {
     '/usr/bin/chromium-browser',
     '/usr/bin/chromium',
   ].filter(Boolean) as string[];
-  return candidates[0];
+  const executable = candidates.find((candidate) => existsSync(candidate));
+  if (!executable) {
+    throw new Error(
+      'Nenhum navegador Chrome ou Chromium foi encontrado para gerar o PDF.',
+    );
+  }
+  return executable;
 }
 
 export async function renderHtmlPdf(html: string) {
