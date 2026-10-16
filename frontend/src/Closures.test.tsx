@@ -124,9 +124,9 @@ it("fecha somente a placa exibida na seleção atual", async () => {
   });
   expect(screen.queryByRole("button", { name: "Fechar placa" })).toBeNull();
   expect(
-    vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith(".pdf")),
+    vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith("/pdf")),
   ).toEqual([
-    expect.arrayContaining(["/api/freight-closures/week/drivers.pdf"]),
+    expect.arrayContaining(["/api/freight-closures/week/drivers/pdf"]),
   ]);
 });
 afterEach(() => {

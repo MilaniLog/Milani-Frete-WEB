@@ -67,7 +67,7 @@ export class ReportsController {
   reprint(@Query() q: ReportQuery, @Req() req: AuthenticatedRequest) {
     return this.service.reprint(q, req.user);
   }
-  @Get('closures/reprint.pdf')
+  @Get(['closures/reprint.pdf', 'closures/reprint/pdf'])
   @Header('Cache-Control', 'no-store')
   async reprintPdf(
     @Query() q: ReportQuery,
@@ -79,7 +79,7 @@ export class ReportsController {
     res.setHeader('Content-Disposition', 'attachment; filename="fechamento-de-frete.pdf"');
     res.send(pdf);
   }
-  @Get('closures/drivers.pdf')
+  @Get(['closures/drivers.pdf', 'closures/drivers/pdf'])
   @Header('Cache-Control', 'no-store')
   async driversPdf(
     @Query() q: ReportQuery,

@@ -83,7 +83,7 @@ export class FreightClosuresController {
     );
   }
 
-  @Get('conference/print.pdf')
+  @Get(['conference/print.pdf', 'conference/print/pdf'])
   @Header('Cache-Control', 'no-store')
   async conferencePrintPdf(
     @Query() dto: ConferenceDto,
@@ -100,7 +100,7 @@ export class FreightClosuresController {
     res.send(pdf);
   }
 
-  @Post('conference/adjusted-print.pdf')
+  @Post(['conference/adjusted-print.pdf', 'conference/adjusted-print/pdf'])
   @Header('Cache-Control', 'no-store')
   async adjustedConferencePrintPdf(
     @Body() dto: WeekClosureDto,
@@ -150,7 +150,7 @@ export class FreightClosuresController {
       }).join('') + '</body></html>';
   }
 
-  @Post('week/freight.pdf')
+  @Post(['week/freight.pdf', 'week/freight/pdf'])
   @Header('Cache-Control', 'no-store')
   async weekFreightPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
     const reports = await Promise.all(dto.ids.map(async (id) =>
@@ -162,7 +162,7 @@ export class FreightClosuresController {
     res.send(pdf);
   }
 
-  @Post('week/drivers.pdf')
+  @Post(['week/drivers.pdf', 'week/drivers/pdf'])
   @Header('Cache-Control', 'no-store')
   async weekDriversPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
     const reports = await Promise.all(dto.ids.map(async (id) =>
@@ -196,7 +196,7 @@ export class FreightClosuresController {
     return renderClosureReport(report);
   }
 
-  @Get('preview/print.pdf')
+  @Get(['preview/print.pdf', 'preview/print/pdf'])
   @Header('Cache-Control', 'no-store')
   async printPreviewPdf(
     @Query() dto: ClosureDto,
@@ -238,7 +238,7 @@ export class FreightClosuresController {
     );
   }
 
-  @Get(':id/print.pdf')
+  @Get([':id/print.pdf', ':id/print/pdf'])
   @Header('Cache-Control', 'no-store')
   async printPdf(
     @Param('id', ParseIntPipe) id: number,

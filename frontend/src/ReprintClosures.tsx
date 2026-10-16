@@ -74,7 +74,7 @@ export default function ReprintClosures({
             ...(isAdmin && unit ? { local: unit } : {}),
           });
       const response = await fetch(
-        apiUrl(`/freight-reports/closures/reprint.pdf?${q}`),
+        apiUrl(`/freight-reports/closures/reprint/pdf?${q}`),
         { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (!response.ok) {

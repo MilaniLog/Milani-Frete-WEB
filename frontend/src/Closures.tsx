@@ -614,7 +614,7 @@ export default function Closures({
     setError("");
     try {
       const response = await fetch(
-        apiUrl("/freight-closures/conference/adjusted-print.pdf"),
+        apiUrl("/freight-closures/conference/adjusted-print/pdf"),
         {
           method: "POST",
           headers: {
@@ -701,7 +701,7 @@ export default function Closures({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(apiUrl(`/freight-closures/week/${kind}.pdf`), {
+      const response = await fetch(apiUrl(`/freight-closures/week/${kind}/pdf`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -914,7 +914,7 @@ export default function Closures({
               disabled={busy}
               onClick={() =>
                 void download(
-                  `/freight-closures/preview/print.pdf?${new URLSearchParams({
+                  `/freight-closures/preview/print/pdf?${new URLSearchParams({
                     ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
                     ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
                     semana: preview.semana,
@@ -1019,7 +1019,7 @@ export default function Closures({
                         disabled={busy}
                         onClick={() =>
                           void download(
-                            `/freight-closures/${row.id}/print.pdf`,
+                            `/freight-closures/${row.id}/print/pdf`,
                             `fechamento-${row.numero}.pdf`,
                             true,
                           )
@@ -1061,7 +1061,7 @@ export default function Closures({
             disabled={busy}
             onClick={() =>
               void download(
-                `/freight-closures/${report.cabecalho.id}/print.pdf`,
+                `/freight-closures/${report.cabecalho.id}/print/pdf`,
                 `fechamento-${report.cabecalho.numero}.pdf`,
                 true,
               )

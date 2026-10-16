@@ -162,7 +162,7 @@ it("reimprime por número sem enviar gravações nem filtros de outro fechamento
   expect(
     vi.mocked(fetch).mock.calls.some(
       ([path]) =>
-        path === "/api/freight-reports/closures/reprint.pdf?numero=40",
+        path === "/api/freight-reports/closures/reprint/pdf?numero=40",
     ),
   ).toBe(true);
   expect(vi.mocked(fetch).mock.calls.some(([, o]) => o?.method)).toBe(false);
@@ -183,7 +183,7 @@ it("filtra a reimpressão por domínio e unidade", async () => {
   fireEvent.change(screen.getByLabelText("Número do fechamento para reimpressão"), { target: { value: "40" } });
   fireEvent.click(screen.getByRole("button", { name: "Imprimir fechamento de frete" }));
   await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-    "/api/freight-reports/closures/reprint.pdf?numero=40&dominio=MLN&local=SSA",
+    "/api/freight-reports/closures/reprint/pdf?numero=40&dominio=MLN&local=SSA",
     expect.anything(),
   ));
 });
