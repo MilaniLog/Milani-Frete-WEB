@@ -26,8 +26,8 @@ async function chromePath() {
   if (executable) return executable;
 
   try {
-    const chromium = await import('@sparticuz/chromium');
-    return await chromium.default.executablePath();
+    const chromium = require('@sparticuz/chromium') as typeof import('@sparticuz/chromium');
+    return await chromium.executablePath();
   } catch (error) {
     const detail = error instanceof Error ? ` ${error.message}` : '';
     throw new Error(
