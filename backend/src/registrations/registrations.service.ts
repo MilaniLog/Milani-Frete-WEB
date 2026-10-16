@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
 import {
   DriverRegistrationDto,
+  UnitRegistrationDto,
   VehicleRegistrationDto,
 } from './registration.dto';
 import { validDocument } from './document';
@@ -22,6 +24,41 @@ export class RegistrationsService {
   }
   companies() {
     return this.db.frete_empresas.findMany({ orderBy: { matriz: 'asc' } });
+  }
+  async units(user: AuthUser) {
+    if (!user.isAdmin)
+      throw new ForbiddenException('Somente administradores podem acessar unidades.');
+    try {
+      const rows = await this.db.branches.findMany({ orderBy: { unit: 'asc' } });
+      return rows.map(row => ({ codigo: row.unit, local: row.branch, dominio: row.dominio }));
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2022') throw error;
+      const rows = await this.db.$queryRaw<{ unit: number; branch: string }[]>`
+        SELECT unit, branch FROM branches ORDER BY unit
+      `;
+      return rows.map(row => ({ codigo: row.unit, local: row.branch, dominio: null }));
+    }
+  }
+  async unit(dto: UnitRegistrationDto, user: AuthUser, key?: number) {
+    if (!user.isAdmin)
+      throw new ForbiddenException('Somente administradores podem alterar unidades.');
+    if (key != null && key !== dto.codigo)
+      throw new BadRequestException('O código da unidade não pode ser alterado.');
+    let existing;
+    try {
+      existing = await this.db.branches.findUnique({ where: { unit: dto.codigo } });
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2022')
+        throw new ConflictException('A coluna de domínio ainda não foi preparada no banco.');
+      throw error;
+    }
+    if (key != null && !existing)
+      throw new NotFoundException('Unidade não encontrada.');
+    if (key == null && existing)
+      throw new ConflictException('Código de unidade já cadastrado.');
+    return key == null
+      ? this.db.branches.create({ data: { unit: dto.codigo, branch: dto.local, dominio: dto.dominio } })
+      : this.db.branches.update({ where: { unit: key }, data: { branch: dto.local, dominio: dto.dominio } });
   }
   types() {
     return this.db.vehicleType.findMany({

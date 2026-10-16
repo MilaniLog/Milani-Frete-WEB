@@ -44,6 +44,7 @@ describe('Conferência VBA', () => {
             frete_veiculo: '2000.10',
             ctrb_total: '100',
             ctrb_numero: '001',
+            num_fechamento: 39260001,
           },
         ]),
       },
@@ -94,9 +95,23 @@ describe('Conferência VBA', () => {
     expect(result.groups[0].payment.primeira.empresa).toBe('MMA');
     expect(result.groups[0].payment.primeira.valor.toString()).toBe('1950');
     expect(result.groups[0].payment.segunda.valor.toString()).toBe('0');
+    expect(result.groups[0].closureNumber).toBe(39260001);
     expect(
       (await service.report({ semana: '3926', despesa: '999' }, user)).groups,
     ).toHaveLength(0);
+  });
+  it('mantem o total CTRB integral com debito de codigo 3333', async () => {
+    db.frete_lancamentos.findMany.mockResolvedValue([
+      {
+        id: 2,
+        placa: 'ABC1234',
+        codigo_despesa: '3333',
+        tipo_despesa: 'Debito',
+        valor: '30',
+      },
+    ]);
+    const result = await service.report({ semana: '3926' }, user);
+    expect(result.groups[0].totals.total_ctrb.toString()).toBe('100');
   });
   it('aplica unidade e usuário aos três conjuntos, categoria e ordenação', async () => {
     await service.report(

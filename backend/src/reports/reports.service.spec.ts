@@ -120,13 +120,18 @@ describe('Relatórios VBA', () => {
             },
           ]),
       },
+      branches: {
+        findMany: jest.fn().mockResolvedValue([{ unit: 301 }, { unit: 830 }]),
+      },
     };
     db.$transaction = jest.fn((work) => work(db));
     service = new ReportsService(db);
   });
-  it('soma valores decimais, diferencia cupons e lançamentos e escapa texto', async () => {
+  it('soma valores decimais, diferencia cupons e vales e escapa texto', async () => {
     const result = await service.financial({ semana: '3926' }, user);
     expect(result.rows).toHaveLength(2);
+    expect(result.rows[0][1]).toBe(1);
+    expect(result.rows[0][1]).not.toBe(5);
     expect(result.rows[0][5]).toBe('M1');
     expect(result.rows[1][5]).toBe('0001');
     expect(result.totals.at(-1)?.value).toBe('-0.10');
@@ -150,7 +155,7 @@ describe('Relatórios VBA', () => {
       expect(db[table].findMany.mock.calls[0][0].where).toMatchObject({
         unit: 100,
         placa: 'ABC1234',
-        departamento: 'A',
+        departamento: { startsWith: 'A' },
         responsavel_cod: 7,
         pago: false,
         fechamento_id: null,
@@ -176,11 +181,11 @@ describe('Relatórios VBA', () => {
       service.financial({ semana: '3926', inicio: '2026-09-20' }, user),
     ).rejects.toMatchObject({ status: 400 });
   });
-  it('relatório de lançamentos não consulta cupons e preserva o resumo fixo', async () => {
+  it('relatório de vales não consulta cupons e preserva o resumo fixo', async () => {
     const result = await service.financial({ semana: '3926', cupons: 'false' }, user);
     expect(db.frete_cupons.findMany).not.toHaveBeenCalled();
-    expect(result.title).toBe('Conferência de lançamentos');
-    expect(result.rows.every(row => row[0] === 'Lançamento')).toBe(true);
+    expect(result.title).toBe('Conferência de vales');
+    expect(result.rows.every(row => row[0] === 'Vale')).toBe(true);
     expect(reportHtml(result)).toContain('SELECIONADOS');
   });
   it('planilha usa histórico, exclui frete zero do CTRB e aplica regra VBA sem rateio', async () => {
@@ -230,6 +235,20 @@ describe('Relatórios VBA', () => {
     await expect(service.reprint({ numero: '40' }, user)).rejects.toMatchObject(
       { status: 404 },
     );
+  });
+  it('aplica domínio e unidade local à reimpressão administrativa', async () => {
+    await service.reprint(
+      { semana: '3926', dominio: 'MLN', local: 'SSA' },
+      { ...user, isAdmin: true },
+    );
+    expect(db.branches.findMany).toHaveBeenCalledWith({
+      where: { branch: 'SSA', dominio: 'MLN' },
+      select: { unit: true },
+    });
+    expect(db.frete_fechamentos.findMany.mock.calls[0][0].where).toMatchObject({
+      unit: { in: [301, 830] },
+      semana: '3926',
+    });
   });
   it('preserva marca de cancelamento na reimpressão e informa falta de dados legados', async () => {
     const closure = (await db.frete_fechamentos.findMany())[0];

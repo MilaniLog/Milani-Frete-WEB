@@ -197,7 +197,7 @@ export default function InvoiceLaunchForm({
     event.preventDefault();
     if (busy || paid) return;
     if (editing && !coupon) {
-      setError("Consulte o número do lançamento antes de salvar.");
+      setError("Consulte o número do vale antes de salvar.");
       return;
     }
     revision.current++;
@@ -245,7 +245,7 @@ export default function InvoiceLaunchForm({
       setNumber("");
       setForm((f) => ({ ...f, cupom_valor: "", descricao: "" }));
       setSuccess(
-        `Lançamento ${result.coupon.id} salvo. Saldo da nota: ${money(result.nota.saldo)}.`,
+        `Vale ${result.coupon.id} salvo. Saldo da nota: ${money(result.nota.saldo)}.`,
       );
       saved();
     } catch (e) {
@@ -297,7 +297,7 @@ export default function InvoiceLaunchForm({
     driverCounts.set(d.name, (driverCounts.get(d.name) ?? 0) + 1);
   return (
     <section className="panel reference-form invoice-launch">
-      <h2>Lançamento de notas e cupons</h2>
+      <h2>Vale de notas e cupons</h2>
       {error && (
         <p className="alert" role="alert">
           {error}
@@ -313,9 +313,9 @@ export default function InvoiceLaunchForm({
         <fieldset disabled={busy || loading}>
           <div className="invoice-top-row">
             <label>
-              Núm. lançamento
+              Núm. vale
               <input
-                aria-label="Número do lançamento"
+                aria-label="Número do vale"
                 value={number}
                 disabled={!editing}
                 inputMode="numeric"
@@ -342,7 +342,7 @@ export default function InvoiceLaunchForm({
                 className="secondary"
                 onClick={() => void lookupLaunch()}
               >
-                Buscar lançamento
+                Buscar vale
               </button>
             )}
             <label>
@@ -578,7 +578,7 @@ export default function InvoiceLaunchForm({
           <p>
             {deleting === "note"
               ? `Excluir a nota ${note?.numero} e todos os seus cupons abertos?`
-              : `Excluir o lançamento ${coupon?.id} e devolver seu valor ao saldo da nota?`}
+              : `Excluir o vale ${coupon?.id} e devolver seu valor ao saldo da nota?`}
           </p>
           <button
             disabled={busy}

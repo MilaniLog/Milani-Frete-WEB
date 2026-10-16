@@ -16,6 +16,8 @@ import {
 
 export class ConferenceDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) unit?: number;
+  @IsOptional() @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value) @IsString() @MaxLength(20) local?: string;
+  @IsOptional() @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value) @IsIn(['MLN', 'LOOG']) dominio?: 'MLN' | 'LOOG';
   @IsOptional() @Matches(/^\d{4}$/) semana?: string;
   @IsOptional()
   @Transform(({ value }) =>
@@ -57,6 +59,9 @@ export class ClosureDto {
   @IsInt()
   @Min(1)
   unit?: number;
+
+  @IsOptional() @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value) @IsString() @MaxLength(20) local?: string;
+  @IsOptional() @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value) @IsIn(['MLN', 'LOOG']) dominio?: 'MLN' | 'LOOG';
 
   @Matches(/^\d{4}$/)
   semana: string;
@@ -103,8 +108,24 @@ export class WeekClosureDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayUnique()
+  @Transform(({ value }) => Array.isArray(value) ? value.map((plate) => typeof plate === 'string' ? plate.trim().toUpperCase() : plate) : value)
+  @Matches(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/, { each: true })
+  placas?: string[];
+
+  @IsOptional()
+  @IsArray()
   @ArrayUnique((item: WeekClosureSelectionDto) => item.placa)
   @ValidateNested({ each: true })
   @Type(() => WeekClosureSelectionDto)
   selections?: WeekClosureSelectionDto[];
+}
+
+export class ClosureReportsDto {
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  ids: number[];
 }

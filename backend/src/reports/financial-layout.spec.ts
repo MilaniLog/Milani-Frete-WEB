@@ -6,7 +6,7 @@ const report = (rows: TableReport['rows']): TableReport => ({
   notes: [],
   columns: [
     'Origem',
-    'Lanç',
+    'ID Lanç',
     'Data',
     'Placa',
     'Motorista',
@@ -23,7 +23,7 @@ const report = (rows: TableReport['rows']): TableReport => ({
   numeric: [10],
   totals: [],
 });
-const entry = (code: string, value: string, origin = 'Lançamento') =>
+const entry = (code: string, value: string, origin = 'Vale') =>
   [
     origin,
     1,
@@ -39,7 +39,7 @@ const entry = (code: string, value: string, origin = 'Lançamento') =>
     '',
     '',
   ] as TableReport['rows'][number];
-describe('Layout de lançamentos do Excel', () => {
+describe('Layout de vales do Excel', () => {
   it('sempre mostra os sete códigos, inclusive com relatório vazio', () => {
     const r = report([]),
       layout = financialLayout(r);
@@ -50,7 +50,7 @@ describe('Layout de lançamentos do Excel', () => {
       expect(reportSpreadsheet(r)).toContain(code);
     }
   });
-  it('agrupa códigos equivalentes e não mistura cupons no resumo de lançamentos', () => {
+  it('agrupa códigos equivalentes e não mistura cupons no resumo de vales', () => {
     const r = report([
       entry('004', '-0.10'),
       entry('0004', '-0.20'),

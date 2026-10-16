@@ -51,7 +51,7 @@ export function financialLayout(r: TableReport) {
   );
   const selected = (r.financialKind === 'coupons' ? [] : selectedCodes).map((code) => {
     const matches = ordered.filter(
-      (g) => g.origin === 'Lançamento' && g.code === code,
+      (g) => g.origin === 'Vale' && g.code === code,
     );
     return {
       code,
@@ -71,7 +71,7 @@ export function financialLayout(r: TableReport) {
   };
 }
 export const financialColumns = [
-  'LANÇ',
+  'ID LANÇ',
   'DATA',
   'PLACA',
   'MOTORISTA',
@@ -134,5 +134,5 @@ export function financialHtml(r: TableReport, escape: (v: unknown) => string) {
             )}<tr class="subtotal"><td colspan="9">SUBTOTAL</td><td class="value">${currency(g.total)}</td></tr>`,
       )
       .join('') || '<tr><td colspan="10">Nenhum registro encontrado.</td></tr>'
-  }</tbody></table><table class="summary"><colgroup><col style="width:16%"><col style="width:60%"><col style="width:24%"></colgroup><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="value">TOTAL</th></tr></thead><tbody>${summaries}${r.financialKind === 'coupons' ? '' : `<tr class="total"><td colspan="2">SELECIONADOS</td><td class="value">${currency(layout.selectedTotal)}</td></tr>`}<tr class="total"><td colspan="2">TOTAL GERAL</td><td class="value">${currency(layout.total)}</td></tr></tbody></table><p class="notes">${r.financialKind === 'coupons' ? '' : 'Selecionados: lançamentos dos códigos 0002, 0003, 0004, 0005, 0006, 0011 e 3333. '}Total geral: soma dos valores exibidos. Não corresponde ao líquido do fechamento.</p></body></html>`;
+  }</tbody></table><table class="summary"><colgroup><col style="width:16%"><col style="width:60%"><col style="width:24%"></colgroup><thead><tr><th>CÓDIGO</th><th>DESCRIÇÃO</th><th class="value">TOTAL</th></tr></thead><tbody>${summaries}${r.financialKind === 'coupons' ? '' : `<tr class="total"><td colspan="2">SELECIONADOS</td><td class="value">${currency(layout.selectedTotal)}</td></tr>`}<tr class="total"><td colspan="2">TOTAL GERAL</td><td class="value">${currency(layout.total)}</td></tr></tbody></table><p class="notes">${r.financialKind === 'coupons' ? '' : 'Selecionados: vales dos códigos 0002, 0003, 0004, 0005, 0006, 0011 e 3333. '}Total geral: soma dos valores exibidos. Não corresponde ao líquido do fechamento.</p></body></html>`;
 }

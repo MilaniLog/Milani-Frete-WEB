@@ -13,7 +13,11 @@ const closure = {
 };
 const data = {
   semana: "0001",
+  periodo_inicio: "2026-09-20T00:00:00.000Z",
+  periodo_fim: "2026-09-26T00:00:00.000Z",
+  origem: "SP",
   placa: "ABC1234",
+  closureNumber: 10001,
   manifests: [{ id: 1, manifestos: "M1", frete_veiculo: "100" }],
   entries: [],
   coupons: [],
@@ -27,6 +31,7 @@ const response = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json" },
   });
 beforeEach(() => {
+  vi.spyOn(window, "open").mockReturnValue(null);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (path: string, options?: RequestInit) => {
@@ -66,30 +71,63 @@ it("conferência filtrada não oferece finalização parcial e envia os filtros"
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
 });
-it("placa vazia confere toda a semana antes de finalizar, sem filtros de relatório", async () => {
+it("fecha somente as placas revisadas na conferência da semana", async () => {
   mount();
   fireEvent.change(screen.getByLabelText("Código da semana"), {
     target: { value: "3926" },
   });
   fireEvent.click(screen.getByLabelText("Carga mista"));
-  fireEvent.click(screen.getByRole("button", { name: "Fechar semana" }));
-  const confirm = await screen.findByRole("button", {
-    name: "Confirmar finalização da semana",
-  });
-  expect(fetch).toHaveBeenCalledWith(
-    "/api/freight-closures/conference?semana=3926",
-    expect.anything(),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Relatório de conferência" }));
+  const close = await screen.findByRole("button", { name: "Fechar semana" });
+  expect(screen.getByText(/Fechamento 10001/)).toBeTruthy();
+  expect(
+    screen.getByText("Semana 0001 · 20/09/2026 a 26/09/2026 · Origem SP"),
+  ).toBeTruthy();
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
-  fireEvent.click(confirm);
+  fireEvent.click(close);
   await screen.findByText("1 fechamentos finalizados.");
   const weekCall = vi
     .mocked(fetch)
     .mock.calls.find(([path, options]) => path === "/api/freight-closures/week" && options?.method === "POST");
   expect(weekCall).toBeTruthy();
-  expect(JSON.parse(String(weekCall?.[1]?.body))).toMatchObject({ semana: "3926" });
+  expect(JSON.parse(String(weekCall?.[1]?.body))).toMatchObject({
+    semana: "3926",
+    placas: ["ABC1234"],
+  });
+  const pdfCalls = vi
+    .mocked(fetch)
+    .mock.calls.filter(([path]) => String(path).endsWith(".pdf"));
+  expect(pdfCalls).toHaveLength(0);
+});
+it("fecha somente a placa exibida na seleção atual", async () => {
+  mount();
+  fireEvent.change(screen.getByLabelText("Código da semana"), {
+    target: { value: "3926" },
+  });
+  fireEvent.click(screen.getByLabelText("Carga mista"));
+  fireEvent.click(screen.getByRole("button", { name: "Relatório de conferência" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Fechar placa" }));
+  await screen.findByText("Placa ABC1234 fechada no fechamento 40.");
+  expect(window.open).toHaveBeenCalledWith("", "_blank");
+  const call = vi
+    .mocked(fetch)
+    .mock.calls.find(
+      ([path, options]) =>
+        path === "/api/freight-closures" && options?.method === "POST",
+    );
+  expect(JSON.parse(String(call?.[1]?.body))).toEqual({
+    semana: "3926",
+    placa: "ABC1234",
+    debit_entry_ids: [],
+  });
+  expect(screen.queryByRole("button", { name: "Fechar placa" })).toBeNull();
+  expect(
+    vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith(".pdf")),
+  ).toEqual([
+    expect.arrayContaining(["/api/freight-closures/week/drivers.pdf"]),
+  ]);
 });
 afterEach(() => {
   cleanup();
@@ -112,7 +150,7 @@ async function preview() {
 }
 it("exige confirmação e envia apenas semana e placa ao finalizar", async () => {
   mount();
-  await screen.findByRole("button", { name: "Consultar fechamento 40" });
+  await screen.findByRole("button", { name: "Consultar fechamentos" });
   await preview();
   fireEvent.click(screen.getByRole("button", { name: "Finalizar fechamento" }));
   expect(
@@ -146,20 +184,23 @@ it("mudança de placa invalida a conferência e sua confirmação", async () => 
     screen.queryByRole("button", { name: "Finalizar fechamento" }),
   ).toBeNull();
 });
-it("não oferece cancelamento para usuário comum", async () => {
+it("oferece cancelamento para usuário comum mediante autorização administrativa", async () => {
   mount();
+  fireEvent.click(await screen.findByRole("button", { name: "Consultar fechamentos" }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Consultar fechamento 40" }),
   );
   await screen.findByRole("button", {
-    name: "Baixar relatório para impressão",
+    name: "Imprimir fechamento de frete",
   });
   expect(
-    screen.queryByRole("button", { name: "Cancelar fechamento" }),
+    screen.queryByRole("button", { name: /relatório por motorista/i }),
   ).toBeNull();
+  expect(screen.getByRole("button", { name: "Cancelar fechamento" })).toBeTruthy();
 });
 it("admin confirma motivo e reabre por ID", async () => {
   mount(true);
+  fireEvent.click(await screen.findByRole("button", { name: "Consultar fechamentos" }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Consultar fechamento 40" }),
   );
@@ -178,7 +219,7 @@ it("admin confirma motivo e reabre por ID", async () => {
   expect(fetch).toHaveBeenCalledWith(
     "/api/freight-closures/4/cancel",
     expect.objectContaining({
-      method: "POST",
+      method: "DELETE",
       body: JSON.stringify({ motivo: "Correção" }),
     }),
   );

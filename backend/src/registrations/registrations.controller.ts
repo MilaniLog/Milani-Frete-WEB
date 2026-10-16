@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Req,
@@ -15,6 +16,7 @@ import { RequirePermission } from '../auth/require-permission.decorator';
 import type { AuthenticatedRequest } from '../auth/auth-user.types';
 import {
   DriverRegistrationDto,
+  UnitRegistrationDto,
   VehicleRegistrationDto,
 } from './registration.dto';
 import { RegistrationsService } from './registrations.service';
@@ -34,6 +36,22 @@ export class RegistrationsController {
   }
   @Get('vehicles') vehicles() {
     return this.service.vehicles();
+  }
+  @Get('units') units(@Req() req: AuthenticatedRequest) {
+    return this.service.units(req.user);
+  }
+  @Post('units') createUnit(
+    @Body() dto: UnitRegistrationDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.unit(dto, req.user);
+  }
+  @Put('units/:codigo') updateUnit(
+    @Param('codigo', ParseIntPipe) codigo: number,
+    @Body() dto: UnitRegistrationDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.unit(dto, req.user, codigo);
   }
   @Post('drivers') createDriver(
     @Body() dto: DriverRegistrationDto,

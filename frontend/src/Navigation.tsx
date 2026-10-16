@@ -6,6 +6,7 @@ export type Page =
   | "manifests"
   | "entries"
   | "weeks"
+  | "units"
   | "expenses"
   | "closures"
   | "invoices"
@@ -13,12 +14,13 @@ export type Page =
   | "drivers"
   | "vehicles"
   | "destinations"
+  | "reprint-closures"
   | "financial-report"
   | "coupons-report"
   | "payments-report";
 
 export function canAccessPage(session: Session, page: Page): boolean {
-  return page !== "weeks" || session.user.isAdmin;
+  return !["weeks", "units"].includes(page) || session.user.isAdmin;
 }
 
 export default function Navigation({
@@ -111,8 +113,9 @@ export default function Navigation({
             {(
               [
                 ["manifests", "Manifestos"],
-                ["entries", "Lançamentos"],
+                ["entries", "Vales"],
                 ["weeks", "Semanas"],
+                ["units", "Unidades"],
                 ["expenses", "Despesas"],
                 ["closures", "Fechamentos"],
                 ["invoices", "Notas e cupons"],
@@ -120,7 +123,8 @@ export default function Navigation({
                 ["drivers", "Motoristas"],
                 ["vehicles", "Veículos"],
                 ["destinations", "Destinos"],
-                ["financial-report", "Relatório de lançamentos"],
+                ["reprint-closures", "Reimprimir fechamentos"],
+                ["financial-report", "Relatório de vales"],
                 ["coupons-report", "Relatório de cupons"],
                 ["payments-report", "Planilha de pagamentos"],
               ] as const

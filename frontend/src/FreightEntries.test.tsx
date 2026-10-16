@@ -30,7 +30,7 @@ async function mount(locked = false) {
         new Response(
           JSON.stringify(
             options?.method
-              ? { entry: { numero: 42 } }
+              ? { entry: { id: 90, numero: 42 } }
               : url.includes("/weeks")
                 ? [
                     {
@@ -80,13 +80,13 @@ function values() {
   fireEvent.change(screen.getByLabelText("Semana"), {
     target: { value: "3926" },
   });
-  fireEvent.change(screen.getByLabelText("Data do lançamento"), {
+  fireEvent.change(screen.getByLabelText("Data do vale"), {
     target: { value: "2026-09-21" },
   });
   fireEvent.change(screen.getByLabelText("Despesa"), {
     target: { value: "3" },
   });
-  fireEvent.change(screen.getByLabelText("Valor do lançamento"), {
+  fireEvent.change(screen.getByLabelText("Valor do vale"), {
     target: { value: "25.50" },
   });
 }
@@ -102,8 +102,8 @@ it("abre formulário e salva por placa/semana sem pesquisar manifesto", async ()
     target: { value: "ABC1234" },
   });
   values();
-  fireEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }));
-  await screen.findByText(/Lançamento 42 salvo/);
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText(/Vale 42 salvo/);
   const writes = vi
     .mocked(fetch)
     .mock.calls.filter(([, o]) => o?.method === "POST");
@@ -136,8 +136,8 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
   );
   await screen.findByDisplayValue("João Silva");
   values();
-  fireEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }));
-  await screen.findByText(/Lançamento 42 salvo/);
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText(/Vale 42 salvo/);
   expect(
     JSON.parse(
       String(
@@ -148,7 +148,7 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
   ).toHaveProperty("manifesto_id", 88);
 });
 
-it("libera número pelo botão Editar, carrega e salva o lançamento sem criar outro", async () => {
+it("exibe o ID pelo botão Editar, carrega e salva o vale sem criar outro", async () => {
   await mount();
   const entry = {
     id: 90,
@@ -170,7 +170,7 @@ it("libera número pelo botão Editar, carrega e salva o lançamento sem criar o
   };
   const normal = vi.mocked(fetch).getMockImplementation()!;
   vi.mocked(fetch).mockImplementation((u, o) =>
-    String(u).includes("/freight-entries/number/")
+    !o?.method && String(u).endsWith("/freight-entries/90")
       ? Promise.resolve(
           new Response(JSON.stringify({ entry, manifesto: null }), {
             status: 200,
@@ -178,28 +178,25 @@ it("libera número pelo botão Editar, carrega e salva o lançamento sem criar o
         )
       : normal(u, o),
   );
-  expect(
-    (screen.getByLabelText("Núm. lançamento") as HTMLInputElement).readOnly,
-  ).toBe(true);
+  expect(screen.queryByLabelText("ID do vale")).toBeNull();
+  expect(screen.queryByLabelText("Unidade")).toBeNull();
   expect(screen.queryByLabelText("Buscar motorista pelo nome")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-  expect(
-    (screen.getByLabelText("Núm. lançamento") as HTMLInputElement).readOnly,
-  ).toBe(false);
-  fireEvent.change(screen.getByLabelText("Núm. lançamento"), {
-    target: { value: "12" },
+  expect(screen.getByLabelText("ID do vale")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("ID do vale"), {
+    target: { value: "90" },
   });
-  fireEvent.blur(screen.getByLabelText("Núm. lançamento"));
+  fireEvent.blur(screen.getByLabelText("ID do vale"));
   await waitFor(() =>
     expect(
-      (screen.getByLabelText("Valor do lançamento") as HTMLInputElement).value,
+      (screen.getByLabelText("Valor do vale") as HTMLInputElement).value,
     ).toBe("25"),
   );
-  fireEvent.change(screen.getByLabelText("Valor do lançamento"), {
+  fireEvent.change(screen.getByLabelText("Valor do vale"), {
     target: { value: "40" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }));
-  await screen.findByText(/Lançamento 42 salvo/);
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText(/Vale 42 salvo/);
   const write = vi
     .mocked(fetch)
     .mock.calls.find(([, o]) => o?.method === "PUT");
@@ -217,7 +214,7 @@ it.each([false, true])(
   async (pago) => {
     await mount();
     expect(
-      screen.queryByRole("button", { name: "Excluir lançamento" }),
+      screen.queryByRole("button", { name: "Excluir vale" }),
     ).toBeNull();
     const entry = {
       id: 90,
@@ -239,7 +236,7 @@ it.each([false, true])(
     };
     const normal = vi.mocked(fetch).getMockImplementation()!;
     vi.mocked(fetch).mockImplementation((u, o) =>
-      String(u).includes("/freight-entries/number/")
+      !o?.method && String(u).endsWith("/freight-entries/90")
         ? Promise.resolve(
             new Response(JSON.stringify({ entry, manifesto: null }), {
               status: 200,
@@ -251,65 +248,65 @@ it.each([false, true])(
     expect(
       (
         screen.getByRole("button", {
-          name: "Excluir lançamento",
+          name: "Excluir vale",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
-    fireEvent.change(screen.getByLabelText("Núm. lançamento"), {
-      target: { value: "12" },
+    fireEvent.change(screen.getByLabelText("ID do vale"), {
+      target: { value: "90" },
     });
-    fireEvent.blur(screen.getByLabelText("Núm. lançamento"));
+    fireEvent.blur(screen.getByLabelText("ID do vale"));
     await waitFor(() =>
       expect(
-        (screen.getByLabelText("Valor do lançamento") as HTMLInputElement)
+        (screen.getByLabelText("Valor do vale") as HTMLInputElement)
           .value,
       ).toBe("25"),
     );
     expect(
       (
         screen.getByRole("button", {
-          name: "Excluir lançamento",
+          name: "Excluir vale",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(pago);
     if (pago) return;
-    fireEvent.click(screen.getByRole("button", { name: "Excluir lançamento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir vale" }));
     expect(
       vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
     ).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "Manter lançamento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manter vale" }));
     expect(
       screen.queryByRole("button", { name: "Confirmar exclusão" }),
     ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Excluir lançamento" }));
-    fireEvent.change(screen.getByLabelText("Núm. lançamento"), {
-      target: { value: "13" },
+    fireEvent.click(screen.getByRole("button", { name: "Excluir vale" }));
+    fireEvent.change(screen.getByLabelText("ID do vale"), {
+      target: { value: "91" },
     });
     expect(
       screen.queryByRole("button", { name: "Confirmar exclusão" }),
     ).toBeNull();
-    fireEvent.change(screen.getByLabelText("Núm. lançamento"), {
-      target: { value: "12" },
+    fireEvent.change(screen.getByLabelText("ID do vale"), {
+      target: { value: "90" },
     });
-    fireEvent.blur(screen.getByLabelText("Núm. lançamento"));
+    fireEvent.blur(screen.getByLabelText("ID do vale"));
     await waitFor(() =>
       expect(
         (
           screen.getByRole("button", {
-            name: "Excluir lançamento",
+            name: "Excluir vale",
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(false),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Excluir lançamento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir vale" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-    await screen.findByText("Lançamento 12 excluído com sucesso.");
+    await screen.findByText("Vale 12 excluído com sucesso.");
     expect(fetch).toHaveBeenCalledWith(
       "/api/freight-entries/90",
       expect.objectContaining({ method: "DELETE" }),
     );
     expect(
-      screen.queryByRole("button", { name: "Excluir lançamento" }),
+      screen.queryByRole("button", { name: "Excluir vale" }),
     ).toBeNull();
   },
 );
@@ -324,7 +321,7 @@ it("não permite salvar em manifesto fechado", async () => {
   expect(
     (
       screen.getByRole("button", {
-        name: "Salvar lançamento",
+        name: "Salvar vale",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);

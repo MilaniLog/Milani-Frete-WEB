@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "./api";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   onBusy: (busy: boolean) => void;
   expired: () => void;
   done: (count: number) => void;
+  autoCheck?: boolean;
 };
 export default function DeleteManifest({
   id,
@@ -18,6 +19,7 @@ export default function DeleteManifest({
   onBusy,
   expired,
   done,
+  autoCheck = false,
 }: Props) {
   const [count, setCount] = useState<number | null>(null),
     [error, setError] = useState(""),
@@ -38,7 +40,7 @@ export default function DeleteManifest({
       >(`/manifests/${id}/entries`, token);
       if (entries.some((e) => e.pago || e.fechamento_id != null))
         throw new Error(
-          "Este manifesto possui lançamentos pagos ou fechados e não pode ser excluído.",
+          "Este manifesto possui vales pagos ou fechados e não pode ser excluído.",
         );
       setCount(entries.length);
     } catch (e) {
@@ -68,6 +70,9 @@ export default function DeleteManifest({
       onBusy(false);
     }
   }
+  useEffect(() => {
+    if (autoCheck) void check();
+  }, [autoCheck, id]);
   return (
     <section aria-label="Exclusão do manifesto">
       {error && (
@@ -76,7 +81,9 @@ export default function DeleteManifest({
         </p>
       )}
       {count === null ? (
-        <button
+        autoCheck ? (
+          busy ? <p role="status">Verificando vínculos do manifesto…</p> : null
+        ) : <button
           type="button"
           className="secondary"
           disabled={disabled || busy}
@@ -88,7 +95,7 @@ export default function DeleteManifest({
         <div className="alert">
           <p>
             Excluir o manifesto <strong>{number}</strong> e seus{" "}
-            <strong>{count} lançamentos abertos</strong>? A exclusão não pode
+            <strong>{count} vales abertos</strong>? A exclusão não pode
             ser desfeita. O servidor verificará novamente os vínculos antes de
             excluir.
           </p>

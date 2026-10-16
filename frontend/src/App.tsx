@@ -16,7 +16,9 @@ import Registrations from "./Registrations";
 import DriverSelect from "./DriverSelect";
 import Navigation, { canAccessPage, type Page } from "./Navigation";
 import Destinations from "./Destinations";
+import Units from "./Units";
 import FinancialReports from "./FinancialReports";
+import ReprintClosures from "./ReprintClosures";
 import { useManifestCalculation } from "./useManifestCalculation";
 import { installSelectAllFields } from "./select-all-fields";
 
@@ -86,6 +88,8 @@ export default function App() {
   const pageTitle =
     page === "destinations"
       ? "Destinos"
+      : page === "reprint-closures"
+        ? "Reimprimir fechamentos"
       : page === "financial-report"
         ? "Relat?rio de lan?amentos"
         : page === "coupons-report"
@@ -100,6 +104,8 @@ export default function App() {
                   ? "Lan?amentos"
                   : page === "weeks"
                     ? "Semanas"
+                  : page === "units"
+                    ? "Unidades"
                     : page === "closures"
                       ? "Fechamentos"
                       : page === "invoices"
@@ -139,8 +145,6 @@ export default function App() {
           ) : page === "destinations" ? (
             <Destinations
               token={session.accessToken}
-              isAdmin={session.user.isAdmin}
-              userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -156,6 +160,18 @@ export default function App() {
                 setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
+          ) : page === "reprint-closures" ? (
+            <div className="content">
+              <ReprintClosures
+                token={session.accessToken}
+                isAdmin={session.user.isAdmin}
+                userUnit={session.user.unit}
+                expired={() => {
+                  setSession(null);
+                  setNotice("Sua sessão expirou. Entre novamente.");
+                }}
+              />
+            </div>
           ) : page === "entries" ? (
             <FreightEntries
               token={session.accessToken}
@@ -167,6 +183,11 @@ export default function App() {
                 setNotice("Sua sessão expirou. Entre novamente.");
               }}
             />
+          ) : page === "units" ? (
+            <Units token={session.accessToken} expired={() => {
+              setSession(null);
+              setNotice("Sua sessão expirou. Entre novamente.");
+            }} />
           ) : page === "payers" || page === "drivers" || page === "vehicles" ? (
             <Registrations
               key={page}
@@ -356,6 +377,7 @@ function Manifests({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [selected, setSelected] = useState<Manifest | null>(null);
+  const [deletingManifest, setDeletingManifest] = useState<Manifest | null>(null);
   const [creating, setCreating] = useState(true);
   const [formVersion, setFormVersion] = useState(0);
   const [editing, setEditing] = useState<Manifest | null>(null);
@@ -366,16 +388,20 @@ function Manifests({
     if (e instanceof ApiError && e.status === 401) expired();
     else setError((e as Error).message);
   }
-  async function load() {
+  async function load(number = search) {
     const request = ++sequence.current;
     setBusy(true);
     setError("");
     setRows([]);
     try {
-      const data = await api<Manifest[]>(
-        `/manifests${week === "recent" ? "?recent=true" : week ? `?week=${encodeURIComponent(week)}` : ""}`,
-        token,
-      );
+      const query = number.trim()
+        ? `?number=${encodeURIComponent(number.trim())}`
+        : week === "recent"
+          ? "?recent=true"
+          : week
+            ? `?week=${encodeURIComponent(week)}`
+            : "";
+      const data = await api<Manifest[]>(`/manifests${query}`, token);
       if (request === sequence.current) setRows(data);
     } catch (e) {
       if (request === sequence.current) fail(e);
@@ -408,19 +434,24 @@ function Manifests({
       active = false;
     };
   }, []);
-  const filtered = rows.filter((m) => {
-    const normalizedSearch = search.toLocaleLowerCase();
-    const manifestSearch = comparableManifestNumber(search);
-    const text = `${manifestLabel(m)} ${m.placa} ${m.motorista}`.toLocaleLowerCase();
-    return (
-      text.includes(normalizedSearch) ||
-      (!!manifestSearch && manifestNumbers(m).some((value) => comparableManifestNumber(value).includes(manifestSearch)))
-    );
-  });
+  const filtered = rows;
   async function detail(id: number) {
     setError("");
     try {
       setSelected(await api<Manifest>(`/manifests/${id}`, token));
+    } catch (e) {
+      fail(e);
+    }
+  }
+  async function editManifest(id: number) {
+    setError("");
+    try {
+      const manifest = await api<Manifest>(`/manifests/${id}`, token);
+      if (closed(manifest)) {
+        setError("Manifesto fechado não pode ser editado.");
+        return;
+      }
+      setEditing(manifest);
     } catch (e) {
       fail(e);
     }
@@ -455,11 +486,11 @@ function Manifests({
         </article>
       </div>
       <section className="panel">
-        <div className="filters">
+        <form className="filters" onSubmit={(event) => { event.preventDefault(); void load(search); }}>
           <label>
-            Buscar
+            NÃºmero do manifesto
             <input
-              placeholder="Manifesto, placa ou motorista"
+              placeholder="Pode informar sem a unidade"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -478,12 +509,12 @@ function Manifests({
           </label>
           <button
             className="secondary"
-            onClick={() => void load()}
+            type="submit"
             disabled={busy}
           >
-            Atualizar
+            Pesquisar
           </button>
-        </div>
+        </form>
         <div className="table-scroll">
           <SortableTable>
             <thead>
@@ -494,7 +525,10 @@ function Manifests({
                 <th>Frete do veículo</th>
                 <th>Situação</th>
                 <th>
-                  <span className="sr-only">Ações</span>
+                  <span className="sr-only">Edição</span>
+                </th>
+                <th className="manifest-delete-column">
+                  <span className="sr-only">Exclusão</span>
                 </th>
               </tr>
             </thead>
@@ -520,10 +554,23 @@ function Manifests({
                     <td>
                       <button
                         className="text-button"
-                        onClick={() => void detail(m.id)}
-                        aria-label={`Ver manifesto ${manifestLabel(m)}`}
+                        disabled={closed(m)}
+                        onClick={() => void editManifest(m.id)}
+                        aria-label={`Editar manifesto ${manifestLabel(m)}`}
                       >
-                        Ver detalhes →
+                        Editar manifesto
+                      </button>
+                    </td>
+                    <td className="manifest-delete-column">
+                      <button
+                        type="button"
+                        className="manifest-trash-button"
+                        disabled={closed(m) || saving}
+                        onClick={() => setDeletingManifest(m)}
+                        aria-label={`Excluir manifesto ${manifestLabel(m)}`}
+                        title={closed(m) ? "Manifesto fechado não pode ser excluído" : "Excluir manifesto"}
+                      >
+                        <span aria-hidden="true">🗑</span>
                       </button>
                     </td>
                   </tr>
@@ -604,7 +651,7 @@ function Manifests({
             disabled={saving}
             onClick={() => openEntries(selected.id)}
           >
-            Abrir lançamentos
+            Abrir vales
           </button>
           {!closed(selected) && (
             <DeleteManifest
@@ -618,7 +665,7 @@ function Manifests({
               done={(count) => {
                 setSelected(null);
                 setSuccess(
-                  `Manifesto excluído com ${count} lançamentos vinculados.`,
+                  `Manifesto excluído com ${count} vales vinculados.`,
                 );
                 void load();
               }}
@@ -658,6 +705,29 @@ function Manifests({
             done={(m) => {
               setEditing(null);
               setSuccess(`Manifesto ${manifestLabel(m)} atualizado com sucesso.`);
+              void load();
+            }}
+          />
+        </Modal>
+      )}
+      {deletingManifest && (
+        <Modal
+          title={`Excluir manifesto ${manifestLabel(deletingManifest)}`}
+          close={() => setDeletingManifest(null)}
+          locked={saving}
+        >
+          <DeleteManifest
+            key={`table-delete-${deletingManifest.id}`}
+            id={deletingManifest.id}
+            number={manifestLabel(deletingManifest)}
+            token={token}
+            disabled={saving}
+            onBusy={setSaving}
+            expired={expired}
+            autoCheck
+            done={(count) => {
+              setDeletingManifest(null);
+              setSuccess(`Manifesto excluído com ${count} vales vinculados.`);
               void load();
             }}
           />
@@ -1186,7 +1256,7 @@ function CreateManifest({
         </div>
         <div className="manifest-side-blocks">
         <fieldset className="legacy-group">
-          <legend>A pagar <HelpTip label="A pagar">Os pagamentos vinculados podem ser incluídos na tela Lançamentos, acessível pelo Menu após salvar o manifesto.</HelpTip></legend>
+          <legend>A pagar <HelpTip label="A pagar">Os pagamentos vinculados podem ser incluídos na tela Vales, acessível pelo Menu após salvar o manifesto.</HelpTip></legend>
           <div className="form-grid">
             <label>
               Origem
@@ -1234,7 +1304,7 @@ function CreateManifest({
               ["Não entregue 999 calculado", calculation.preview.freightsCalculated.notDelivery999],
               ["Total dos fretes calculados", calculation.preview.totalFretes],
               ["Total a receber", calculation.preview.totalReceive - calculation.preview.discounts],
-              ["Lançamentos a pagar", calculation.preview.despesas_empresa],
+              ["Vales a pagar", calculation.preview.despesas_empresa],
               ["Total do frete do veículo", calculation.preview.freightVehicle],
             ].map(([label, value]) => <label key={String(label)}>{label}<input readOnly value={money(value)} /></label>)}
             <label>Percentual inicial<input readOnly value={(calculation.preview.initPercent * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%"} /></label>

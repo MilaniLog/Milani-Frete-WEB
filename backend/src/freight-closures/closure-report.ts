@@ -254,14 +254,14 @@ export function renderClosureReport(report: ClosureReport): string {
       list.map((e) =>
         advances
           ? row([
-              cell(e.numero, 1, true),
+              cell(e.id, 1, true),
               cell(money(e.valor)),
               cell('ADIANTAMENTO'),
               cell(e.codigo_despesa),
               cell(e.descricao, 4),
             ])
           : row([
-              cell(e.numero, 1, true),
+              cell(e.id, 1, true),
               cell(e.codigo_despesa),
               cell(
                 `${e.nome_despesa ?? ''} ${e.tipo_despesa === 'Credito' ? 'C' : 'D'}`,
@@ -377,7 +377,7 @@ export function renderClosureReport(report: ClosureReport): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(report.titulo)}</title><style>
 @page{size:A4 portrait;margin:2mm 1mm 12mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:9pt Arial}}
 *{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:208mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
-</style></head><body><h1>CONFERÊNCIA DE FRETES E LANÇAMENTOS</h1>
+</style></head><body><h1>${report.origem === 'FINALIZACAO' ? 'FECHAMENTO DE FRETE' : 'CONFERÊNCIA DE FRETES E VALES'}</h1>
 ${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(`UNIDADE:${h.unit ?? '—'}`), cell(`FECH:${closureNumber}`)])], 'metadata')}
 ${table([row([cell('PLACA:'), cell(h.placa), cell('', 2), cell('PROPRIETÁRIO'), cell(owner, 3)])], 'owner')}
 <div class="warnings">${warnings}</div><p class="screen">Ctrl+P para imprimir ou salvar em PDF.</p>
@@ -433,9 +433,10 @@ ${
     })
     .join('') || '<p>Nenhum manifesto.</p>'
 }
+
 ${
   bottomEntries.length || bottomAdvances.length
-    ? `<h2>DEBITOS E LANCAMENTOS AVULSOS / SEM MANIFESTO</h2>${entries(bottomEntries)}${entries(
+    ? `<h2>VALES AVULSOS / SEM MANIFESTO</h2>${entries(bottomEntries)}${entries(
         bottomAdvances,
         true,
       )}`
@@ -458,7 +459,7 @@ ${table(
     ...linkedAdvance3333.map((entry) =>
       row([
         cell('', 6),
-        cell(entry.numero ?? '3333'),
+        cell(entry.id ?? '—'),
         cell(`−${money(entry.valor)}`, 1, true),
       ]),
     ),
@@ -494,5 +495,30 @@ ${table(
   ),
   'indicators',
 )}</div>
-<div class="notes">Fechamento: ${escape(closureNumber)}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} Documento de conferência; não comprova transferência. Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
+<div class="notes">Fechamento: ${escape(closureNumber)}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} ${report.origem === 'FINALIZACAO' ? 'Documento de fechamento de frete.' : 'Documento de conferência; não comprova transferência.'} Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
+}
+
+export function renderDriverClosureReport(report: ClosureReport): string {
+  const h = report.cabecalho;
+  const driver =
+    report.manifests.find((row) => row.motorista)?.motorista ??
+    'Não informado';
+  const manifestRows = report.manifests
+    .map(
+      (manifest) =>
+        `<tr><td>${escape(date(manifest.semana))}</td><td>${escape(manifestLabel(manifest))}</td><td>${escape(manifest.destino)}</td><td class="right">${escape(money(manifest.frete_veiculo))}</td><td class="right">${escape(money(manifest.vlr_ctrb))}</td><td class="right">${escape(money(manifest.vlr_liquido))}</td></tr>`,
+    )
+    .join('');
+  const entryRows = report.entries
+    .map(
+      (entry) =>
+        `<tr><td>${escape(entry.id)}</td><td>${escape(entry.codigo_despesa)}</td><td>${escape(entry.nome_despesa)}</td><td>${escape(entry.tipo_despesa)}</td><td>${escape(date(entry.data_lancamento))}</td><td class="right">${escape(money(entry.valor))}</td></tr>`,
+    )
+    .join('');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório por motorista</title><style>
+@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font:10pt Arial;color:#000}h1{text-align:center;font-size:13pt;margin:0 0 18px}h2{font-size:10pt;margin:18px 0 5px}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:18px}.meta strong{display:inline-block;min-width:95px}table{width:100%;border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eee}.right{text-align:right}.totals{margin-top:18px;margin-left:auto;width:310px}.totals td:first-child{font-weight:bold}</style></head><body>
+<h1>RELATÓRIO POR MOTORISTA</h1><div class="meta"><div><strong>Fechamento:</strong>${escape(h.numero)}</div><div><strong>Semana:</strong>${escape(h.semana)}</div><div><strong>Placa:</strong>${escape(h.placa)}</div><div><strong>Motorista:</strong>${escape(driver)}</div><div><strong>Período:</strong>${escape(date(h.periodo_inicio))} a ${escape(date(h.periodo_fim))}</div><div><strong>Unidade:</strong>${escape(h.unit)}</div></div>
+<h2>MANIFESTOS</h2><table><thead><tr><th>Data</th><th>Manifesto</th><th>Destino</th><th class="right">Frete</th><th class="right">CTRB</th><th class="right">Líquido</th></tr></thead><tbody>${manifestRows || '<tr><td colspan="6">Nenhum manifesto.</td></tr>'}</tbody></table>
+<h2>VALES</h2><table><thead><tr><th>ID</th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Data</th><th class="right">Valor</th></tr></thead><tbody>${entryRows || '<tr><td colspan="6">Nenhum vale.</td></tr>'}</tbody></table>
+<table class="totals"><tr><td>Bruto</td><td class="right">${escape(money(report.totals.total_bruto))}</td></tr><tr><td>CTRB</td><td class="right">${escape(money(report.totals.total_ctrb))}</td></tr><tr><td>Líquido a pagar</td><td class="right">${escape(money(report.totals.total_liquido))}</td></tr></table></body></html>`;
 }

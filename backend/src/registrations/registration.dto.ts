@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
+  IsIn,
   IsBoolean,
   IsOptional,
   IsString,
@@ -33,4 +34,14 @@ export class VehicleRegistrationDto {
   @Transform(trim) @IsString() @Length(2, 50) owner_name: string;
   @Matches(/^(\d{11}|\d{14})$/) owner: string;
   @Transform(trim) @IsString() @Length(1, 10) empresa_sigla: string;
+}
+
+export class UnitRegistrationDto {
+  @Type(() => Number) @IsInt() @Min(1) codigo: number;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
+  @IsString() @MinLength(2) @MaxLength(20)
+  local: string;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
+  @IsIn(['MLN', 'LOOG'])
+  dominio: 'MLN' | 'LOOG';
 }

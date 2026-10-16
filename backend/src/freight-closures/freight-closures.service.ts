@@ -22,6 +22,17 @@ export class FreightClosuresService {
     return targetUnit == null ? {} : { unit: targetUnit };
   }
 
+  private async scopeWhere(tx: Prisma.TransactionClient, user: AuthUser, dto: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {}) {
+    if (!user.isAdmin) return { unit: user.unit };
+    if (dto.unit != null) return { unit: dto.unit };
+    if (!dto.local && !dto.dominio) return {};
+    const branches = await tx.branches.findMany({
+      where: { ...(dto.local ? { branch: dto.local } : {}), ...(dto.dominio ? { dominio: dto.dominio } : {}) },
+      select: { unit: true },
+    });
+    return { unit: { in: branches.map((branch) => branch.unit) } };
+  }
+
   // Dates and Decimal amounts are stored as strings, preserving their precision.
   private snapshot(value: unknown): Prisma.InputJsonObject {
     return JSON.parse(JSON.stringify(value));
@@ -56,7 +67,7 @@ export class FreightClosuresService {
     const dates = { gte: week.data_inicio, lte: week.data_fim };
     const manifests = await tx.frete_carregamento_manifestos.findMany({
       where: {
-        ...this.unitWhere(user),
+        ...await this.scopeWhere(tx, user, dto),
         placa: dto.placa,
         semana: dates,
         fechamento_id: null,
@@ -114,7 +125,7 @@ export class FreightClosuresService {
       )
     )
       throw new ConflictException(
-        'Manifesto possui lançamento incompatível ou já fechado.',
+        'Manifesto possui vale incompatível ou já fechado.',
       );
     if (
       entries.some(
@@ -122,7 +133,7 @@ export class FreightClosuresService {
           !['Credito', 'Debito', 'Adiantamento'].includes(row.tipo_despesa),
       )
     )
-      throw new ConflictException('Tipo de lançamento desconhecido.');
+      throw new ConflictException('Tipo de vale desconhecido.');
     const closureNumbers = [
       ...new Set(
         manifests
@@ -192,6 +203,10 @@ export class FreightClosuresService {
       semana: week.codigo,
       placa: dto.placa,
       motorista: manifests.find((row) => row.motorista)?.motorista ?? null,
+      origem:
+        [...new Set(manifests.map((row) => row.origem).filter(Boolean))].join(
+          ' / ',
+        ) || null,
       periodo_inicio: week.data_inicio,
       periodo_fim: week.data_fim,
       manifests,
@@ -206,7 +221,6 @@ export class FreightClosuresService {
         cupons: money(couponValue),
         total_bruto: money(gross),
         total_liquido: money(gross.minus(debits).minus(couponValue)),
-        // Informational only: CTRB is not deducted again from the settlement.
         total_ctrb: money(sum(manifests.map((row) => row.ctrb_total))),
       },
     };
@@ -283,6 +297,7 @@ export class FreightClosuresService {
     semana: string,
     user: AuthUser,
     selections: { placa: string; debit_entry_ids: number[] }[] = [],
+    reviewedPlates?: string[],
   ) {
     return this.transaction(async (tx) => {
       const week = await getWeek(tx, semana);
@@ -315,13 +330,19 @@ export class FreightClosuresService {
         },
         select: { placa: true },
       });
-      const plates = [
+      const openPlates = [
         ...new Set(
           [...manifests, ...entries, ...coupons].map((row) => row.placa),
         ),
       ].sort();
-      if (!plates.length)
+      if (!openPlates.length)
         throw new BadRequestException('Não há registros abertos nesta semana.');
+      const plates = reviewedPlates ?? openPlates;
+      const unknownPlate = plates.find((placa) => !openPlates.includes(placa));
+      if (unknownPlate)
+        throw new BadRequestException(`Placa sem registros abertos nesta semana: ${unknownPlate}.`);
+      if (!plates.length)
+        throw new BadRequestException('Selecione ao menos uma placa revisada para fechar.');
       const selectionByPlate = new Map(
         selections.map((selection) => [
           selection.placa,
@@ -368,7 +389,7 @@ export class FreightClosuresService {
       );
     const closureNumber =
       data.closureNumber ??
-      (await this.nextClosureNumber(tx, data.unit, data.semana));
+      (await this.nextClosureNumber(tx, data.semana));
     const closure = await tx.frete_fechamentos.create({
       data: {
         numero: closureNumber,
@@ -443,9 +464,9 @@ export class FreightClosuresService {
   }
 
   cancel(id: number, dto: CancelClosureDto, user: AuthUser) {
-    if (!user.isAdmin)
+    if (!user.isAdmin && !user.deletionApprovedBy)
       throw new ForbiddenException(
-        'Somente administrador pode cancelar fechamento.',
+        'Esta exclusão precisa da autorização de um administrador.',
       );
     const motivo = dto.motivo?.trim();
     if (!motivo || motivo.length > 500)
@@ -551,19 +572,18 @@ export class FreightClosuresService {
 
   private async nextClosureNumber(
     tx: Prisma.TransactionClient,
-    unit: number,
     semana: string,
   ) {
     const base = Number(semana) * 10000;
     const range = { gte: base + 1, lte: base + 9999 };
     const [lastManifest, lastClosure] = await Promise.all([
       tx.frete_carregamento_manifestos.findFirst({
-        where: { unit, num_fechamento: range },
+        where: { num_fechamento: range },
         orderBy: { num_fechamento: 'desc' },
         select: { num_fechamento: true },
       }),
       tx.frete_fechamentos.findFirst({
-        where: { unit, numero: range },
+        where: { numero: range },
         orderBy: { numero: 'desc' },
         select: { numero: true },
       }),

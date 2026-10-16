@@ -116,7 +116,7 @@ export class FreightInvoicesService {
         where: { id, ...this.unitWhere(user) },
       });
       if (!coupon)
-        throw new NotFoundException('Lançamento não encontrado nesta unidade.');
+        throw new NotFoundException('Vale não encontrado nesta unidade.');
       return { coupon, nota: await this.invoice(tx, coupon.nota_id, user) };
     });
   }

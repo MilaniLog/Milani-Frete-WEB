@@ -32,11 +32,11 @@ export class StandaloneEntriesController {
   ) {
     return this.service.removeStandalone(id, request.user);
   }
-  @Get('number/:number') byNumber(
-    @Param('number', ParseIntPipe) number: number,
+  @Get(':id') byId(
+    @Param('id', ParseIntPipe) id: number,
     @Req() request: AuthenticatedRequest,
   ) {
-    return this.service.findByNumber(number, request.user);
+    return this.service.findById(id, request.user);
   }
   @Put(':id') update(
     @Param('id', ParseIntPipe) id: number,

@@ -111,7 +111,7 @@ it("permite desativar despesa com booleano e mantém nome e tipo", async () => {
   );
   mount("expenses", true);
   fireEvent.click(await screen.findByRole("button", { name: "Editar 001" }));
-  fireEvent.click(screen.getByLabelText("Ativa para novos lançamentos"));
+  fireEvent.click(screen.getByLabelText("Ativa para novos vales"));
   fireEvent.click(screen.getByRole("button", { name: "Salvar cadastro" }));
   await screen.findByText("Despesa salva com sucesso.");
   const call = vi.mocked(fetch).mock.calls.find(([, o]) => o?.method === "PUT");

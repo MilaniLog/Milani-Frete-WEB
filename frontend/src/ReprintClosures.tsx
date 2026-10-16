@@ -1,15 +1,24 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError } from "./api";
-import { downloadReport } from "./report-download";
+import { api, apiUrl, ApiError } from "./api";
+import SearchableSelect from "./SearchableSelect";
 export default function ReprintClosures({
   token,
+  isAdmin = false,
+  userUnit = 0,
   expired,
 }: {
   token: string;
+  isAdmin?: boolean;
+  userUnit?: number;
   expired: () => void;
 }) {
   const [weeks, setWeeks] = useState<{ codigo: string }[]>([]),
+    [units, setUnits] = useState<
+      { codigo: number; local: string; dominio: "MLN" | "LOOG" | null }[]
+    >([]),
+    [domain, setDomain] = useState(""),
+    [unit, setUnit] = useState(""),
     [number, setNumber] = useState(""),
     [week, setWeek] = useState(""),
     [plate, setPlate] = useState(""),
@@ -22,9 +31,17 @@ export default function ReprintClosures({
   }
   useEffect(() => {
     let active = true;
-    api<{ codigo: string }[]>("/weeks", token)
-      .then((w) => {
-        if (active) setWeeks(w);
+    Promise.all([
+      api<{ codigo: string }[]>("/weeks", token),
+      ...(isAdmin
+        ? [api<typeof units>("/registrations/units", token)]
+        : []),
+    ])
+      .then(([w, u]) => {
+        if (active) {
+          setWeeks(w);
+          setUnits(u ?? []);
+        }
       })
       .catch((e) => {
         if (active) fail(e);
@@ -32,28 +49,58 @@ export default function ReprintClosures({
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, isAdmin]);
+  const unitLocations = [...new Set(units.map((row) => row.local).filter(Boolean))]
+    .filter((local) => local.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() !== "ARACARIGUAMA")
+    .sort();
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const reportWindow = window.open("", "_blank");
+    if (reportWindow) reportWindow.opener = null;
     setBusy(true);
     setError("");
     setSuccess("");
     try {
       const q = number
-        ? new URLSearchParams({ numero: number })
+        ? new URLSearchParams({
+            numero: number,
+            ...(isAdmin && domain ? { dominio: domain } : {}),
+            ...(isAdmin && unit ? { local: unit } : {}),
+          })
         : new URLSearchParams({
             semana: week,
             ...(plate ? { placa: plate } : {}),
+            ...(isAdmin && domain ? { dominio: domain } : {}),
+            ...(isAdmin && unit ? { local: unit } : {}),
           });
-      await downloadReport(
-        `/freight-reports/closures/reprint?${q}`,
-        token,
-        number ? `fechamento-${number}.html` : `fechamentos-${week}.html`,
+      const response = await fetch(
+        apiUrl(`/freight-reports/closures/reprint.pdf?${q}`),
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
-      setSuccess(
-        "Relatório baixado. Abra o arquivo e use Imprimir para reimprimir ou salvar em PDF.",
-      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new ApiError(
+          response.status,
+          Array.isArray(data?.message)
+            ? data.message.join(" • ")
+            : data?.message || `Não foi possível gerar o relatório (${response.status}).`,
+        );
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      if (reportWindow) reportWindow.location.href = url;
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = number
+        ? `fechamento-${number}.pdf`
+        : `fechamentos-${week}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      setSuccess("Relatório em PDF baixado com sucesso.");
     } catch (e) {
+      reportWindow?.close();
       fail(e);
     } finally {
       setBusy(false);
@@ -61,8 +108,7 @@ export default function ReprintClosures({
   }
   return (
     <section className="panel">
-      <details>
-        <summary>Reimprimir fechamento</summary>
+        <h2>Reimprimir fechamento</h2>
         <p>
           Informe o número do fechamento ou selecione a semana e a placa. Placa
           vazia reimprime todos os fechamentos da semana. O histórico será
@@ -81,6 +127,33 @@ export default function ReprintClosures({
         <form onSubmit={submit}>
           <fieldset disabled={busy}>
             <div className="form-grid">
+              <label>
+                Domínio
+                <select
+                  aria-label="Domínio"
+                  value={domain}
+                  disabled={!isAdmin}
+                  onChange={(e) => setDomain(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  <option value="LOOG">LOOG</option>
+                  <option value="MLN">MLN</option>
+                </select>
+              </label>
+              <label>
+                Unidade
+                <SearchableSelect
+                  aria-label="Unidade"
+                  value={isAdmin ? unit : String(userUnit)}
+                  disabled={!isAdmin}
+                  onChange={(e) => setUnit(e.target.value)}
+                >
+                  <option value="">Todas</option>
+                  {isAdmin ? unitLocations.map((local) => (
+                    <option key={local} value={local}>{local}</option>
+                  )) : <option value={String(userUnit)}>{userUnit}</option>}
+                </SearchableSelect>
+              </label>
               <label>
                 Número do fechamento para reimpressão
                 <input
@@ -118,10 +191,11 @@ export default function ReprintClosures({
                 <option key={w.codigo} value={w.codigo} />
               ))}
             </datalist>
-            <button className="primary">Reimprimir</button>
+            <button className="primary">
+              Imprimir fechamento de frete
+            </button>
           </fieldset>
         </form>
-      </details>
     </section>
   );
 }

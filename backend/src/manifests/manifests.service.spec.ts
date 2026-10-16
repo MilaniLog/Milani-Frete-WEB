@@ -36,13 +36,37 @@ describe('Manutenção de manifestos', () => {
       expect.objectContaining({
         where: {
           OR: [
-            { manifestos: '301000123-4' },
-            { manifesto_adicional_1: '301000123-4' },
-            { manifesto_adicional_2: '301000123-4' },
-            { manifesto_adicional_3: '301000123-4' },
+            { manifestos: { contains: '301000123-4' } },
+            { manifesto_adicional_1: { contains: '301000123-4' } },
+            { manifesto_adicional_2: { contains: '301000123-4' } },
+            { manifesto_adicional_3: { contains: '301000123-4' } },
           ],
         },
         take: 50,
+      }),
+    );
+  });
+
+  it('busca somente pelo número em todas as unidades e ignora o período', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const lookup = new ManifestsService(
+      { frete_carregamento_manifestos: { findMany } } as any,
+      {} as any,
+    );
+    await lookup.findAll(
+      { sub: 1, cod: 10, unit: 301, isAdmin: false },
+      '4026',
+      '3182',
+      true,
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: expect.arrayContaining([
+            { manifestos: { contains: '000318-2' } },
+            { manifesto_adicional_1: { contains: '000318-2' } },
+          ]),
+        },
       }),
     );
   });
@@ -240,7 +264,7 @@ describe('Manutenção de manifestos', () => {
     expect((await service.update(1, dto, user)).frt_tl_vlc).toBe(100);
   });
 
-  it('exclui os lançamentos abertos antes de excluir o manifesto', async () => {
+  it('exclui os vales abertos antes de excluir o manifesto', async () => {
     expect(await service.remove(1, user)).toEqual({
       id: 1,
       deleted: true,
@@ -280,7 +304,7 @@ describe('Manutenção de manifestos', () => {
   });
 
   it.each(['pago', 'fechamento_id', 'unit'])(
-    'bloqueia quando lançamento possui %s incompatível',
+    'bloqueia quando vale possui %s incompatível',
     async (field) => {
       entries[0][field] = field === 'pago' ? true : 202;
       await expect(service.update(1, dto, user)).rejects.toBeInstanceOf(
@@ -312,7 +336,7 @@ describe('Manutenção de manifestos', () => {
     expect(db.frete_carregamento_manifestos.update).not.toHaveBeenCalled();
   });
 
-  it('aborta a edição se a sincronização dos lançamentos falhar', async () => {
+  it('aborta a edição se a sincronização dos vales falhar', async () => {
     db.frete_lancamentos.updateMany.mockRejectedValue({ code: 'P2003' });
     await expect(service.update(1, dto, user)).rejects.toBeInstanceOf(
       ConflictException,
@@ -320,7 +344,7 @@ describe('Manutenção de manifestos', () => {
     expect(manifest.manifestos).toBe('101000001-1');
   });
 
-  it('aborta a exclusão dos lançamentos se outro vínculo impedir excluir o manifesto', async () => {
+  it('aborta a exclusão dos vales se outro vínculo impedir excluir o manifesto', async () => {
     db.frete_carregamento_manifestos.delete.mockRejectedValue({
       code: 'P2003',
     });

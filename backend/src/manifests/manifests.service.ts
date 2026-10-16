@@ -16,11 +16,18 @@ import { CreateManifestDto } from './dto/create-manifest.dto';
 import { PreviewManifestDto } from './dto/preview-manifest.dto';
 import type { AuthUser } from '../auth/auth-user.types';
 
-function normalizeManifestSearch(value?: string) {
+function manifestSearchValues(value?: string) {
   const text = value?.trim() ?? '';
   const digits = text.replace(/\D/g, '');
-  if (/^\d{10}$/.test(digits)) return `${digits.slice(0, 9)}-${digits.slice(9)}`;
-  return text;
+  if (!text) return [];
+  const values = new Set([text]);
+  if (/^\d{10}$/.test(digits))
+    values.add(`${digits.slice(0, 9)}-${digits.slice(9)}`);
+  if (/^\d{1,7}$/.test(digits)) {
+    const suffix = digits.padStart(7, '0');
+    values.add(`${suffix.slice(0, 6)}-${suffix.slice(6)}`);
+  }
+  return [...values];
 }
 
 @Injectable()
@@ -102,24 +109,25 @@ export class ManifestsService {
   // =========================================================
 
   async findAll(user: AuthUser, weekCode?: string, number?: string, recent = false) {
-    const week = weekCode ? await getWeek(this.prisma, weekCode) : undefined;
-    const manifestNumber = normalizeManifestSearch(number);
+    const searches = manifestSearchValues(number);
+    const searching = searches.length > 0;
+    const week = !searching && weekCode ? await getWeek(this.prisma, weekCode) : undefined;
     const today = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
     }).format(new Date());
     const midnight = new Date(`${today}T00:00:00-03:00`).getTime();
     return this.prisma.frete_carregamento_manifestos.findMany({
       where: {
-        ...(await this.operationalUnitWhere(user)),
-        ...(recent ? { data_hora: { gte: new Date(midnight - 86400000), lt: new Date(midnight + 86400000) } } : {}),
-        ...(manifestNumber
+        ...(!searching ? await this.operationalUnitWhere(user) : {}),
+        ...(!searching && recent ? { data_hora: { gte: new Date(midnight - 86400000), lt: new Date(midnight + 86400000) } } : {}),
+        ...(searching
           ? {
-              OR: [
-                { manifestos: manifestNumber },
-                { manifesto_adicional_1: manifestNumber },
-                { manifesto_adicional_2: manifestNumber },
-                { manifesto_adicional_3: manifestNumber },
-              ],
+              OR: searches.flatMap((search) => [
+                { manifestos: { contains: search } },
+                { manifesto_adicional_1: { contains: search } },
+                { manifesto_adicional_2: { contains: search } },
+                { manifesto_adicional_3: { contains: search } },
+              ]),
             }
           : {}),
         ...(week
@@ -232,7 +240,6 @@ export class ManifestsService {
       {
         where: {
           id,
-          ...(await this.operationalUnitWhere(user)),
         },
       },
     );
@@ -283,7 +290,7 @@ export class ManifestsService {
         where: { id },
         data,
       });
-      // Vínculo por ID preserva os lançamentos quando o número muda.
+      // Vínculo por ID preserva os vales quando o número muda.
       await tx.frete_lancamentos.updateMany({
         where: { manifesto_id: id, unit: manifest.unit },
         data: {
@@ -340,7 +347,7 @@ export class ManifestsService {
       )
     ) {
       throw new ConflictException(
-        'O manifesto possui lançamentos pagos, fechados ou de outra unidade.',
+        'O manifesto possui vales pagos, fechados ou de outra unidade.',
       );
     }
     await periodForDate(tx, manifest.semana);
@@ -493,22 +500,19 @@ export class ManifestsService {
     // =======================================================
     // DESTINO
     //
-    // So aceita destino:
-    // - da mesma unidade
-    // - ativo
+    // Destinos são globais e podem ser usados por qualquer unidade.
     // =======================================================
 
     const destination = await database.frete_destinos.findFirst({
       where: {
         id: dto.destino_id,
-        unit: targetUnit,
         ativo: true,
       },
     });
 
     if (!destination) {
       throw new NotFoundException(
-        'Destino nao encontrado ou inativo na unidade do manifesto.',
+        'Destino não encontrado ou inativo.',
       );
     }
 
@@ -572,7 +576,7 @@ export class ManifestsService {
     // =======================================================
     // CÁLCULO
     //
-    // O manifesto nasce sem lançamentos. As rotas de lançamentos
+    // O manifesto nasce sem vales. As rotas de vales
     // recalculam os custos e percentuais ao incluir, editar ou excluir.
     // =======================================================
 
@@ -931,7 +935,6 @@ export class ManifestsService {
     const [lastManifest, lastClosure] = await Promise.all([
       database.frete_carregamento_manifestos.findFirst({
         where: {
-          unit,
           num_fechamento: range,
         },
         orderBy: { num_fechamento: 'desc' },
@@ -939,7 +942,6 @@ export class ManifestsService {
       }),
       database.frete_fechamentos.findFirst({
         where: {
-          unit,
           numero: range,
         },
         orderBy: { numero: 'desc' },

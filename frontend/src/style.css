@@ -318,6 +318,27 @@ td small {
   border-radius: 8px;
   color: #1c6241;
 }
+.central-notice-copy {
+  position: fixed;
+  z-index: 3000;
+  top: 50%;
+  left: 50%;
+  width: min(520px, calc(100vw - 32px));
+  margin: 0;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, .28);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: central-notice-lifecycle 5s ease forwards;
+}
+@keyframes central-notice-lifecycle {
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); }
+  4%, 88% { opacity: 1; transform: translate(-50%, -50%); }
+  100% { opacity: 0; visibility: hidden; transform: translate(-50%, calc(-50% - 8px)); }
+}
 .login {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -905,12 +926,29 @@ aside {
 .report-vba-form .actions button { min-width: 220px; text-transform: uppercase; }
 .report-vba-hint { margin: 12px 0 0; font-size: 13px; }
 .report-vba-payments { max-width: 840px; }
-.closure-vba-form { max-width: 1040px; padding: 12px 14px; border: 1px solid #ddd; border-top: 3px solid #500bb3; background: white; font-size: 12px; }
+.closure-vba-form { max-width: 1120px; padding: 16px 18px; border: 1px solid #ddd; border-top: 3px solid #500bb3; background: white; font-size: 12px; }
 .closure-vba-form > fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 .closure-vba-form input,.closure-vba-form select { padding: 5px 7px; min-height: 30px; font-size: 12px; }
-.closure-vba-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px 14px; align-items: center; }
+.closure-vba-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px 18px; align-items: start; }
 .closure-vba-grid label { display: grid; grid-template-columns: 92px minmax(0,1fr); align-items: center; gap: 6px; margin: 0; }
+.closure-vba-grid .closure-main-field > .searchable-select {
+  width: 100%;
+  min-width: 0;
+}
+.closure-vba-grid .closure-main-field .searchable-select > input {
+  height: 28px;
+  min-height: 28px;
+  padding: 3px 26px 3px 6px;
+  border: 1px solid #d8d8d8;
+  border-radius: 7px;
+  background: #fff;
+  color: #242424;
+  font-size: 13px;
+}
+.closure-date-range { grid-column: 2 / span 2; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
 .closure-vba-grid p { margin: 0; font-size: 11px; line-height: 1.15; }
+.closure-field-with-help { min-width: 0; align-self: start; }
+.closure-field-with-help > p { margin: 4px 0 0 98px; }
 .closure-report-options { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5px 10px; }
 .closure-report-options label { display: flex; align-items: center; gap: 5px; margin: 0; line-height: 1.15; }
 .closure-report-options input { width: auto; min-height: 0; }
@@ -937,8 +975,42 @@ aside {
 .report-results { padding:24px; }
 .report-results .actions { display:flex; gap:12px; flex-wrap:wrap; margin:18px 0; }
 .closure-vba-form > fieldset > .actions { margin-top:8px; }
+.batch-conference-heading { scroll-margin-top: 92px; }
+.batch-conference-heading h3 { margin-bottom: 2px; }
+.batch-conference-heading .muted { margin: 0; }
+
+.manifest-delete-column { width: 44px; text-align: right; }
+.manifest-trash-button {
+  border: 0;
+  background: transparent;
+  color: #b42318;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px;
+}
+.manifest-trash-button:disabled { cursor: not-allowed; opacity: .35; }
+.batch-saved-line { margin-bottom: 8px; }
+.batch-conference-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.batch-conference-actions .batch-compact-action {
+  min-height: 26px;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+.batch-conference-actions .batch-action-break { flex-basis: 100%; height: 0; }
+.batch-conference-actions .batch-close-week-action {
+  margin-top: 12px;
+  margin-left: auto;
+}
+.batch-conference-actions .batch-close-plate-action {
+  margin-left: auto;
+  background: #ff7332;
+  border-color: #ff7332;
+}
 .menu-dropdown { max-height: calc(100vh - 110px); overflow-y: auto; }
 @media(max-width:760px) {
+ .closure-summary-row { flex-direction:column; }
+ .closure-payment-totals { width:100%; min-width:0; }
  .invoice-top-row { flex-direction: column; align-items: stretch; }
  .invoice-note-row, .invoice-coupon-rows { grid-template-columns: 1fr; }
  .invoice-vba-form label, .invoice-top-row label:first-child { grid-template-columns: 1fr; }
@@ -946,6 +1018,8 @@ aside {
 @media (max-width: 760px) {
   .closure-vba-grid, .closure-report-options { grid-template-columns: 1fr; }
   .closure-vba-grid label { grid-template-columns: 1fr; }
+  .closure-field-with-help > p { margin-left: 0; }
+  .closure-date-range { grid-column: 1; gap: 10px; }
 }
 
 
@@ -1000,7 +1074,7 @@ aside {
 }
 
 .closure-values-summary{margin-bottom:8px}
-.closure-payment-line{font-size:12px;margin:4px 0 8px;line-height:1.25}
+.conference-results { width: 100%; max-width: 1000px; }
 .closure-records-compact{border:1px solid #d7dde8;border-radius:10px;padding:8px;margin:8px 0;background:#fff}
 .closure-records-compact h3{font-size:14px;margin:0 0 6px}
 .closure-record-list{border-top:1px solid #e6eaf2;padding-top:5px;margin-top:5px}
@@ -1008,18 +1082,28 @@ aside {
 .closure-record-title{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:3px}
 .closure-record-title span{font-weight:600;color:#28344a;white-space:nowrap}
 .closure-record-list table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.closure-record-list th{padding:3px 4px;font-size:10px;background:#f6f7fa;border-bottom:1px solid #dfe4ec}
 .closure-record-list td{padding:2px 4px;border-bottom:1px solid #eef1f6;line-height:1.15;vertical-align:middle}
-.closure-record-list td:first-child{width:88px;color:#46556e}
+.closure-record-list th:first-child,.closure-record-list td:first-child{width:88px;color:#46556e}
+.closure-record-list th:nth-child(2),.closure-record-list td:nth-child(2){width:115px}
 .closure-record-list td:last-child{width:120px}
+.closure-record-list .closure-record-total td{font-weight:700;background:#f6f7fa;border-top:1px solid #dfe4ec}
+.closure-record-list .closure-ctrb-table th:first-child,.closure-record-list .closure-ctrb-table td:first-child{width:150px}
+.closure-record-list .closure-ctrb-table th:nth-child(2),.closure-record-list .closure-ctrb-table td:nth-child(2){width:auto}
 .closure-record-list .right{text-align:right;white-space:nowrap}
 .closure-record-actions{display:flex;gap:10px;margin:-2px 0 3px;font-size:12px}
 .closure-record-list input[type="checkbox"]{width:14px;height:14px;margin:0;vertical-align:middle}
 .closure-record-list .muted-row{opacity:.58}
 
-.closure-values-summary{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:4px;margin-bottom:6px}
+.closure-summary-row{display:flex;align-items:stretch;gap:16px;margin-bottom:6px}
+.closure-values-summary{display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:4px;margin:0;flex:1}
 .closure-values-summary div{padding:4px 6px;min-height:auto}
 .closure-values-summary dt{font-size:10px;line-height:1.1;margin:0}
 .closure-values-summary dd{font-size:12px;line-height:1.15;margin:1px 0 0}
+.closure-payment-totals{margin-left:auto;min-width:230px;padding:4px 8px;text-align:right}
+.closure-payment-totals p{display:flex;justify-content:flex-end;gap:14px;margin:0 0 5px;white-space:nowrap}
+.closure-payment-totals span{font-size:12px;font-weight:700}
+.closure-payment-totals strong{min-width:100px;font-size:13px}
 
 .closure-record-title{font-size:13px}
 .closure-record-list table{font-size:13px}

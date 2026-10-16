@@ -158,7 +158,7 @@ export default function ReferenceData({
           sistema.
         </p>
       )}
-      {!weeks && !isAdmin && <p className="muted">Somente administradores podem incluir, editar ou desativar despesas. As despesas ativas continuam disponíveis nos lançamentos.</p>}
+      {!weeks && !isAdmin && <p className="muted">Somente administradores podem incluir, editar ou desativar despesas. As despesas ativas continuam disponíveis nos vales.</p>}
       {editing && (
         <section ref={formRef} className="panel reference-form">
           <h2>{current ? "Editar cadastro" : "Novo cadastro"}</h2>
@@ -270,10 +270,10 @@ export default function ReferenceData({
                         current ? (current as Expense).ativo : true
                       }
                     />{" "}
-                    Ativa para novos lançamentos
+                    Ativa para novos vales
                   </label>
                   <p className="muted">
-                    Alterar o cadastro não modifica os lançamentos históricos.
+                    Alterar o cadastro não modifica os vales históricos.
                     Desative uma despesa para impedir novas inclusões.
                   </p>
                 </>

@@ -10,6 +10,13 @@ import {
 } from 'class-validator';
 export class ReportQuery {
   @IsOptional() @Type(() => Number) @IsInt() unit?: number;
+  @IsOptional() @IsString() @MaxLength(30) local?: string;
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsIn(['MLN', 'LOOG'])
+  dominio?: 'MLN' | 'LOOG';
   @IsOptional() @Matches(/^\d{4}$/) semana?: string;
   @IsOptional()
   @IsDateString({ strict: true })
@@ -25,7 +32,13 @@ export class ReportQuery {
   )
   @Matches(/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/)
   placa?: string;
-  @IsOptional() @IsString() @MaxLength(30) departamento?: string;
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsString()
+  @MaxLength(30)
+  departamento?: string;
   @IsOptional() @Matches(/^\d{1,9}$/) usuario?: string;
   @IsOptional() @IsString() @MaxLength(30) empresa?: string;
   @IsOptional() @IsIn(['true', 'false']) lancamentos?: string;

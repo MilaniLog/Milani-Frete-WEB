@@ -65,6 +65,42 @@ describe('FreightClosuresService', () => {
     expect(result.totals.total_ctrb.toString()).toBe('200');
     expect(db.frete_fechamentos.create).not.toHaveBeenCalled();
   });
+  it('mantem o total CTRB integral com debito de codigo 3333', async () => {
+    db.frete_lancamentos.findMany.mockResolvedValue([
+      {
+        id: 1,
+        unit: 2,
+        placa: dto.placa,
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: 'Debito',
+        codigo_despesa: '3333',
+        valor: new Decimal(35),
+      },
+    ]);
+    const result = await service.preview(dto, user);
+    expect(result.totals.debitos.toString()).toBe('35');
+    expect(result.totals.total_ctrb.toString()).toBe('200');
+  });
+  it('consulta a ultima numeracao da semana globalmente', async () => {
+    db.frete_carregamento_manifestos.findFirst.mockResolvedValue({
+      num_fechamento: 10007,
+    });
+    db.frete_fechamentos.findFirst.mockResolvedValue({ numero: 10009 });
+    await expect(
+      (service as any).nextClosureNumber(db, '0001'),
+    ).resolves.toBe(10010);
+    expect(db.frete_carregamento_manifestos.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { num_fechamento: { gte: 10001, lte: 19999 } },
+      }),
+    );
+    expect(db.frete_fechamentos.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { numero: { gte: 10001, lte: 19999 } },
+      }),
+    );
+  });
   it('finaliza os três conjuntos na transação serializável', async () => {
     await service.finalize(dto, user);
     expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
@@ -220,6 +256,27 @@ describe('FreightClosuresService', () => {
     ).toBe(2);
   });
 
+  it('fecha somente as placas revisadas informadas', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([
+      { placa: 'ABC1234' },
+      { placa: 'XYZ1234' },
+    ]);
+    db.frete_lancamentos.findMany.mockResolvedValue([]);
+    db.frete_cupons.findMany.mockResolvedValue([]);
+    const finalize = jest
+      .spyOn(service as any, 'finalizeTransaction')
+      .mockResolvedValue({ closure: { id: 1 } });
+
+    await service.finalizeWeek(dto.semana, user, [], ['ABC1234']);
+
+    expect(finalize).toHaveBeenCalledTimes(1);
+    expect(finalize).toHaveBeenCalledWith(
+      db,
+      { semana: dto.semana, placa: 'ABC1234' },
+      user,
+    );
+  });
+
   describe('cancelamento', () => {
     const admin = { ...user, isAdmin: true };
     beforeEach(() => {
@@ -249,9 +306,18 @@ describe('FreightClosuresService', () => {
     });
     it('exige administrador antes de acessar o banco', () => {
       expect(() => service.cancel(6, { motivo: 'Correção' }, user)).toThrow(
-        'Somente administrador',
+        'autorização de um administrador',
       );
       expect(db.$transaction).not.toHaveBeenCalled();
+    });
+    it('aceita autorização administrativa pontual para o usuário comum', async () => {
+      await expect(
+        service.cancel(
+          6,
+          { motivo: 'Correção autorizada' },
+          { ...user, deletionApprovedBy: 99 },
+        ),
+      ).resolves.toHaveProperty('closure');
     });
     it('exige motivo não vazio', () => {
       expect(() => service.cancel(6, { motivo: '  ' }, admin)).toThrow(

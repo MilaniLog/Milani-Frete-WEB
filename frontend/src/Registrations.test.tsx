@@ -88,6 +88,7 @@ it("salva motorista sem empresa e com CPF preservado, mesmo em cadastro legado",
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
     cpf: "52998224725",
     name: "João da Silva",
+    unit: 100,
   });
 });
 it("abre veículo com proprietário, tipo e empresa, sem rateio", async () => {

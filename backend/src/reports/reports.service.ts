@@ -11,6 +11,7 @@ import { getWeek } from '../weeks/period-policy';
 import {
   savedReport,
   renderClosureReport,
+  renderDriverClosureReport,
 } from '../freight-closures/closure-report';
 import { ReportQuery } from './reports.dto';
 import { combineHtml, type TableReport, type Cell } from './report-render';
@@ -29,6 +30,24 @@ export class ReportsService {
   private unitWhere(user: AuthUser, unit?: number) {
     const targetUnit = user.isAdmin ? unit : user.unit;
     return targetUnit == null ? {} : { unit: targetUnit };
+  }
+
+  private async scopeWhere(
+    tx: Prisma.TransactionClient,
+    user: AuthUser,
+    q: Pick<ReportQuery, 'unit' | 'local' | 'dominio'>,
+  ) {
+    if (!user.isAdmin) return { unit: user.unit };
+    if (q.unit != null) return { unit: q.unit };
+    if (!q.local && !q.dominio) return {};
+    const branches = await tx.branches.findMany({
+      where: {
+        ...(q.local ? { branch: q.local } : {}),
+        ...(q.dominio ? { dominio: q.dominio } : {}),
+      },
+      select: { unit: true },
+    });
+    return { unit: { in: branches.map((branch) => branch.unit) } };
   }
 
   private unitLabel(user: AuthUser) {
@@ -54,7 +73,7 @@ export class ReportsService {
     return this.db.$transaction(
       async (tx) => {
         if (q.lancamentos === 'false' && q.cupons === 'false')
-          throw new BadRequestException('Selecione lançamentos ou cupons.');
+          throw new BadRequestException('Selecione vales ou cupons.');
         const p = await this.period(tx, q),
           inclusion = q.data_por === 'inclusao';
         const range = {
@@ -64,7 +83,9 @@ export class ReportsService {
         const scope = {
           ...this.unitWhere(user),
           ...(q.placa ? { placa: q.placa } : {}),
-          ...(q.departamento ? { departamento: q.departamento } : {}),
+          ...(q.departamento
+            ? { departamento: { startsWith: q.departamento } }
+            : {}),
           ...(q.usuario ? { responsavel_cod: Number(q.usuario) } : {}),
           ...(q.situacao === 'todos'
             ? {}
@@ -80,7 +101,7 @@ export class ReportsService {
                   ...scope,
                   [inclusion ? 'created_at' : 'data_lancamento']: range,
                 },
-                orderBy: { numero: 'asc' },
+                orderBy: { id: 'asc' },
               });
         const coupons =
           q.cupons === 'false'
@@ -130,8 +151,8 @@ export class ReportsService {
         const numbers = new Map(manifests.map((m) => [m.id, manifestLabel(m)]));
         const records = [
           ...entries.map((e) => ({
-            origin: 'Lançamento',
-            num: e.numero,
+            origin: 'Vale',
+            num: e.id,
             date: inclusion ? e.created_at : e.data_lancamento,
             plate: e.placa,
             driver: e.motorista,
@@ -199,14 +220,18 @@ export class ReportsService {
         });
         return {
           financialKind: q.lancamentos === 'false' ? 'coupons' : q.cupons === 'false' ? 'entries' : 'combined',
-          title: q.lancamentos === 'false' ? 'Conferência de cupons' : q.cupons === 'false' ? 'Conferência de lançamentos' : 'Conferência de lançamentos e cupons',
+          title: q.lancamentos === 'false' ? 'Conferência de cupons' : q.cupons === 'false' ? 'Conferência de vales' : 'Conferência de vales e cupons',
           notes: [
             `${this.unitLabel(user)} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`,
             `Data: ${inclusion ? 'inclusão no site' : 'despesa/cobrança'} · Situação: ${q.situacao ?? 'abertos'}${q.placa ? ` · Placa ${q.placa}` : ''}${q.departamento ? ` · Departamento ${q.departamento}` : ''}${q.usuario ? ` · Usuário ${q.usuario}` : ''}`,
           ],
           columns: [
             'Origem',
-            q.lancamentos === 'false' ? 'Cupom' : 'Lanç',
+            q.lancamentos === 'false'
+              ? 'Cupom'
+              : q.cupons === 'false'
+                ? 'ID Lanç'
+                : 'ID Lanç/Cupom',
             'Data',
             'Placa',
             'Motorista',
@@ -251,7 +276,7 @@ export class ReportsService {
         : await this.period(tx, q);
     const closures = await tx.frete_fechamentos.findMany({
       where: {
-        ...this.unitWhere(user),
+        ...(await this.scopeWhere(tx, user, q)),
         ...(onlyClosed ? { status: 'FECHADO' } : {}),
         ...(q.numero ? { numero: Number(q.numero) } : {}),
         ...(q.placa ? { placa: q.placa } : {}),
@@ -293,6 +318,17 @@ export class ReportsService {
         const data = await this.closures(tx, q, user, false);
         return combineHtml(
           data.reports.map((r) => renderClosureReport(r.report)),
+        );
+      },
+      { isolationLevel: 'RepeatableRead', timeout: 30000 },
+    );
+  }
+  reprintDrivers(q: ReportQuery, user: AuthUser) {
+    return this.db.$transaction(
+      async (tx) => {
+        const data = await this.closures(tx, q, user, false);
+        return combineHtml(
+          data.reports.map((r) => renderDriverClosureReport(r.report)),
         );
       },
       { isolationLevel: 'RepeatableRead', timeout: 30000 },

@@ -190,7 +190,7 @@ describe('Notas e cupons financeiros', () => {
     expect(Number(note.valor)).toBe(100);
     expect(coupons).toHaveLength(1);
   });
-  it('busca por número e por lançamento respeita a unidade', async () => {
+  it('busca por número e por vale respeita a unidade', async () => {
     expect((await service.findByNumber('0001', user)).id).toBe(1);
     await expect(
       service.findByNumber('0001', { ...user, unit: 102 }),

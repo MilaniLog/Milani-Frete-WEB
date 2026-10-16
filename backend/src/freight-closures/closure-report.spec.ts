@@ -2,6 +2,7 @@ import {
   previewReport,
   savedReport,
   renderClosureReport,
+  renderDriverClosureReport,
 } from './closure-report';
 
 describe('Relatórios de fechamento', () => {
@@ -75,7 +76,7 @@ describe('Relatórios de fechamento', () => {
     expect(html).toContain('>—</td>');
     expect(html).not.toContain('R$ 0,00');
   });
-  it('agrupa lançamentos pelo manifesto e mantém avulsos sem duplicar', () => {
+  it('agrupa vales pelo manifesto e mantém avulsos sem duplicar', () => {
     const html = renderClosureReport(
       previewReport({
         manifests: [
@@ -83,16 +84,20 @@ describe('Relatórios de fechamento', () => {
         ],
         entries: [
           {
+            id: 2,
             numero: 'VINCULADO',
             manifesto_id: 1,
             tipo_despesa: 'Debito',
             valor: '10',
+            descricao: 'VINCULADO',
           },
           {
+            id: 3,
             numero: 'AVULSO',
             manifesto_id: null,
             tipo_despesa: 'Credito',
             valor: '5',
+            descricao: 'AVULSO',
           },
         ],
         coupons: [],
@@ -103,10 +108,10 @@ describe('Relatórios de fechamento', () => {
     expect(html.match(/>AVULSO</g)).toHaveLength(1);
     expect(html).toContain('12:29');
     expect(html).toContain('R$ 95,00');
-    expect(html.indexOf('DEBITOS E LANCAMENTOS AVULSOS')).toBeLessThan(
+    expect(html.indexOf('VALES AVULSOS')).toBeLessThan(
       html.indexOf('VINCULADO'),
     );
-    expect(html.indexOf('DEBITOS E LANCAMENTOS AVULSOS')).toBeLessThan(
+    expect(html.indexOf('VALES AVULSOS')).toBeLessThan(
       html.indexOf('AVULSO'),
     );
   });
@@ -186,5 +191,56 @@ describe('Relatórios de fechamento', () => {
     });
     expect(renderClosureReport(report)).toContain('ANTIGA');
     expect(report.payment).toEqual(payment);
+  });
+
+  it('identifica o PDF final como fechamento de frete sem aviso de prévia', () => {
+    const report = savedReport({
+      ...rows,
+      closure: {
+        numero: 38260001,
+        status: 'FINALIZADO',
+        historico: { finalizacao: { dados: data } },
+      },
+    });
+    const html = renderClosureReport(report);
+    expect(html).toContain('FECHAMENTO DE FRETE');
+    expect(html).toContain('Documento de fechamento de frete.');
+    expect(html).not.toContain('PRÉVIA — NÃO FINALIZADO');
+  });
+
+  it('gera o relatório individual do motorista com manifestos e vales', () => {
+    const html = renderDriverClosureReport(
+      previewReport({
+        semana: '3826',
+        placa: 'ABC1234',
+        manifests: [
+          {
+            manifestos: '12345',
+            motorista: 'Motorista Teste',
+            destino: 'SP',
+            frete_veiculo: 100,
+            vlr_ctrb: 20,
+            vlr_liquido: 80,
+          },
+        ],
+        entries: [
+          {
+            id: 77,
+            numero: '77',
+            codigo_despesa: '3333',
+            nome_despesa: 'Adiantamento',
+            tipo_despesa: 'Adiantamento',
+            valor: 10,
+          },
+        ],
+        coupons: [],
+        totals: { total_bruto: 100, total_ctrb: 20, total_liquido: 80 },
+      }),
+    );
+    expect(html).toContain('RELATÓRIO POR MOTORISTA');
+    expect(html).toContain('Motorista Teste');
+    expect(html).toContain('12345');
+    expect(html).toContain('Adiantamento');
+    expect(html).toContain('Líquido a pagar');
   });
 });

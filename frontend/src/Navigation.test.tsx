@@ -9,7 +9,7 @@ function menu(service:boolean,closure:boolean,unit=100,admin=false){
 }
 it('libera páginas normais mesmo sem permissões individuais',()=>{
  menu(false,false);
- for(const name of ['Motoristas','Veículos','Manifestos','Despesas','Fechamentos','Lançamentos','Empresas','Notas e cupons']) expect(screen.getByRole('button',{name})).toBeTruthy();
+ for(const name of ['Motoristas','Veículos','Manifestos','Despesas','Fechamentos','Vales','Empresas','Notas e cupons']) expect(screen.getByRole('button',{name})).toBeTruthy();
  expect(screen.queryByRole('button',{name:'Semanas'})).toBeNull();
 });
 it('usuário financeiro também tem acesso operacional padrão',()=>{

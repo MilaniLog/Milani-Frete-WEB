@@ -39,10 +39,10 @@ function mount() {
     />,
   );
 }
-it("confirma a remoção do manifesto e dos lançamentos antes de enviar DELETE", async () => {
+it("confirma a remoção do manifesto e dos vales antes de enviar DELETE", async () => {
   mount();
   fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
-  await screen.findByText("2 lançamentos abertos");
+  await screen.findByText("2 vales abertos");
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
   ).toBe(false);
@@ -55,14 +55,14 @@ it("confirma a remoção do manifesto e dos lançamentos antes de enviar DELETE"
     expect.objectContaining({ method: "DELETE" }),
   );
 });
-it("bloqueia confirmação quando há lançamento pago", async () => {
+it("bloqueia confirmação quando há vale pago", async () => {
   vi.mocked(fetch).mockResolvedValue(
     response([{ pago: true, fechamento_id: null }]),
   );
   mount();
   fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
   await screen.findByText(
-    "Este manifesto possui lançamentos pagos ou fechados e não pode ser excluído.",
+    "Este manifesto possui vales pagos ou fechados e não pode ser excluído.",
   );
   expect(
     screen.queryByRole("button", { name: "Confirmar exclusão do manifesto" }),

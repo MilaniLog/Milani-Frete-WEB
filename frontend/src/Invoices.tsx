@@ -20,7 +20,7 @@ export default function Invoices(props: {
       {consulting && (
         <div className="page-actions">
           <button type="button" className="primary" onClick={() => showConsultation(false)}>
-            Voltar aos lançamentos
+            Voltar aos vales
           </button>
         </div>
       )}

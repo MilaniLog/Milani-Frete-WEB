@@ -77,12 +77,12 @@ export class FreightEntriesService {
       ORDER BY codigo ASC`;
   }
 
-  async findByNumber(numero: number, user: AuthUser) {
+  async findById(id: number, user: AuthUser) {
     const entry = await this.prisma.frete_lancamentos.findFirst({
-      where: { numero, ...this.unitWhere(user) },
+      where: { id, ...this.unitWhere(user) },
     });
     if (!entry)
-      throw new NotFoundException('Lançamento não encontrado nesta unidade.');
+      throw new NotFoundException('Vale não encontrado nesta unidade.');
     const manifesto =
       entry.manifesto_id != null
         ? await this.getManifest(this.prisma, entry.manifesto_id, user)
@@ -95,7 +95,7 @@ export class FreightEntriesService {
       where: { id, ...this.unitWhere(user) },
     });
     if (!existing)
-      throw new NotFoundException('Lançamento não encontrado nesta unidade.');
+      throw new NotFoundException('Vale não encontrado nesta unidade.');
     if (existing.manifesto_id != null)
       return this.changeEntry(existing.manifesto_id, user, {
         kind: 'delete',
@@ -110,15 +110,15 @@ export class FreightEntriesService {
             });
             if (!entry)
               throw new NotFoundException(
-                'Lançamento não encontrado nesta unidade.',
+                'Vale não encontrado nesta unidade.',
               );
             if (entry.pago || entry.fechamento_id != null)
               throw new ConflictException(
-                'Lançamento pago ou fechado não pode ser excluído.',
+                'Vale pago ou fechado não pode ser excluído.',
               );
             if (!entry.placa)
               throw new ConflictException(
-                'Lançamento sem placa. Revise o cadastro antes de excluir.',
+                'Vale sem placa. Revise o cadastro antes de excluir.',
               );
             await periodForDate(
               tx,
@@ -142,7 +142,7 @@ export class FreightEntriesService {
         if (e.code !== 'P2034') throw e;
         if (attempt === 2)
           throw new ConflictException(
-            'Conflito ao excluir lançamento. Tente novamente.',
+            'Conflito ao excluir vale. Tente novamente.',
           );
       }
     }
@@ -156,7 +156,7 @@ export class FreightEntriesService {
         where: { id, ...this.unitWhere(user) },
       });
       if (!existing)
-        throw new NotFoundException('Lançamento não encontrado nesta unidade.');
+        throw new NotFoundException('Vale não encontrado nesta unidade.');
       if (existing.manifesto_id !== (dto.manifesto_id ?? null))
         throw new BadRequestException(
           'O vínculo com o manifesto não pode ser alterado na edição.',
@@ -190,12 +190,12 @@ export class FreightEntriesService {
                   });
             if (id !== undefined && !existing)
               throw new NotFoundException(
-                'Lançamento não encontrado nesta unidade.',
+                'Vale não encontrado nesta unidade.',
               );
             if (existing) {
               if (existing.pago || existing.fechamento_id != null)
                 throw new ConflictException(
-                  'Lançamento pago ou fechado não pode ser alterado.',
+                  'Vale pago ou fechado não pode ser alterado.',
                 );
               await periodForDate(
                 tx,
@@ -285,7 +285,7 @@ export class FreightEntriesService {
         if (!['P2002', 'P2034'].includes(e.code)) throw e;
         if (attempt === 2)
           throw new ConflictException(
-            'Conflito ao salvar lançamento. Tente novamente.',
+            'Conflito ao salvar vale. Tente novamente.',
           );
       }
     }
@@ -306,7 +306,7 @@ export class FreightEntriesService {
             throw new NotFoundException(
               'Despesa nao encontrada.',
             );
-          // Lançamentos existentes preservam seu código, nome e tipo históricos.
+          // Vales existentes preservam seu código, nome e tipo históricos.
           return tx.frete_despesas.update({
             where: { id },
             data: { ...dto, updated_at: new Date() },
@@ -370,7 +370,7 @@ export class FreightEntriesService {
               manifest.fechamento_id != null
             ) {
               throw new ConflictException(
-                'Manifesto fechado não permite alterar lançamentos.',
+                'Manifesto fechado não permite alterar vales.',
               );
             }
             await periodForDate(
@@ -387,11 +387,11 @@ export class FreightEntriesService {
               });
               if (!entry)
                 throw new NotFoundException(
-                  'Lançamento não encontrado neste manifesto.',
+                  'Vale não encontrado neste manifesto.',
                 );
               if (entry.pago || entry.fechamento_id != null)
                 throw new ConflictException(
-                  'Lançamento pago ou fechado não pode ser alterado.',
+                  'Vale pago ou fechado não pode ser alterado.',
                 );
               await periodForDate(
                 tx,
@@ -480,7 +480,7 @@ export class FreightEntriesService {
         if (error.code !== 'P2034' && error.code !== 'P2002') throw error;
         if (attempt === 2)
           throw new ConflictException(
-            'Conflito ao salvar lançamento. Tente novamente.',
+            'Conflito ao salvar vale. Tente novamente.',
           );
       }
     }

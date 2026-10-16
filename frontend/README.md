@@ -67,7 +67,7 @@ npm ci
 npm run dev
 ```
 
-Abra http://127.0.0.1:5173 e use um usuário cadastrado. Não há usuário/senha de demonstração. O proxy `/api` encaminha ao backend em `http://127.0.0.1:3000`, sem exigir alteração de CORS. Para outra porta, defina `$env:API_TARGET='http://127.0.0.1:PORTA'` antes de iniciar o Vite. Não coloque credenciais em variáveis de frontend.
+Abra http://127.0.0.1:5173/frete/ e use um usuário cadastrado. Não há usuário/senha de demonstração. O proxy `/api` encaminha ao backend em `http://127.0.0.1:21021`, sem exigir alteração de CORS. Para outra porta, defina `$env:API_TARGET='http://127.0.0.1:PORTA'` antes de iniciar o Vite. Não coloque credenciais em variáveis de frontend.
 
 O login real pode migrar senha antiga para Argon2 conforme comportamento existente do backend. Nenhum login operacional é executado pelos testes da interface. Token em memória: atualizar/fechar a página requer novo login. Respostas 401 encerram a sessão. A interface não permite selecionar unidade diferente da contida no token; controles de autorização continuam no backend.
 

@@ -1,6 +1,6 @@
 import { FreightEntriesService } from './freight-entries.service';
 jest.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
-describe('Excluir lançamento pelo formulário', () => {
+describe('Excluir vale pelo formulário', () => {
   const user = { sub: 1, cod: 1, unit: 100, isAdmin: false };
   let db: any, service: FreightEntriesService, entry: any;
   beforeEach(() => {

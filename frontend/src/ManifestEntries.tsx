@@ -130,8 +130,8 @@ export default function ManifestEntries({
       setRemoving(null);
       setSuccess(
         method === "DELETE"
-          ? "Lançamento excluído. Valores recalculados."
-          : "Lançamento salvo. Valores recalculados.",
+          ? "Vale excluído. Valores recalculados."
+          : "Vale salvo. Valores recalculados.",
       );
       onUpdated(result.manifesto);
       await reload();
@@ -170,7 +170,7 @@ export default function ManifestEntries({
     : undefined;
   return (
     <section className="entries">
-      <h3>Lançamentos do manifesto</h3>
+      <h3>Vales do manifesto</h3>
       {context && <p className="muted">{context.number} · {context.plate} · {context.driver}</p>}
       {error && (
         <p className="alert" role="alert">
@@ -188,13 +188,13 @@ export default function ManifestEntries({
         disabled={busy || loading}
         onClick={() => void reload()}
       >
-        Atualizar lançamentos
+        Atualizar vales
       </button>
       {loading ? (
-        <p role="status">Carregando lançamentos…</p>
+        <p role="status">Carregando vales…</p>
       ) : (
         <>
-          {!entries.length && <p>Nenhum lançamento cadastrado.</p>}
+          {!entries.length && <p>Nenhum vale cadastrado.</p>}
           {!!entries.length && (
             <div className="table-scroll">
               <SortableTable>
@@ -242,7 +242,7 @@ export default function ManifestEntries({
                                 setSuccess("");
                               }}
                             >
-                              Editar lançamento {e.numero}
+                              Editar vale {e.numero}
                             </button>
                             <button
                               type="button"
@@ -254,7 +254,7 @@ export default function ManifestEntries({
                                 setSuccess("");
                               }}
                             >
-                              Excluir lançamento {e.numero}
+                              Excluir vale {e.numero}
                             </button>
                           </>
                         )}
@@ -267,7 +267,7 @@ export default function ManifestEntries({
           )}
           {locked ? (
             <p>
-              Manifesto fechado: os lançamentos estão disponíveis apenas para
+              Manifesto fechado: os vales estão disponíveis apenas para
               consulta.
             </p>
           ) : (
@@ -283,13 +283,13 @@ export default function ManifestEntries({
                   setSuccess("");
                 }}
               >
-                + Novo lançamento
+                + Novo vale
               </button>
             )
           )}
           {!locked && !expenses.length && (
             <p>
-              Cadastre uma despesa ativa na unidade para incluir lançamentos.
+              Cadastre uma despesa ativa na unidade para incluir vales.
             </p>
           )}
         </>
@@ -297,7 +297,7 @@ export default function ManifestEntries({
       {removing && (
         <div ref={removeRef} className="alert">
           <p>
-            Excluir o lançamento {removing.numero}, de{" "}
+            Excluir o vale {removing.numero}, de{" "}
             {currency(removing.valor)}? O manifesto será recalculado. Esta ação
             não pode ser desfeita.
           </p>
@@ -328,8 +328,8 @@ export default function ManifestEntries({
         >
           <h3>
             {current
-              ? `Editar lançamento ${current.numero}`
-              : "Novo lançamento"}
+              ? `Editar vale ${current.numero}`
+              : "Novo vale"}
           </h3>
           {current && !matching && (
             <p className="alert">
@@ -340,7 +340,7 @@ export default function ManifestEntries({
           <fieldset disabled={busy}>
             <div className="launch-heading">
               <label>
-                Núm. lançamento
+                Núm. vale
                 <input
                   readOnly
                   value={current?.numero ?? "Automático ao salvar"}
@@ -390,7 +390,7 @@ export default function ManifestEntries({
             )}
             <div className="form-grid">
               <label>
-                Data do lançamento
+                Data do vale
                 <input
                   name="data_lancamento"
                   type="date"
@@ -427,7 +427,7 @@ export default function ManifestEntries({
                 </select>
               </label>
               <label>
-                Valor do lançamento
+                Valor do vale
                 <input
                   name="valor"
                   type="number"
@@ -448,7 +448,7 @@ export default function ManifestEntries({
               </label>
             </div>
             <label>
-              Descrição do lançamento
+              Descrição do vale
               <textarea
                 name="descricao"
                 maxLength={255}
@@ -460,14 +460,14 @@ export default function ManifestEntries({
               manifesto; débitos e adiantamentos seguem as regras do fechamento.
             </p>
             <button className="primary" disabled={busy}>
-              {busy ? "Salvando…" : "Salvar lançamento"}
+              {busy ? "Salvando…" : "Salvar vale"}
             </button>{" "}
             <button
               type="button"
               className="secondary"
               onClick={() => setEditing(null)}
             >
-              Cancelar edição do lançamento
+              Cancelar edição do vale
             </button>
           </fieldset>
         </form>

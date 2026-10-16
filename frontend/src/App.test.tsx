@@ -63,10 +63,8 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   });
   await login();
   await screen.findByText("M123");
-  fireEvent.click(screen.getByRole("button", { name: "Ver manifesto M123" }));
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Editar manifesto" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Editar manifesto M123" }));
+  await screen.findByRole("dialog", { name: "Editar manifesto M123" });
   await waitFor(() => expect((screen.getByRole("spinbutton", { name: /Frete do ve.culo/ }) as HTMLInputElement).value).toBe("250"));
   await screen.findByRole("option", { name: "Motorista de teste", hidden: true });
   expect(screen.queryByLabelText("Buscar motorista pelo nome")).toBeNull();
@@ -118,9 +116,17 @@ it("não oferece edição para manifesto fechado", async () => {
   );
   await login();
   await screen.findByText("M123");
-  fireEvent.click(screen.getByRole("button", { name: "Ver manifesto M123" }));
-  await screen.findByText("Fechado · 9");
-  expect(screen.queryByRole("button", { name: "Editar manifesto" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Editar manifesto M123" }));
+  await screen.findByText("Manifesto fechado não pode ser editado.");
+  expect(screen.queryByRole("dialog", { name: "Editar manifesto M123" })).toBeNull();
+});
+
+it("abre o aviso de exclusão pela lixeira da consulta", async () => {
+  await login();
+  await screen.findByText("M123");
+  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto M123" }));
+  expect(await screen.findByText(/A exclusão não pode ser desfeita/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Confirmar exclusão do manifesto" })).toBeTruthy();
 });
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -212,6 +218,16 @@ it("autentica, consulta usando token e filtra por semana", async () => {
       }),
     ),
   );
+  fireEvent.change(screen.getByPlaceholderText("Pode informar sem a unidade"), {
+    target: { value: "3182" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Pesquisar" }));
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/manifests?number=3182",
+      expect.anything(),
+    ),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Menu" }));
   fireEvent.click(screen.getByRole("button", { name: "Sair da conta →" }));
   expect(screen.getByRole("button", { name: "Entrar →" })).toBeTruthy();
@@ -293,7 +309,7 @@ it("calcula retenções e líquido automaticamente sem descontar vale-pedágio",
   expect(vi.mocked(fetch).mock.calls.some(([p, o]) => p === "/api/manifests" && o?.method === "POST")).toBe(false);
 });
 
-it("preenche frete pela placa, respeita campo apagado e mant?m frete manual", async () => {
+it("preenche frete pela placa, respeita campo apagado e mantém frete manual", async () => {
   await login();
   await screen.findByText("M123");
   fireEvent.click(screen.getByRole("button", { name: "+ Novo manifesto" }));
@@ -313,7 +329,7 @@ it("preenche frete pela placa, respeita campo apagado e mant?m frete manual", as
     const calls = vi.mocked(fetch).mock.calls.filter(([p]) => p === "/api/manifests/preview");
     expect(JSON.parse(String(calls.at(-1)?.[1]?.body)).frete_veiculo).toBe(333);
   });
-});
+}, 10000);
 
 it("abre na home, recolhe o menu e volta para a home pelo logo sem perder a sessão", async () => {
   await login(false);

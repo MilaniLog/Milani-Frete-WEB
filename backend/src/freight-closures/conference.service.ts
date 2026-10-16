@@ -17,6 +17,14 @@ export class ConferenceService {
     return targetUnit == null ? {} : { unit: targetUnit };
   }
 
+  private async scopeWhere(tx: any, user: AuthUser, dto: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {}) {
+    if (!user.isAdmin) return { unit: user.unit };
+    if (dto.unit != null) return { unit: dto.unit };
+    if (!dto.local && !dto.dominio) return {};
+    const branches = await tx.branches.findMany({ where: { ...(dto.local ? { branch: dto.local } : {}), ...(dto.dominio ? { dominio: dto.dominio } : {}) }, select: { unit: true } });
+    return { unit: { in: branches.map((branch: { unit: number }) => branch.unit) } };
+  }
+
   async report(dto: ConferenceDto, user: AuthUser) {
     if ((dto.inicio && !dto.fim) || (!dto.inicio && dto.fim))
       throw new BadRequestException('Preencha início e fim.');
@@ -36,7 +44,7 @@ export class ConferenceService {
         const dates = { gte: start, lte: end };
         const closure = dto.numero
           ? await tx.frete_fechamentos.findFirst({
-              where: { numero: Number(dto.numero), ...this.unitWhere(user) },
+              where: { numero: Number(dto.numero), ...await this.scopeWhere(tx, user, dto) },
             })
           : null;
         if (dto.numero && !closure)
@@ -60,7 +68,7 @@ export class ConferenceService {
         const plates = vehicles.map((v) => v.plate);
         let manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
-            ...this.unitWhere(user, closure?.unit),
+            ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
             placa: { in: plates },
             semana: dates,
             ...(dto.usuario ? { usuario: dto.usuario } : {}),
@@ -91,7 +99,7 @@ export class ConferenceService {
         const ids = manifests.map((m) => m.id);
         const entries = await tx.frete_lancamentos.findMany({
           where: {
-            ...this.unitWhere(user, closure?.unit),
+            ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
             placa: { in: plates },
             ...(dto.usuario ? { responsavel_cod: Number(dto.usuario) } : {}),
             ...(closure
@@ -119,7 +127,7 @@ export class ConferenceService {
             ? []
             : await tx.frete_cupons.findMany({
                 where: {
-                  ...this.unitWhere(user, closure?.unit),
+                  ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
                   placa: { in: plates },
                   data_cobranca: dates,
                   ...(dto.usuario
@@ -167,6 +175,14 @@ export class ConferenceService {
                 m.find((x) => x.motorista)?.motorista ??
                 e.find((x) => x.motorista)?.motorista ??
                 c.find((x) => x.motorista)?.motorista ??
+                null,
+              origem:
+                [...new Set(m.map((x) => x.origem).filter(Boolean))].join(
+                  ' / ',
+                ) || null,
+              closureNumber:
+                m.find((x) => x.num_fechamento != null)?.num_fechamento ??
+                closure?.numero ??
                 null,
               periodo_inicio: start,
               periodo_fim: end,

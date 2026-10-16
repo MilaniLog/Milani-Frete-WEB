@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Header,
   Param,
@@ -18,6 +19,7 @@ import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../auth/auth-user.types';
 import {
   CancelClosureDto,
+  ClosureReportsDto,
   ClosureDto,
   ConferenceDto,
   WeekClosureDto,
@@ -28,6 +30,7 @@ import {
   previewReport,
   savedReport,
   renderClosureReport,
+  renderDriverClosureReport,
 } from './closure-report';
 import { renderHtmlPdf } from '../reports/pdf-renderer';
 
@@ -137,6 +140,40 @@ export class FreightClosuresController {
     res.send(pdf);
   }
 
+  private combineReports(reports: string[]) {
+    if (!reports.length)
+      return '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><body><p>Nenhum fechamento selecionado.</p></body></html>';
+    return reports[0].slice(0, reports[0].indexOf('<body>') + 6) +
+      reports.map((report, index) => {
+        const body = report.slice(report.indexOf('<body>') + 6, report.lastIndexOf('</body>'));
+        return `<section style="${index ? 'break-before:page' : ''}">${body}</section>`;
+      }).join('') + '</body></html>';
+  }
+
+  @Post('week/freight.pdf')
+  @Header('Cache-Control', 'no-store')
+  async weekFreightPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
+    const reports = await Promise.all(dto.ids.map(async (id) =>
+      renderClosureReport(savedReport(await this.service.findOne(id, req.user))),
+    ));
+    const pdf = await renderHtmlPdf(this.combineReports(reports));
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="fechamento-de-frete.pdf"');
+    res.send(pdf);
+  }
+
+  @Post('week/drivers.pdf')
+  @Header('Cache-Control', 'no-store')
+  async weekDriversPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
+    const reports = await Promise.all(dto.ids.map(async (id) =>
+      renderDriverClosureReport(savedReport(await this.service.findOne(id, req.user))),
+    ));
+    const pdf = await renderHtmlPdf(this.combineReports(reports));
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="relatorio-por-motorista.pdf"');
+    res.send(pdf);
+  }
+
   @Get('number/:number/report') async reportNumber(
     @Param('number', ParseIntPipe) numero: number,
     @Req() req: AuthenticatedRequest,
@@ -237,10 +274,10 @@ export class FreightClosuresController {
 
   @Post('week')
   finalizeWeek(@Body() dto: WeekClosureDto, @Req() req: AuthenticatedRequest) {
-    return this.service.finalizeWeek(dto.semana, req.user, dto.selections);
+    return this.service.finalizeWeek(dto.semana, req.user, dto.selections, dto.placas);
   }
 
-  @Post(':id/cancel')
+  @Delete(':id/cancel')
   cancel(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CancelClosureDto,

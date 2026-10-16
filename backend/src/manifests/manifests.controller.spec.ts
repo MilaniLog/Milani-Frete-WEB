@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import type { AuthenticatedRequest } from '../auth/auth-user.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { FreightCalculationService } from '../freight-calculation/freight-calculation.service';
@@ -54,17 +53,13 @@ describe('ManifestsController: isolamento por unidade', () => {
     await expect(controller.findOne(1, request)).resolves.toEqual(records[0]);
   });
 
-  it('não permite consultar por ID um manifesto de outra unidade', async () => {
-    await expect(controller.findOne(2, request)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+  it('permite consultar por ID um manifesto encontrado em outra unidade', async () => {
+    await expect(controller.findOne(2, request)).resolves.toEqual(records[1]);
   });
 
-  it('mantém o filtro de unidade para administradores', async () => {
+  it('permite ao administrador consultar todas as unidades', async () => {
     request.user.isAdmin = true;
-    await expect(controller.findAll(request)).resolves.toEqual([records[0]]);
-    await expect(controller.findOne(2, request)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(controller.findAll(request)).resolves.toEqual(records);
+    await expect(controller.findOne(2, request)).resolves.toEqual(records[1]);
   });
 });

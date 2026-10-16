@@ -182,7 +182,7 @@ export default function FreightEntries({
     setDeleteTarget(null);
     if (!editMode || !/^\d+$/.test(entryNumber) || Number(entryNumber) < 1)
       return;
-    if (editing?.numero === Number(entryNumber)) return;
+    if (editing?.id === Number(entryNumber)) return;
     const request = ++sequence.current;
     setSearching(true);
     setError("");
@@ -192,7 +192,7 @@ export default function FreightEntries({
       const result = await api<{
         entry: SavedEntry;
         manifesto: Manifest | null;
-      }>(`/freight-entries/number/${entryNumber}`, token);
+      }>(`/freight-entries/${entryNumber}`, token);
       if (request !== sequence.current) return;
       const e = result.entry;
       setEditing(e);
@@ -271,16 +271,16 @@ export default function FreightEntries({
     event.preventDefault();
     setDeleteTarget(null);
     if (busy || loading || searching) return;
-    if (editMode && (!editing || editing.numero !== Number(entryNumber))) {
-      setError("Informe o número e carregue o lançamento antes de salvar.");
+    if (editMode && (!editing || editing.id !== Number(entryNumber))) {
+      setError("Informe o ID e carregue o vale antes de salvar.");
       return;
     }
     if (editing && (editing.pago || editing.fechamento_id != null)) {
-      setError("Lançamento pago ou fechado não pode ser alterado.");
+      setError("Vale pago ou fechado não pode ser alterado.");
       return;
     }
     if (manifest && manifest.fechamento_id != null) {
-      setError("Manifesto fechado: não é possível incluir lançamentos nele.");
+      setError("Manifesto fechado: não é possível incluir vales nele.");
       return;
     }
     setError("");
@@ -295,7 +295,7 @@ export default function FreightEntries({
     }
     setBusy(true);
     try {
-      const result = await api<{ entry: { numero: number } }>(
+      const result = await api<{ entry: { id: number; numero: number } }>(
         editing ? `/freight-entries/${editing.id}` : "/freight-entries",
         token,
         {
@@ -317,7 +317,7 @@ export default function FreightEntries({
         },
       );
       setSuccess(
-        `Lançamento ${result.entry.numero} salvo com sucesso${manifest ? "" : ` para a placa ${plate.toUpperCase()} e semana ${week}`}.`,
+        `Vale ${result.entry.numero} salvo com sucesso${manifest ? "" : ` para a placa ${plate.toUpperCase()} e semana ${week}`}.`,
       );
       if (!editing) {
         setValue("");
@@ -325,7 +325,7 @@ export default function FreightEntries({
         setExpense("");
       } else {
         setEditing({...editing,placa:plate.trim().toUpperCase(),semana:week,valor:value,...result.entry});
-        setEntryNumber(String(result.entry.numero));
+        setEntryNumber(String(result.entry.id));
       }
       setConsult(false);
     } catch (e) {
@@ -341,7 +341,7 @@ export default function FreightEntries({
       searching ||
       !editMode ||
       editing?.id !== deleteTarget.id ||
-      editing.numero !== Number(entryNumber) ||
+      editing.id !== Number(entryNumber) ||
       locked
     )
       return;
@@ -354,7 +354,7 @@ export default function FreightEntries({
       });
       const numero = deleteTarget.numero;
       newEntry();
-      setSuccess(`Lançamento ${numero} excluído com sucesso.`);
+      setSuccess(`Vale ${numero} excluído com sucesso.`);
     } catch (e) {
       fail(e);
       setDeleteTarget(null);
@@ -368,13 +368,13 @@ export default function FreightEntries({
     (!!editing && (editing.pago || editing.fechamento_id != null));
   return (
     <section className="content">
-      <h1>Lançamentos</h1>
+      <h1>Vales</h1>
       <h2>
         {editMode
-          ? "Editar lançamento"
+          ? "Editar vale"
           : consult
-            ? "Consultar lançamentos"
-            : "Novo lançamento"}
+            ? "Consultar vales"
+            : "Novo vale"}
       </h2>
       <p className="muted">
         Informe o manifesto para preencher os dados automaticamente ou deixe
@@ -427,14 +427,13 @@ export default function FreightEntries({
                 Registro pago ou fechado: alterações não são permitidas.
               </p>
             )}
-            <div className="launch-heading">
+            {editMode && (
               <label>
-                Núm. lançamento
+                ID do vale
                 <input
                   ref={entryInput}
-                  readOnly={!editMode}
-                  value={editMode ? entryNumber : "Automático ao salvar"}
-                  inputMode={editMode ? "numeric" : undefined}
+                  value={entryNumber}
+                  inputMode="numeric"
                   onChange={(e) => {
                     sequence.current++;
                     setSearching(false);
@@ -446,18 +445,14 @@ export default function FreightEntries({
                   }}
                   onBlur={() => void lookupEntry()}
                   onKeyDown={(e) => {
-                    if (editMode && e.key === "Enter") {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       void lookupEntry();
                     }
                   }}
                 />
               </label>
-              <label>
-                Unidade
-                <input readOnly value={unit} />
-              </label>
-            </div>
+            )}
             <fieldset
               disabled={(editMode && (!editing || searching)) || locked}
             >
@@ -552,7 +547,7 @@ export default function FreightEntries({
                   </>
                 )}
                 <label>
-                  Data do lançamento
+                  Data do vale
                   <input
                     type="date"
                     required
@@ -579,7 +574,7 @@ export default function FreightEntries({
                   </select>
                 </label>
                 <label>
-                  Valor do lançamento
+                  Valor do vale
                   <input
                     type="number"
                     required
@@ -591,7 +586,7 @@ export default function FreightEntries({
                   />
                 </label>
                 <label>
-                  Descrição do lançamento
+                  Descrição do vale
                   <textarea
                     maxLength={255}
                     value={description}
@@ -616,7 +611,7 @@ export default function FreightEntries({
                 (editMode && !editing)
               }
             >
-              {busy ? "Salvando…" : "Salvar lançamento"}
+              {busy ? "Salvando…" : "Salvar vale"}
             </button>{" "}
             {!editMode ? (
               <button
@@ -641,7 +636,7 @@ export default function FreightEntries({
                 disabled={busy}
                 onClick={newEntry}
               >
-                Novo lançamento
+                Novo vale
               </button>
             )}{" "}
             {editMode && (
@@ -655,7 +650,7 @@ export default function FreightEntries({
                   setSuccess("");
                 }}
               >
-                Excluir lançamento
+                Excluir vale
               </button>
             )}{" "}
             <button
@@ -672,7 +667,7 @@ export default function FreightEntries({
       {deleteTarget && (
         <div className="alert" role="alert">
           <p>
-            Excluir o lançamento {deleteTarget.numero}, placa{" "}
+            Excluir o vale {deleteTarget.numero}, placa{" "}
             {deleteTarget.placa}, no valor de{" "}
             {Number(deleteTarget.valor).toLocaleString("pt-BR", {
               style: "currency",
@@ -694,7 +689,7 @@ export default function FreightEntries({
             disabled={busy}
             onClick={() => setDeleteTarget(null)}
           >
-            Manter lançamento
+            Manter vale
           </button>
         </div>
       )}
@@ -706,8 +701,8 @@ export default function FreightEntries({
             onClick={() => setConsult(!consult)}
           >
             {consult
-              ? "Ocultar lançamentos"
-              : "Consultar lançamentos do manifesto"}
+              ? "Ocultar vales"
+              : "Consultar vales do manifesto"}
           </button>
           {consult && (
             <ManifestEntries

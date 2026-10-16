@@ -1,8 +1,10 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
+import SearchableSelect from "./SearchableSelect";
 export type ClosureFilters = {
   unit: string;
+  dominio: string;
   inicio: string;
   fim: string;
   despesa: string;
@@ -18,6 +20,7 @@ export type ClosureFilters = {
 };
 export const emptyClosureFilters: ClosureFilters = {
   unit: "",
+  dominio: "",
   inicio: "",
   fim: "",
   despesa: "",
@@ -43,7 +46,6 @@ export default function ClosureForm({
   setPlate,
   setFilters,
   conference,
-  finalize,
   selectClosure,
   cancel,
   expired,
@@ -59,7 +61,6 @@ export default function ClosureForm({
   setPlate: (v: string) => void;
   setFilters: (v: ClosureFilters) => void;
   conference: (e: FormEvent) => void;
-  finalize: () => void;
   selectClosure: () => void;
   cancel: () => void;
   expired: () => void;
@@ -73,6 +74,9 @@ export default function ClosureForm({
     [types, setTypes] = useState<
       { codVehicleType: number; typeName: string }[]
     >([]),
+    [units, setUnits] = useState<
+      { codigo: number; local: string; dominio: "MLN" | "LOOG" | null }[]
+    >([]),
     [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -80,12 +84,14 @@ export default function ClosureForm({
       api<typeof weeks>("/weeks", token),
       api<typeof vehicles>("/registrations/vehicles", token),
       api<typeof types>("/registrations/vehicle-types", token),
+      ...(isAdmin ? [api<typeof units>("/registrations/units", token)] : []),
     ])
-      .then(([w, v, t]) => {
+      .then(([w, v, t, u]) => {
         if (active) {
           setWeeks(w);
           setVehicles(v);
           setTypes(t);
+          setUnits(u ?? []);
         }
       })
       .catch((e) => {
@@ -105,6 +111,20 @@ export default function ClosureForm({
   const typeName = types.find(
     (t) => t.codVehicleType === vehicle?.codVehicleType,
   )?.typeName;
+  const unitLocations = [
+    ...new Set(
+      units
+        .map((unit) => unit.local)
+        .filter((local): local is string => typeof local === "string" && !!local.trim())
+        .filter(
+          (local) =>
+            local
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .toUpperCase() !== "ARACARIGUAMA",
+        ),
+    ),
+  ].sort();
   return (
     <form className="closure-vba-form" onSubmit={conference}>
       <fieldset disabled={busy}>
@@ -114,95 +134,90 @@ export default function ClosureForm({
           </p>
         )}
         <div className="closure-vba-grid">
-          <label>
+          <label className="closure-main-field">
+            Domínio
+            <select aria-label="Domínio" value={filters.dominio} disabled={!isAdmin}
+              onChange={(e) => change("dominio", e.target.value)}>
+              <option value="">Todos</option>
+              <option value="LOOG">LOOG</option>
+              <option value="MLN">MLN</option>
+            </select>
+          </label>
+          <label className="closure-main-field">
             Unidade
-            <input
-              value={isAdmin ? filters.unit : String(userUnit)}
-              inputMode="numeric"
-              pattern="[0-9]+"
-              readOnly={!isAdmin}
-              placeholder={isAdmin ? "Todas" : undefined}
-              onChange={(e) => change("unit", e.target.value.replace(/\D/g, ""))}
-            />
+            <SearchableSelect aria-label="Unidade"
+              value={isAdmin ? filters.unit : String(userUnit)} disabled={!isAdmin}
+              onChange={(e) => change("unit", e.target.value)}>
+              <option value="">Todas</option>
+              {isAdmin
+                ? unitLocations.map((local) => <option key={local} value={local}>{local}</option>)
+                : <option value={String(userUnit)}>{userUnit}</option>}
+            </SearchableSelect>
           </label>
-          <label>
-            Semana
-            <input
-              aria-label="Código da semana"
-              list="closure-weeks"
-              value={week}
-              maxLength={4}
-              pattern="[0-9]{4}"
-              onChange={(e) => {
-                setWeek(normalizeWeek(e.target.value));
-                setFilters({ ...filters, inicio: "", fim: "" });
-              }}
-            />
-            <datalist id="closure-weeks">
-              {weeks
-                .filter((w) => w.codigo)
-                .map((w) => (
-                  <option key={w.codigo} value={w.codigo} />
-                ))}
-            </datalist>
-          </label>
-          <p className="muted">
-            {selectedWeek
-              ? `${selectedWeek.data_inicio?.slice(0, 10).split("-").reverse().join("/")} a ${selectedWeek.data_fim?.slice(0, 10).split("-").reverse().join("/")}`
-              : "Selecione a semana ou informe um período abaixo."}
-          </p>
-          <label>
-            Placa
-            <input
-              aria-label="Placa para fechamento"
-              list="closure-plates"
-              value={plate}
-              maxLength={8}
-              pattern="[A-Za-z]{3}[0-9][A-Za-z0-9][0-9]{2}"
-              onChange={(e) => setPlate(normalizePlate(e.target.value))}
-            />
-            <datalist id="closure-plates">
-              {vehicles
-                .filter((v) => v.plate)
-                .map((v) => (
-                  <option key={v.plate} value={v.plate} />
-                ))}
-            </datalist>
-          </label>
-          <p className="muted">
-            {typeName ?? "Placa vazia: todos os veículos da unidade selecionada."}
-          </p>
-          <label>
-            Início
-            <input
-              type="date"
-              value={filters.inicio}
-              onChange={(e) => {
-                setWeek("");
-                change("inicio", e.target.value);
-              }}
-            />
-          </label>
-          <label>
-            Fim
-            <input
-              type="date"
-              value={filters.fim}
-              onChange={(e) => {
-                setWeek("");
-                change("fim", e.target.value);
-              }}
-            />
-          </label>
-          <label>
-            Usuário
-            <input
-              value={filters.usuario}
-              inputMode="numeric"
-              pattern="[0-9]+"
-              onChange={(e) => change("usuario", e.target.value)}
-            />
-          </label>
+          <div className="closure-field-with-help">
+            <label className="closure-main-field">
+              Semana
+              <SearchableSelect aria-label="Código da semana" allowCustomValue value={week}
+                onChange={(e) => {
+                  setWeek(normalizeWeek(e.target.value));
+                  setFilters({ ...filters, inicio: "", fim: "" });
+                }}>
+                <option value="">Selecione a semana</option>
+                {weeks
+                  .filter((w) => w.codigo)
+                  .map((w) => (
+                    <option key={w.codigo} value={w.codigo}>{w.codigo}</option>
+                  ))}
+              </SearchableSelect>
+            </label>
+            <p className="muted">
+              {selectedWeek
+                ? `${selectedWeek.data_inicio?.slice(0, 10).split("-").reverse().join("/")} a ${selectedWeek.data_fim?.slice(0, 10).split("-").reverse().join("/")}`
+                : "Selecione a semana ou informe um período abaixo."}
+            </p>
+          </div>
+          <div className="closure-field-with-help">
+            <label className="closure-main-field">
+              Placa
+              <SearchableSelect aria-label="Placa para fechamento" allowCustomValue
+                name="placa" value={plate}
+                onChange={(e) => setPlate(normalizePlate(e.target.value))}>
+                <option value="">Todos os veículos</option>
+                {vehicles
+                  .filter((v) => v.plate)
+                  .map((v) => (
+                    <option key={v.plate} value={v.plate}>{v.plate}</option>
+                  ))}
+              </SearchableSelect>
+            </label>
+            <p className="muted">
+              {typeName ?? "Placa vazia: todos os veículos da unidade selecionada."}
+            </p>
+          </div>
+          <div className="closure-date-range">
+            <label>
+              Início
+              <input
+                type="date"
+                value={filters.inicio}
+                onChange={(e) => {
+                  setWeek("");
+                  change("inicio", e.target.value);
+                }}
+              />
+            </label>
+            <label>
+              Fim
+              <input
+                type="date"
+                value={filters.fim}
+                onChange={(e) => {
+                  setWeek("");
+                  change("fim", e.target.value);
+                }}
+              />
+            </label>
+          </div>
           <label>
             Categoria de veículo
             <select
@@ -287,20 +302,13 @@ export default function ClosureForm({
         </fieldset>
         <p className="muted">
           Separar pagamentos agrupa a conferência por empresa, sem aplicar
-          percentual. Fechar semana usa todos os registros abertos da semana: da
-          placa informada ou de todos os veículos se a placa estiver vazia. Os
-          demais filtros são usados apenas no relatório.
+          percentual. Os demais filtros são usados apenas no relatório.
         </p>
         <div className="actions">
           <button className="secondary">Relatório de conferência</button>
-          <button type="button" className="primary" onClick={finalize}>
-            Fechar semana
+          <button type="button" className="secondary" onClick={cancel}>
+            Excluir pagamento
           </button>
-          {isAdmin && (
-            <button type="button" className="secondary" onClick={cancel}>
-              Excluir pagamento
-            </button>
-          )}
         </div>
       </fieldset>
     </form>

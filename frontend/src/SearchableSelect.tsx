@@ -1,11 +1,12 @@
-import { useEffect, useId, useRef, useState, type SelectHTMLAttributes } from "react";
+import { useEffect, useId, useRef, useState, type ChangeEvent, type SelectHTMLAttributes } from "react";
 import { focusNextField } from "./select-all-fields";
 import { normalizePlate } from "./field-formats";
 
 const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
 
 /** Keeps the original select as the form value; typing never submits a made-up ID. */
-export default function SearchableSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
+export default function SearchableSelect(receivedProps: SelectHTMLAttributes<HTMLSelectElement> & { allowCustomValue?: boolean }) {
+  const { allowCustomValue = false, ...props } = receivedProps;
   const select = useRef<HTMLSelectElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -48,7 +49,7 @@ export default function SearchableSelect(props: SelectHTMLAttributes<HTMLSelectE
       placeholder="Digite para pesquisar ou selecione"
       onFocus={()=>{setOpen(props.name === 'cpf_motorista' ? false : !select.current?.value);setFilter(false);setActive(-1);}}
       onClick={()=>setOpen(true)}
-      onChange={e=>{const value = props.name === 'placa' ? normalizePlate(e.target.value) : e.target.value;setText(value);setFilter(true);setOpen(true);setActive(-1);change('');e.target.setCustomValidity(value ? 'Selecione uma opção da lista.' : '');}}
+      onChange={e=>{const value = props.name === 'placa' ? normalizePlate(e.target.value) : e.target.value;setText(value);setFilter(true);setOpen(true);setActive(-1);if(allowCustomValue)props.onChange?.({target:{value}} as ChangeEvent<HTMLSelectElement>);else change('');e.target.setCustomValidity(!allowCustomValue && value ? 'Selecione uma opção da lista.' : '');}}
       onKeyDown={e=>{
         if(e.key==='ArrowDown' || e.key==='ArrowUp') {e.preventDefault();setOpen(true);setActive(i=>Math.max(0,Math.min(matches.length-1,i+(e.key==='ArrowDown'?1:-1))));}
         if(e.key==='Escape') {e.preventDefault();setOpen(false);}

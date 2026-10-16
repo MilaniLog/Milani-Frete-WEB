@@ -12,7 +12,7 @@ import { EntryDto } from './dto/entry.dto';
 
 jest.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
 
-describe('Lançamentos vinculados ao manifesto', () => {
+describe('Vales vinculados ao manifesto', () => {
   it.each([undefined, 1])('bloqueia manutenção de despesas por usuário comum (id=%s)', async id => {
     const transaction = jest.fn();
     const restricted = new FreightEntriesService({$transaction:transaction} as any, {} as any);
@@ -288,7 +288,7 @@ describe('Lançamentos vinculados ao manifesto', () => {
   });
 
   it.each(['pago', 'fechamento_id'])(
-    'bloqueia edição e exclusão de lançamento com %s',
+    'bloqueia edição e exclusão de vale com %s',
     async (field) => {
       await service.changeEntry(1, user, { kind: 'create', dto });
       entries[0][field] = field === 'pago' ? true : 10;
@@ -301,7 +301,7 @@ describe('Lançamentos vinculados ao manifesto', () => {
     },
   );
 
-  it('não altera lançamento vinculado a outro manifesto', async () => {
+  it('não altera vale vinculado a outro manifesto', async () => {
     entries.push({ id: 10, unit: 101, manifesto_id: 2 });
     await expect(
       service.changeEntry(1, user, { kind: 'delete', id: 10 }),

@@ -62,13 +62,13 @@ beforeEach(() =>
     }),
   ),
 );
-it("volta da consulta ao lançamento preservando o preenchimento e atualizando os tipos", async () => {
+it("volta da consulta ao vale preservando o preenchimento e atualizando os tipos", async () => {
   render(<Invoices token="token" isAdmin={false} expired={vi.fn()} />);
   await screen.findByRole("option", { name: /Abastecimento/ });
   fireEvent.change(screen.getByLabelText("Descrição"), { target: { value: "Rascunho preservado" } });
   fireEvent.click(screen.getByText("Consultar notas, cupons e tipos de nota"));
-  fireEvent.click(await screen.findByRole("button", { name: "Voltar aos lançamentos" }));
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Voltar aos lançamentos" })).toBeNull());
+  fireEvent.click(await screen.findByRole("button", { name: "Voltar aos vales" }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Voltar aos vales" })).toBeNull());
   await screen.findByRole("button", { name: "Salvar" });
   expect((screen.getByLabelText("Descrição") as HTMLInputElement).value).toBe("Rascunho preservado");
   await waitFor(() => expect(vi.mocked(fetch).mock.calls.filter(([p]) => String(p).endsWith("/freight-invoice-types")).length).toBeGreaterThanOrEqual(3));
@@ -99,7 +99,7 @@ function fillCoupon() {
 it("abre para preencher e salva nota e cupom numa única solicitação", async () => {
   await mount();
   expect(
-    (screen.getByLabelText("Número do lançamento") as HTMLInputElement)
+    (screen.getByLabelText("Número do vale") as HTMLInputElement)
       .disabled,
   ).toBe(true);
   change("Número da nota", "000999");
@@ -108,7 +108,7 @@ it("abre para preencher e salva nota e cupom numa única solicitação", async (
   change("Tipo da nota", "2");
   fillCoupon();
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-  await screen.findByText(/Lançamento 3 salvo/);
+  await screen.findByText(/Vale 3 salvo/);
   const writes = vi
     .mocked(fetch)
     .mock.calls.filter(([, o]) => o?.method === "POST");
@@ -135,7 +135,7 @@ it("nota existente preenche e protege dados, preservando zeros do número", asyn
   ).toBe(true);
   fillCoupon();
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-  await screen.findByText(/Lançamento 3 salvo/);
+  await screen.findByText(/Vale 3 salvo/);
   expect(
     JSON.parse(
       String(
@@ -154,8 +154,8 @@ it("Editar habilita a busca e mantém dados após recusa do saldo", async () => 
   );
   await mount();
   fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-  change("Número do lançamento", "3");
-  fireEvent.click(screen.getByRole("button", { name: "Buscar lançamento" }));
+  change("Número do vale", "3");
+  fireEvent.click(screen.getByRole("button", { name: "Buscar vale" }));
   await screen.findByText(/Saldo disponível:.*70,00/);
   change("Valor do cupom", "101");
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
@@ -182,8 +182,8 @@ it("bloqueia edição de cupom pago e esconde exclusão de nota para usuário co
   await mount();
   expect(screen.getByRole("button", { name: "Deletar nota" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-  change("Número do lançamento", "3");
-  fireEvent.click(screen.getByRole("button", { name: "Buscar lançamento" }));
+  change("Número do vale", "3");
+  fireEvent.click(screen.getByRole("button", { name: "Buscar vale" }));
   await screen.findByText(/Cupom pago ou fechado:/);
   expect(
     (screen.getByRole("button", { name: "Salvar" }) as HTMLButtonElement)
@@ -197,8 +197,8 @@ it("bloqueia edição de cupom pago e esconde exclusão de nota para usuário co
 it("exige confirmação para excluir cupom e usa saldo retornado", async () => {
   await mount(true);
   fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-  change("Número do lançamento", "3");
-  fireEvent.click(screen.getByRole("button", { name: "Buscar lançamento" }));
+  change("Número do vale", "3");
+  fireEvent.click(screen.getByRole("button", { name: "Buscar vale" }));
   await screen.findByText(/Saldo disponível:.*70,00/);
   fireEvent.click(screen.getByRole("button", { name: "Excluir cupom" }));
   expect(

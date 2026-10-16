@@ -11,7 +11,7 @@ import {
   Min,
 } from 'class-validator';
 
-// Inclusão e substituição completa do lançamento. O manifesto não pode ser transferido.
+// Inclusão e substituição completa do vale. O manifesto não pode ser transferido.
 export class EntryDto {
   @Type(() => Number)
   @IsInt()

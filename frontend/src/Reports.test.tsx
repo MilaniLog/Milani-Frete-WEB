@@ -28,10 +28,10 @@ beforeEach(() =>
     vi.fn(async (p: string, o?: RequestInit) => {
       if (p.endsWith("/destinations"))
         return o?.method
-          ? response({ id: 2, unit: 100, nome: "Campinas" }, 201)
+          ? response({ id: 2, nome: "Campinas" }, 201)
           : response([
               { id: 1, nome: "São Paulo" },
-              { id: 2, unit: 100, nome: "Campinas" },
+              { id: 2, nome: "Campinas" },
             ]);
       if (p.endsWith("/weeks"))
         return response([
@@ -43,6 +43,11 @@ beforeEach(() =>
         return response([{ codVehicleType: 1, typeName: "VAN" }]);
       if (p.endsWith("/registrations/companies"))
         return response([{ sigla: "MMA", nome: "Empresa MMA" }]);
+      if (p.endsWith("/registrations/units"))
+        return response([
+          { codigo: 100, local: "SP", dominio: "LOOG" },
+          { codigo: 301, local: "SSA", dominio: "MLN" },
+        ]);
       if (
         p.includes("/reprint?") ||
         p.includes("/spreadsheet?") ||
@@ -59,7 +64,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
-  render(<Destinations token="t" isAdmin={false} userUnit={100} expired={vi.fn()} />);
+  render(<Destinations token="t" expired={vi.fn()} />);
   await screen.findByText("São Paulo");
   fireEvent.change(screen.getByLabelText("Destino"), {
     target: { value: " Campinas " },
@@ -70,7 +75,7 @@ it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
     "/api/destinations",
     expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ nome: "Campinas", unit: 100 }),
+      body: JSON.stringify({ nome: "Campinas" }),
     }),
   );
   fireEvent.change(screen.getByLabelText("Pesquisar destino"), {
@@ -79,7 +84,7 @@ it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
   expect(screen.getByText("São Paulo")).toBeTruthy();
   expect(screen.queryByRole("cell", { name: "Campinas" })).toBeNull();
 });
-it("envia filtros de lançamentos e invalida o resultado ao trocar o período", async () => {
+it("envia filtros de vales e invalida o resultado ao trocar o período", async () => {
   render(<FinancialReports kind="financial" token="t" expired={vi.fn()} />);
   fireEvent.change(screen.getByLabelText("Semana"), {
     target: { value: "3926" },
@@ -133,6 +138,7 @@ it("planilha filtra por empresa e oferece arquivo Excel", async () => {
   ).toBe(true);
 });
 it("reimprime por número sem enviar gravações nem filtros de outro fechamento", async () => {
+  vi.spyOn(window, "open").mockReturnValue(null);
   vi.stubGlobal(
     "URL",
     Object.assign(URL, {
@@ -147,13 +153,39 @@ it("reimprime por número sem enviar gravações nem filtros de outro fechamento
     screen.getByLabelText("Número do fechamento para reimpressão"),
     { target: { value: "40" } },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Reimprimir" }));
-  await screen.findByText(/Relatório baixado/);
-  expect(downloadReport).toHaveBeenCalledWith(
-    "/freight-reports/closures/reprint?numero=40",
-    "t", "fechamento-40.html",
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Imprimir fechamento de frete" }));
+  await screen.findByText("Relatório em PDF baixado com sucesso.");
+  expect(window.open).toHaveBeenCalledWith("", "_blank");
+  expect(
+    screen.queryByRole("button", { name: /relatório por motorista/i }),
+  ).toBeNull();
+  expect(
+    vi.mocked(fetch).mock.calls.some(
+      ([path]) =>
+        path === "/api/freight-reports/closures/reprint.pdf?numero=40",
+    ),
+  ).toBe(true);
   expect(vi.mocked(fetch).mock.calls.some(([, o]) => o?.method)).toBe(false);
+});
+
+it("filtra a reimpressão por domínio e unidade", async () => {
+  vi.spyOn(window, "open").mockReturnValue(null);
+  vi.stubGlobal("URL", Object.assign(URL, {
+    createObjectURL: vi.fn(() => "blob:test"),
+    revokeObjectURL: vi.fn(),
+  }));
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  render(<ReprintClosures token="t" isAdmin userUnit={100} expired={vi.fn()} />);
+  await waitFor(() => expect(screen.getByLabelText("Unidade")).toBeTruthy());
+  fireEvent.change(screen.getByLabelText("Domínio"), { target: { value: "MLN" } });
+  fireEvent.click(screen.getByLabelText("Unidade"));
+  fireEvent.click(await screen.findByRole("option", { name: "SSA" }));
+  fireEvent.change(screen.getByLabelText("Número do fechamento para reimpressão"), { target: { value: "40" } });
+  fireEvent.click(screen.getByRole("button", { name: "Imprimir fechamento de frete" }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+    "/api/freight-reports/closures/reprint.pdf?numero=40&dominio=MLN&local=SSA",
+    expect.anything(),
+  ));
 });
 
 it("gera cupons separadamente, inclusive na impressao", async () => {

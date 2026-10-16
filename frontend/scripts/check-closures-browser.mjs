@@ -33,11 +33,25 @@ try {
     const data = {
       semana: "0001",
       placa: "ABC1234",
-      manifests: [{ id: 1, manifestos: "M1", frete_veiculo: "1500" }],
+      manifests: [{
+        id: 1,
+        unit: 100,
+        semana: "2026-09-20",
+        manifestos: "100000123-4",
+        frete_veiculo: "1500",
+        ctrb_numero: "12345-6",
+        ctrb_total: "300",
+        ctrb_adiantamento: "50",
+        vale_pedagio: "20",
+        total_retencoes: "30",
+        valor_liquido: "200",
+      }],
       entries: [
         {
           id: 1,
           numero: 1,
+          data_lancamento: "2026-09-21",
+          codigo_despesa: "10",
           nome_despesa: "Despesa de teste",
           tipo_despesa: "Debito",
           valor: "200",
@@ -47,14 +61,14 @@ try {
       totals: {
         total_bruto: "1500",
         total_liquido: "1200",
-        total_ctrb: "0",
+        total_ctrb: "300",
         debitos: "200",
         creditos: "0",
         cupons: "100",
       },
       payment: {
         criterio: "RATEIO",
-        ctrbs: [],
+        ctrbs: ["12345-6"],
         primeira: { empresa: "Empresa A", valor: "840" },
         segunda: { empresa: "Empresa B", valor: "360" },
       },
@@ -120,6 +134,15 @@ try {
       } else if (path === "/api/freight-closures/4/report") {
         body = { ...data, cabecalho: closure, origem: "FINALIZACAO" };
       } else if (path === "/api/freight-closures") body = [closure];
+      else if (path === "/api/registrations/units")
+        body = [
+          { codigo: 100, local: "SP", dominio: "LOOG" },
+          { codigo: 301, local: "SSA", dominio: "MLN" },
+          { codigo: 830, local: "SSA", dominio: "LOOG" },
+          { codigo: 800, local: "VIX", dominio: "LOOG" },
+          { codigo: 401, local: "REC", dominio: "MLN" },
+          { codigo: 250, local: "VDC", dominio: "MLN" },
+        ];
       else if (
         [
           "/api/manifests",
@@ -183,8 +206,31 @@ try {
         });
     }
     await login();
+    await page.getByLabel("Unidade").click();
+    await page.getByRole("option", { name: "SSA", exact: true }).last().waitFor();
+    await page.keyboard.press("Escape");
+    assert.equal(await page.getByLabel("Domínio").count(), 1);
     await preview();
     await page.getByText(/Cr.ditos e manifestos/).waitFor();
+    await page.getByText("000123-4", { exact: true }).waitFor();
+    await page.getByText("10 - Despesa de teste", { exact: true }).waitFor();
+    await page.getByText("12345-6", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("columnheader", { name: "SEST/SENAT" }).count(), 1);
+    assert.equal(await page.getByRole("columnheader", { name: "IRRF" }).count(), 1);
+    assert.equal(await page.getByRole("columnheader", { name: "Prev. Social" }).count(), 1);
+    assert.equal(await page.getByRole("columnheader", { name: "INSS" }).count(), 1);
+    assert.equal(await page.getByRole("columnheader", { name: "Total retenções" }).count(), 0);
+    assert.equal(await page.getByText("Líquido a pagar", { exact: true }).count(), 0);
+    await page.getByText("Líquido", { exact: true }).waitFor();
+    assert.equal(
+      await page.evaluate(() => {
+        const records = document.querySelector(".closure-records-compact");
+        const summary = document.querySelector(".closure-values-summary");
+        return !!records && !!summary && records.lastElementChild === summary;
+      }),
+      true,
+    );
+    assert.equal(await page.getByText("Total de cupons", { exact: true }).count(), 0);
     assert.equal(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -222,7 +268,7 @@ try {
         .count(),
       0,
     );
-    assert.deepEqual(posts.at(-1).body, { semana: "0001", placa: "ABC1234", debit_entry_ids: [1] });
+    assert.deepEqual(posts.at(-1).body, { semana: "0001", placa: "ABC1234", debit_entry_ids: [] });
     checks++;
     conflict = false;
     await preview();
@@ -235,12 +281,13 @@ try {
       .filter({ hasText: "Fechamento 40 finalizado" })
       .waitFor();
     checks++;
+    await page.getByRole("button", { name: "Consultar fechamentos" }).click();
     await page.getByRole("button", { name: "Consultar fechamento 40" }).click();
     const reportResponse = page.waitForResponse((response) =>
       response.url().endsWith("/print.pdf") && response.status() === 200,
     );
     await page
-      .getByRole("button", { name: "Baixar relatório para impressão" })
+      .getByRole("button", { name: "Imprimir fechamento de frete", exact: true })
       .click();
     await reportResponse;
     checks++;
@@ -285,6 +332,7 @@ try {
     admin = false;
     closure = { ...closure, status: "FECHADO", cancelamento: null };
     await login();
+    await page.getByRole("button", { name: "Consultar fechamentos" }).click();
     await page.getByRole("button", { name: "Consultar fechamento 40" }).click();
     await page
       .getByRole("heading", { name: "Fechamento 40 · FECHADO" })

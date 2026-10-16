@@ -70,16 +70,16 @@ function mount(locked = false) {
 it("inclui valor numérico, sem enviar semana manual, e atualiza manifesto", async () => {
   mount();
   fireEvent.click(
-    await screen.findByRole("button", { name: "+ Novo lançamento" }),
+    await screen.findByRole("button", { name: "+ Novo vale" }),
   );
   fireEvent.change(screen.getByLabelText("Despesa"), {
     target: { value: "3" },
   });
-  fireEvent.change(screen.getByLabelText("Valor do lançamento"), {
+  fireEvent.change(screen.getByLabelText("Valor do vale"), {
     target: { value: "30.50" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }));
-  await screen.findByText("Lançamento salvo. Valores recalculados.");
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText("Vale salvo. Valores recalculados.");
   const call = vi
     .mocked(fetch)
     .mock.calls.find(([, o]) => o?.method === "POST");
@@ -98,17 +98,17 @@ it("inclui valor numérico, sem enviar semana manual, e atualiza manifesto", asy
 it("preserva descrição e departamento na edição e mantém formulário em conflito", async () => {
   vi.mocked(fetch).mockImplementation(async (path, options) =>
     options?.method
-      ? response({ message: "Lançamento pago." }, 409)
+      ? response({ message: "Vale pago." }, 409)
       : response(
           String(path).endsWith("/freight-expenses") ? [expense] : [entry],
         ),
   );
   mount();
   fireEvent.click(
-    await screen.findByRole("button", { name: "Editar lançamento 12" }),
+    await screen.findByRole("button", { name: "Editar vale 12" }),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }));
-  await screen.findByText("Lançamento pago.");
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText("Vale pago.");
   const call = vi.mocked(fetch).mock.calls.find(([, o]) => o?.method === "PUT");
   expect(call?.[0]).toBe("/api/manifests/1/entries/9");
   expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
@@ -116,7 +116,7 @@ it("preserva descrição e departamento na edição e mantém formulário em con
     departamento: "Operação",
   });
   expect(
-    (screen.getByLabelText("Descrição do lançamento") as HTMLTextAreaElement)
+    (screen.getByLabelText("Descrição do vale") as HTMLTextAreaElement)
       .value,
   ).toBe("Original");
   expect(onUpdated).not.toHaveBeenCalled();
@@ -124,13 +124,13 @@ it("preserva descrição e departamento na edição e mantém formulário em con
 it("exige confirmação para excluir", async () => {
   mount();
   fireEvent.click(
-    await screen.findByRole("button", { name: "Excluir lançamento 12" }),
+    await screen.findByRole("button", { name: "Excluir vale 12" }),
   );
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
   ).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-  await screen.findByText("Lançamento excluído. Valores recalculados.");
+  await screen.findByText("Vale excluído. Valores recalculados.");
   expect(fetch).toHaveBeenCalledWith(
     "/api/manifests/1/entries/9",
     expect.objectContaining({ method: "DELETE" }),
@@ -149,14 +149,14 @@ it.each([true, false])(
     mount(locked);
     await screen.findByText("Pago / fechado");
     expect(
-      screen.queryByRole("button", { name: "Editar lançamento 12" }),
+      screen.queryByRole("button", { name: "Editar vale 12" }),
     ).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Excluir lançamento 12" }),
+      screen.queryByRole("button", { name: "Excluir vale 12" }),
     ).toBeNull();
     if (locked)
       expect(
-        screen.queryByRole("button", { name: "+ Novo lançamento" }),
+        screen.queryByRole("button", { name: "+ Novo vale" }),
       ).toBeNull();
   },
 );
@@ -174,10 +174,10 @@ it("não informa falha de gravação quando somente a atualização da lista fal
   });
   mount();
   fireEvent.click(
-    await screen.findByRole("button", { name: "Excluir lançamento 12" }),
+    await screen.findByRole("button", { name: "Excluir vale 12" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-  await screen.findByText("Lançamento excluído. Valores recalculados.");
+  await screen.findByText("Vale excluído. Valores recalculados.");
   await screen.findByText("Falha na consulta.");
   await waitFor(() => expect(onBusy).toHaveBeenLastCalledWith(false));
 });
