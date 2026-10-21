@@ -7,6 +7,7 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma/client';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { companyExpenses } from '../freight-entries/company-expenses';
 import { getWeek, periodForDate } from '../weeks/period-policy';
 
@@ -39,7 +40,7 @@ export class ManifestsService {
   ) {}
 
   private async operationalUnits(user: AuthUser) {
-    if (user.isAdmin) return undefined;
+    if (hasGlobalFreightAccess(user)) return undefined;
     if (!this.prisma.user_permissions?.findMany) return [user.unit];
     const rows = await this.prisma.user_permissions.findMany({
       where: {
@@ -52,7 +53,7 @@ export class ManifestsService {
   }
 
   private async operationalUnitWhere(user: AuthUser, unit?: number) {
-    if (user.isAdmin) return unit == null ? {} : { unit };
+    if (hasGlobalFreightAccess(user)) return unit == null ? {} : { unit };
     const units = await this.operationalUnits(user);
     if (unit != null) {
       if (!units!.includes(unit))
@@ -82,7 +83,7 @@ export class ManifestsService {
     let originalFreight: number | undefined;
     if (dto.manifesto_id != null) {
       const manifest = await this.prisma.frete_carregamento_manifestos.findFirst({
-        where: { id: dto.manifesto_id, ...(await this.operationalUnitWhere(user)) },
+        where: { id: dto.manifesto_id, cancelado: false, ...(await this.operationalUnitWhere(user)) },
         select: { frete_veiculo: true, unit: true },
       });
       if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
@@ -227,6 +228,9 @@ export class ManifestsService {
 
         usuario: true,
         data_hora: true,
+        cancelado: true,
+        cancelado_em: true,
+        cancelado_por: true,
       },
     });
   }
@@ -259,8 +263,38 @@ export class ManifestsService {
     return this.mutate(async (tx) => {
       const manifestUnit = this.unitFromManifestNumber(dto.manifestos) ?? user.unit;
       await this.operationalUnitWhere(user, manifestUnit);
-      const data = await this.buildData(tx, dto, user, undefined, 0, manifestUnit);
-      return tx.frete_carregamento_manifestos.create({ data });
+      const numbers = this.manifestNumbers(dto);
+      const pendingEntries = await tx.frete_lancamentos.findMany({
+        where: {
+          unit: manifestUnit,
+          manifesto_id: null,
+          manifesto_numero: { in: numbers },
+          pago: false,
+          fechamento_id: null,
+        },
+      });
+      const data = await this.buildData(
+        tx,
+        dto,
+        user,
+        undefined,
+        companyExpenses(pendingEntries),
+        manifestUnit,
+      );
+      const created = await tx.frete_carregamento_manifestos.create({ data });
+      if (pendingEntries.length)
+        await tx.frete_lancamentos.updateMany({
+          where: { id: { in: pendingEntries.map((entry) => entry.id) } },
+          data: {
+            manifesto_id: created.id,
+            placa: created.placa,
+            motorista: created.motorista,
+            tipo_veiculo: created.tipo_veiculo,
+            destino: created.destino,
+            updated_at: new Date(),
+          },
+        });
+      return created;
     });
   }
 
@@ -294,6 +328,7 @@ export class ManifestsService {
       await tx.frete_lancamentos.updateMany({
         where: { manifesto_id: id, unit: manifest.unit },
         data: {
+          manifesto_numero: updated.manifestos,
           placa: updated.placa,
           motorista: updated.motorista,
           tipo_veiculo: updated.tipo_veiculo,
@@ -316,10 +351,16 @@ export class ManifestsService {
           fechamento_id: null,
         },
       });
-      await tx.frete_carregamento_manifestos.delete({
+      await tx.frete_carregamento_manifestos.update({
         where: { id },
+        data: {
+          cancelado: true,
+          cancelado_em: new Date(),
+          cancelado_por: user.cod,
+          updated_at: new Date(),
+        },
       });
-      return { id, deleted: true, deletedEntries: entries.count };
+      return { id, canceled: true, deletedEntries: entries.count };
     });
   }
 
@@ -332,6 +373,11 @@ export class ManifestsService {
       where: { id, ...(await this.operationalUnitWhere(user)) },
     });
     if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
+    if (manifest.cancelado) {
+      throw new ConflictException(
+        'Manifesto cancelado não pode ser alterado ou cancelado novamente.',
+      );
+    }
     if (manifest.fechamento_id != null) {
       throw new ConflictException(
         'Manifesto fechado não pode ser alterado ou excluído.',
@@ -447,6 +493,23 @@ export class ManifestsService {
       throw new ConflictException(
         `O manifesto ${numeroManifesto} já está cadastrado nesta unidade.`,
       );
+    }
+
+    const ctrbNumero = dto.ctrb_numero?.trim() || null;
+    if (ctrbNumero) {
+      const ctrbExistente =
+        await database.frete_carregamento_manifestos.findFirst({
+          where: {
+            unit: targetUnit,
+            ctrb_numero: ctrbNumero,
+            ...(excludeId === undefined ? {} : { id: { not: excludeId } }),
+          },
+          select: { id: true, manifestos: true },
+        });
+      if (ctrbExistente)
+        throw new ConflictException(
+          `O CTRB ${ctrbNumero} já está cadastrado no manifesto ${ctrbExistente.manifestos}.`,
+        );
     }
 
     // =======================================================
@@ -848,7 +911,7 @@ export class ManifestsService {
       // CTRB
       // =================================================
 
-      ctrb_numero: dto.ctrb_numero?.trim() || null,
+      ctrb_numero: ctrbNumero,
 
       ctrb_total: ctrbTotal,
 
@@ -906,6 +969,7 @@ export class ManifestsService {
       where: {
         unit,
         placa,
+        cancelado: false,
         semana: { gte: week.data_inicio, lte: week.data_fim },
         fechamento_id: null,
         num_fechamento: { not: null },

@@ -14,7 +14,7 @@ afterEach(() => {
 });
 const manifest = {
   id: 88,
-  manifestos: "M123",
+  manifestos: "100018302-4",
   semana: "2026-09-21",
   placa: "ABC1234",
   motorista: "João Silva",
@@ -51,6 +51,8 @@ async function mount(locked = false) {
                     ]
                   : url.includes("/drivers")
                     ? [{ cpf: "12345678901", name: "João Silva" }]
+                    : url.includes("/registrations/vehicles")
+                      ? [{ plate: "ABC1234" }]
                     : [{ ...manifest, fechamento_id: locked ? 5 : null }],
           ),
           { status: 200 },
@@ -77,9 +79,11 @@ async function mount(locked = false) {
   );
 }
 function values() {
-  fireEvent.change(screen.getByLabelText("Semana"), {
+  const week = screen.getByLabelText("Semana");
+  fireEvent.change(week, {
     target: { value: "3926" },
   });
+  fireEvent.keyDown(week, { key: "Enter" });
   fireEvent.change(screen.getByLabelText("Data do vale"), {
     target: { value: "2026-09-21" },
   });
@@ -90,17 +94,39 @@ function values() {
     target: { value: "25.50" },
   });
 }
+function fillManifest(value = manifest.manifestos) {
+  fireEvent.change(screen.getByLabelText("Primeiros três dígitos do manifesto"), {
+    target: { value: value.slice(0, 3) },
+  });
+  const suffix = screen.getByLabelText("Número do manifesto");
+  fireEvent.change(suffix, { target: { value: value.slice(3) } });
+  fireEvent.blur(suffix);
+}
+
+it("mantém a digitação parcial da unidade no campo do manifesto", async () => {
+  await mount();
+  const prefix = screen.getByLabelText("Primeiros três dígitos do manifesto");
+
+  fireEvent.change(prefix, { target: { value: "1" } });
+  expect((prefix as HTMLInputElement).value).toBe("1");
+  expect((screen.getByLabelText("Número do manifesto") as HTMLInputElement).value).toBe("");
+
+  fireEvent.change(prefix, { target: { value: "10" } });
+  expect((prefix as HTMLInputElement).value).toBe("10");
+  expect((screen.getByLabelText("Número do manifesto") as HTMLInputElement).value).toBe("");
+});
+function choosePlate(value = "ABC1234") {
+  const field = screen.getByLabelText("Placa");
+  fireEvent.change(field, { target: { value } });
+  fireEvent.keyDown(field, { key: "Enter" });
+}
 it("abre formulário e salva por placa/semana sem pesquisar manifesto", async () => {
   await mount();
   expect(
-    (screen.getByLabelText("Manifesto") as HTMLInputElement).required,
+    (screen.getByLabelText("Número do manifesto") as HTMLInputElement).required,
   ).toBe(false);
-  expect(document.querySelector("form input")?.getAttribute("name")).toBe(
-    "manifesto",
-  );
-  fireEvent.change(screen.getByLabelText("Placa"), {
-    target: { value: "ABC1234" },
-  });
+  expect(document.querySelector('form input[name="manifesto"]')).toBeTruthy();
+  choosePlate();
   values();
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
   await screen.findByText(/Vale 42 salvo/);
@@ -122,10 +148,7 @@ it("abre formulário e salva por placa/semana sem pesquisar manifesto", async ()
 });
 it("preenche dados ao sair do manifesto e envia vínculo", async () => {
   await mount();
-  fireEvent.change(screen.getByLabelText("Manifesto"), {
-    target: { value: "M123" },
-  });
-  fireEvent.blur(screen.getByLabelText("Manifesto"));
+  fillManifest();
   await waitFor(() =>
     expect((screen.getByLabelText("Placa") as HTMLInputElement).value).toBe(
       "ABC1234",
@@ -134,7 +157,11 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
   expect((screen.getByLabelText("Placa") as HTMLInputElement).value).toBe(
     "ABC1234",
   );
-  await screen.findByDisplayValue("João Silva");
+  await waitFor(() =>
+    expect((screen.getByLabelText("Motorista") as HTMLInputElement).value).toBe(
+      "João Silva",
+    ),
+  );
   values();
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
   await screen.findByText(/Vale 42 salvo/);
@@ -146,6 +173,29 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
       ),
     ),
   ).toHaveProperty("manifesto_id", 88);
+});
+it("salva o vale pelo número antes de o manifesto existir", async () => {
+  await mount();
+  const normal = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation((url, options) =>
+    String(url).includes("/manifests?")
+      ? Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))
+      : normal(url, options),
+  );
+  fillManifest();
+  await screen.findByText(/Manifesto ainda não cadastrado/);
+  choosePlate();
+  values();
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await screen.findByText(/Vale 42 salvo/);
+  const request = vi.mocked(fetch).mock.calls.find(
+    ([url, options]) =>
+      String(url).endsWith("/freight-entries") && options?.method === "POST",
+  );
+  expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({
+    manifesto_numero: manifest.manifestos,
+    placa: "ABC1234",
+  });
 });
 
 it("exibe o ID pelo botão Editar, carrega e salva o vale sem criar outro", async () => {
@@ -313,10 +363,7 @@ it.each([false, true])(
 
 it("não permite salvar em manifesto fechado", async () => {
   await mount(true);
-  fireEvent.change(screen.getByLabelText("Manifesto"), {
-    target: { value: "M123" },
-  });
-  fireEvent.blur(screen.getByLabelText("Manifesto"));
+  fillManifest();
   await screen.findByText(/Registro pago ou fechado:/);
   expect(
     (
@@ -337,16 +384,13 @@ it("descarta resposta atrasada quando o manifesto é apagado", async () => {
         })
       : normal(u, o),
   );
-  fireEvent.change(screen.getByLabelText("Manifesto"), {
-    target: { value: "M123" },
-  });
-  fireEvent.blur(screen.getByLabelText("Manifesto"));
-  fireEvent.change(screen.getByLabelText("Manifesto"), {
+  fillManifest();
+  fireEvent.change(screen.getByLabelText("Número do manifesto"), {
     target: { value: "" },
   });
   resolve(new Response(JSON.stringify([manifest]), { status: 200 }));
   await waitFor(() =>
-    expect((screen.getByLabelText("Placa") as HTMLInputElement).readOnly).toBe(
+    expect((screen.getByLabelText("Placa") as HTMLInputElement).disabled).toBe(
       false,
     ),
   );

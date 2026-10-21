@@ -161,6 +161,10 @@ model frete_carregamento_manifestos {
 
   vale_pedagio Decimal @default(0) @db.Decimal(15, 2)
 
+  cancelado     Boolean   @default(false)
+  cancelado_em  DateTime? @db.DateTime(0)
+  cancelado_por Int?
+
   updated_at DateTime @default(now()) @updatedAt
 
   @@index([unit], map: "fk_manifesto_unit")
@@ -171,6 +175,7 @@ model frete_carregamento_manifestos {
   @@index([placa], map: "idx_frete_manifesto_placa")
   @@index([semana], map: "idx_frete_manifesto_data")
   @@index([fechamento_id], map: "idx_frete_manifesto_fechamento")
+  @@index([cancelado], map: "idx_frete_manifesto_cancelado")
 }
 
 model employees {
@@ -180,6 +185,7 @@ model employees {
   password String? @db.VarChar(255)
   unit     Int
   isAdmin  Boolean @default(false)
+  freight_profile String @default("OPERACAO") @db.VarChar(20)
 
   @@index([unit], map: "unit")
 }
@@ -303,6 +309,7 @@ model frete_lancamentos {
   descricao                     String?                        @db.VarChar(255)
   pago                          Boolean                        @default(false)
   manifesto_id                  Int?
+  manifesto_numero             String?                        @db.VarChar(20)
   fechamento_id                 Int?
   responsavel_cod               Int?
   departamento                  String?                        @db.VarChar(30)
@@ -313,6 +320,7 @@ model frete_lancamentos {
   @@unique([unit, numero], map: "uk_frete_lancamento_numero")
   @@index([fechamento_id], map: "idx_frete_lancamento_fechamento")
   @@index([manifesto_id], map: "idx_frete_lancamento_manifesto")
+  @@index([unit, manifesto_numero], map: "idx_frete_lancamento_manifesto_numero")
   @@index([placa], map: "idx_frete_lancamento_placa")
   @@index([responsavel_cod], map: "idx_frete_lancamento_responsavel")
   @@index([semana], map: "idx_frete_lancamento_semana")

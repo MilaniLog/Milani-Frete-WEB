@@ -24,8 +24,11 @@ describe('Conciliação com fechamentos reais da planilha', () => {
   it.each([historical, ...latest.cases])(
     'reproduz bruto, débitos e líquido da linha $source_row',
     async (reference) => {
-      const manifests = reference.manifests.map((row) => ({
+      const manifests = reference.manifests.map((row, index) => ({
         ...row,
+        ...(row.ctrb_numero
+          ? { ctrb_numero: `${row.ctrb_numero}-${index + 1}` }
+          : {}),
         frete_veiculo: new Decimal(row.frete_veiculo),
         ctrb_total: new Decimal(row.ctrb_total),
       }));

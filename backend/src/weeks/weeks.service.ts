@@ -59,6 +59,7 @@ export class WeeksService {
               const [manifest, entry, closure, coupon] = await Promise.all([
                 tx.frete_carregamento_manifestos.findFirst({
                   where: {
+                    cancelado: false,
                     semana: { gte: current.data_inicio, lte: current.data_fim },
                   },
                   select: { id: true },

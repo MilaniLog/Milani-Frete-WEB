@@ -13,6 +13,9 @@ import { renderHtmlPdf } from './pdf-renderer';
 @RequirePermission('freight_service')
 export class ReportsController {
   constructor(private readonly service: ReportsService) {}
+  @Get('units') @Header('Cache-Control', 'no-store') units() {
+    return this.service.reportUnits();
+  }
   @Get('financial') @Header('Cache-Control', 'no-store') financial(
     @Query() q: ReportQuery,
     @Req() req: AuthenticatedRequest,
@@ -24,6 +27,25 @@ export class ReportsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.service.payments(q, req.user);
+  }
+  @Get('manifests') @Header('Cache-Control', 'no-store') manifests(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.manifests(q, req.user);
+  }
+  @Get('manifests/print')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  async manifestsPrint(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return reportHtml(await this.service.manifests(q, req.user));
   }
   @Get('financial/print')
   @Header('Content-Type', 'text/html; charset=utf-8')
@@ -52,10 +74,22 @@ export class ReportsController {
     return reportHtml(await this.service.payments(q, req.user));
   }
   @Get('payments/spreadsheet')
-  @Header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
   @Header('Cache-Control', 'no-store')
-  async sheet(@Query() q: ReportQuery, @Req() req: AuthenticatedRequest) {
-    return reportSpreadsheet(await this.service.payments(q, req.user));
+  async sheet(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    const workbook = reportSpreadsheet(await this.service.payments(q, req.user));
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="planilha-pagamentos.xlsx"',
+    );
+    res.send(workbook);
   }
   @Get('closures/reprint')
   @Header('Content-Type', 'text/html; charset=utf-8')

@@ -33,6 +33,7 @@ type EntryRow = {
   numero: number;
   unit?: number;
   manifesto_id?: number | null;
+  manifesto_numero?: string | null;
   data_lancamento?: string;
   codigo_despesa?: string;
   nome_despesa: string;
@@ -53,6 +54,7 @@ type Preview = {
   placa: string;
   motorista?: string | null;
   closureNumber?: number | null;
+  isClosed?: boolean;
   manifests: ManifestRow[];
   entries: EntryRow[];
   availableDebits?: EntryRow[];
@@ -95,15 +97,10 @@ const entryDescription = (entry: EntryRow) =>
   entry.codigo_despesa
     ? `${entry.codigo_despesa} - ${entry.nome_despesa}`
     : entry.nome_despesa;
-const creditEntryDescription = (entry: EntryRow, manifests: ManifestRow[]) => {
+const entryManifestNumber = (entry: EntryRow, manifests: ManifestRow[]) => {
   const manifest = manifests.find((item) => item.id === entry.manifesto_id);
-  return [
-    manifest ? manifestWithoutUnit(manifest.manifestos) : null,
-    entry.codigo_despesa?.trim(),
-    entry.nome_despesa?.trim(),
-  ]
-    .filter(Boolean)
-    .join(" - ");
+  const number = manifest?.manifestos ?? entry.manifesto_numero;
+  return number ? manifestWithoutUnit(number) : "Sem manifesto";
 };
 const entryIdentifier = (entry: EntryRow) => String(entry.id);
 const recordTime = (value?: string) => {
@@ -173,6 +170,11 @@ const withSelectedDebits = (data: Preview, selectedIds: number[]): Preview => {
     },
   };
 };
+
+const negativeNetMessage = (data: Preview) =>
+  decimal(data.totals.total_liquido) < 0
+    ? `Não é possível fechar a placa ${data.placa}: o valor líquido está negativo (${money(data.totals.total_liquido)}).`
+    : null;
 
 export default function Closures({
   token,
@@ -315,6 +317,64 @@ export default function Closures({
       setBusy(false);
     }
   }
+  async function refreshConference() {
+    if (!conferenceGroups || !conferenceQuery || busy) return;
+    const currentPlate = conferenceGroups[batchIndex]?.placa;
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const data = await api<{ groups: Preview[] }>(
+        `/freight-closures/conference?${conferenceQuery}`,
+        token,
+      );
+      setConferenceGroups(data.groups);
+      const refreshedIndex = currentPlate
+        ? data.groups.findIndex((group) => group.placa === currentPlate)
+        : 0;
+      setBatchIndex(Math.max(0, refreshedIndex));
+      setBatchDebitSelections((previous) => {
+        const next: Record<string, number[]> = {};
+        for (const group of data.groups) {
+          const available = new Set(debitRows(group).map((row) => row.id));
+          next[group.placa] = (previous[group.placa] ?? []).filter((id) =>
+            available.has(id),
+          );
+        }
+        return next;
+      });
+      setSuccess("Dados da conferência atualizados.");
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function refreshPreview() {
+    if (!preview || busy) return;
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const data = await api<Preview>(
+        `/freight-closures/preview?${new URLSearchParams({
+          ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+          ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
+          semana: preview.semana,
+          placa: preview.placa,
+        }).toString()}`,
+        token,
+      );
+      const available = new Set(debitRows(data).map((row) => row.id));
+      setSelectedDebitIds((ids) => ids.filter((id) => available.has(id)));
+      setPreview(data);
+      setSuccess("Dados da placa atualizados.");
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function prepareFinalization() {
     if (!week || filters.inicio || filters.fim) {
       setError(
@@ -416,6 +476,15 @@ export default function Closures({
   }
   async function finalize() {
     if (!preview || busy) return;
+    const negativeMessage = previewDisplay
+      ? negativeNetMessage(previewDisplay)
+      : null;
+    if (negativeMessage) {
+      setError(negativeMessage);
+      setSuccess("");
+      setConfirm(false);
+      return;
+    }
     setBusy(true);
     setError("");
     setSuccess("");
@@ -451,6 +520,18 @@ export default function Closures({
   }
   async function finalizeWeek() {
     if (!batchWeek || busy) return;
+    const reviewed =
+      conferenceGroups?.slice(0, batchIndex + 1).filter((group) => !group.isClosed) ?? [];
+    const invalid = reviewed
+      .map((group) =>
+        withSelectedDebits(group, batchDebitSelections[group.placa] ?? []),
+      )
+      .find((group) => negativeNetMessage(group));
+    if (invalid) {
+      setError(negativeNetMessage(invalid)!);
+      setSuccess("");
+      return;
+    }
     setBusy(true);
     setError("");
     setSuccess("");
@@ -468,6 +549,8 @@ export default function Closures({
           method: "POST",
           body: JSON.stringify({
             semana: batchWeek,
+            ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+            ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
             placas: conferenceGroups?.slice(0, batchIndex + 1).map((group) => group.placa) ?? [],
             selections: selections.filter((selection) =>
               conferenceGroups?.slice(0, batchIndex + 1).some((group) => group.placa === selection.placa),
@@ -490,6 +573,16 @@ export default function Closures({
     if (!batchWeek || busy || !conferenceGroups?.length) return;
     const currentIndex = Math.min(batchIndex, conferenceGroups.length - 1);
     const current = conferenceGroups[currentIndex];
+    const currentDisplay = withSelectedDebits(
+      current,
+      batchDebitSelections[current.placa] ?? [],
+    );
+    const negativeMessage = negativeNetMessage(currentDisplay);
+    if (negativeMessage) {
+      setError(negativeMessage);
+      setSuccess("");
+      return;
+    }
     const reportWindow = window.open("", "_blank");
     if (reportWindow) reportWindow.opener = null;
     setBusy(true);
@@ -519,10 +612,10 @@ export default function Closures({
         return next;
       });
       setReport(null);
-      await downloadClosurePdf(
+      await downloadClosureHtml(
         result.closure.id,
         "drivers",
-        `motorista-fechamento-${result.closure.numero}.pdf`,
+        `motorista-fechamento-${result.closure.numero}.html`,
         reportWindow,
       );
       setSuccess(`Placa ${current.placa} fechada no fechamento ${result.closure.numero}.`);
@@ -623,6 +716,8 @@ export default function Closures({
           },
           body: JSON.stringify({
             semana: selectedWeek,
+            ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+            ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
             selections: batchSelectionsPayload(),
           }),
         },
@@ -692,7 +787,7 @@ export default function Closures({
       setBusy(false);
     }
   }
-  async function downloadClosurePdf(
+  async function downloadClosureHtml(
     id: number,
     kind: "freight" | "drivers",
     name: string,
@@ -701,7 +796,7 @@ export default function Closures({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(apiUrl(`/freight-closures/week/${kind}/pdf`), {
+      const response = await fetch(apiUrl(`/freight-closures/week/${kind}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -807,7 +902,9 @@ export default function Closures({
                     Math.min(batchIndex, conferenceGroups.length - 1)
                   ];
                 const selectedIds = batchDebitSelections[current.placa] ?? [];
-                const currentDisplay = withSelectedDebits(current, selectedIds);
+                const currentDisplay = current.isClosed
+                  ? current
+                  : withSelectedDebits(current, selectedIds);
                 return (
                   <section className="panel batch-conference-panel">
                     <div className="batch-saved-line">
@@ -824,13 +921,16 @@ export default function Closures({
                         <p className="muted">
                           Semana {current.semana} · {recordDate(current.periodo_inicio)} a {recordDate(current.periodo_fim)} · Origem {current.origem || "—"}
                         </p>
+                        {current.isClosed && (
+                          <span className="badge">Fechamento já finalizado</span>
+                        )}
                       </div>
                     </div>
                     <Values
                       data={currentDisplay}
-                      selectableDebits={debitRows(current)}
-                      selectedDebitIds={selectedIds}
-                      setSelectedDebitIds={(ids) =>
+                      selectableDebits={current.isClosed ? undefined : debitRows(current)}
+                      selectedDebitIds={current.isClosed ? undefined : selectedIds}
+                      setSelectedDebitIds={current.isClosed ? undefined : (ids) =>
                         setBatchDebitSelections((previous) => ({
                           ...previous,
                           [current.placa]: ids,
@@ -842,14 +942,24 @@ export default function Closures({
                       <button
                         type="button"
                         className="secondary batch-compact-action"
+                        disabled={busy}
+                        onClick={() => void refreshConference()}
+                      >
+                        Atualizar dados
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary batch-compact-action"
                         disabled={busy || !activeConferenceWeek()}
                         onClick={() => void downloadAdjustedConference()}
                       >
                         Baixar conferência
                       </button>
-                      <button type="button" className="primary batch-compact-action" disabled={busy || !activeConferenceWeek()} onClick={saveBatchAdjustments}>
-                        Salvar alterações
-                      </button>
+                      {!current.isClosed && (
+                        <button type="button" className="primary batch-compact-action" disabled={busy || !activeConferenceWeek()} onClick={saveBatchAdjustments}>
+                          Salvar alterações
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="secondary batch-compact-action"
@@ -874,7 +984,7 @@ export default function Closures({
                           Próximo
                         </button>
                       )}
-                      {batchWeek && (
+                      {batchWeek && !current.isClosed && (
                         <>
                           <button type="button" className="primary batch-compact-action batch-close-plate-action" disabled={busy} onClick={() => void finalizeCurrentPlate()}>
                             Fechar placa
@@ -892,11 +1002,23 @@ export default function Closures({
           </section>
         )}
         {preview && previewDisplay && (
-          <div ref={previewRef}>
-            <h3>
-              Prévia · Semana {preview.semana} · {preview.placa}
-              {preview.motorista ? ` · ${preview.motorista}` : ""}
-            </h3>
+          <section className="conference-results">
+          <section className="panel batch-conference-panel">
+            <div className="batch-saved-line">
+              <span className="badge">Seleções salvas nesta conferência</span>
+            </div>
+            <div ref={previewRef} className="filters batch-conference-heading">
+              <div>
+                <h3>
+                  1 de 1 · {preview.placa}
+                  {preview.motorista ? ` · ${preview.motorista}` : ""}
+                  {` · Fechamento ${preview.closureNumber ?? "—"}`}
+                </h3>
+                <p className="muted">
+                  Semana {preview.semana} · {recordDate(preview.periodo_inicio)} a {recordDate(preview.periodo_fim)} · Origem {preview.origem || "—"}
+                </p>
+              </div>
+            </div>
             <Values
               data={previewDisplay}
               selectableDebits={debitRows(preview)}
@@ -904,28 +1026,32 @@ export default function Closures({
               setSelectedDebitIds={setSelectedDebitIds}
               busy={busy}
             />
-            <p className="muted">
-              O backend recalcula na finalização. Alterações posteriores à
-              conferência podem mudar os valores. Finalizar marca os registros
-              como pagos; não realiza transferência bancária.
-            </p>
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={() =>
-                void download(
-                  `/freight-closures/preview/print/pdf?${new URLSearchParams({
-                    ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
-                    ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
-                    semana: preview.semana,
-                    placa: preview.placa,
-                  }).toString()}`,
-                  "conferencia.pdf",
-                )
-              }
-            >
-              Baixar conferência
-            </button>
+            <div className="actions batch-conference-actions">
+              <button
+                type="button"
+                className="secondary batch-compact-action"
+                disabled={busy}
+                onClick={() => void refreshPreview()}
+              >
+                Atualizar dados
+              </button>
+              <button
+                className="secondary batch-compact-action"
+                disabled={busy}
+                onClick={() =>
+                  void download(
+                    `/freight-closures/preview/print/pdf?${new URLSearchParams({
+                      ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+                      ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
+                      semana: preview.semana,
+                      placa: preview.placa,
+                    }).toString()}`,
+                    "conferencia.pdf",
+                  )
+                }
+              >
+                Baixar conferência
+              </button>
             {!previewDisplay.manifests.length &&
             !previewDisplay.entries.length &&
             !previewDisplay.coupons.length ? (
@@ -953,14 +1079,16 @@ export default function Closures({
               </div>
             ) : (
               <button
-                className="primary"
+                className="primary batch-compact-action"
                 disabled={busy}
                 onClick={() => setConfirm(true)}
               >
                 Finalizar fechamento
               </button>
             )}
-          </div>
+            </div>
+          </section>
+          </section>
         )}
       </section>
       </div>
@@ -1014,19 +1142,21 @@ export default function Closures({
                       >
                         Consultar fechamento {row.numero}
                       </button>
-                      <button
-                        className="text-button"
-                        disabled={busy}
-                        onClick={() =>
-                          void download(
-                            `/freight-closures/${row.id}/print/pdf`,
-                            `fechamento-${row.numero}.pdf`,
-                            true,
-                          )
-                        }
-                      >
-                        Reimprimir fechamento {row.numero}
-                      </button>
+                      {row.status === "FECHADO" && (
+                        <button
+                          className="text-button"
+                          disabled={busy}
+                          onClick={() =>
+                            void download(
+                              `/freight-closures/${row.id}/print`,
+                              `fechamento-${row.numero}.html`,
+                              true,
+                            )
+                          }
+                        >
+                          Reimprimir fechamento {row.numero}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1056,20 +1186,24 @@ export default function Closures({
             </p>
           )}
           <Values data={report} />
-          <button
-            className="secondary"
-            disabled={busy}
-            onClick={() =>
-              void download(
-                `/freight-closures/${report.cabecalho.id}/print/pdf`,
-                `fechamento-${report.cabecalho.numero}.pdf`,
-                true,
-              )
-            }
-          >
-            Imprimir fechamento de frete
-          </button>
-          <p className="muted">O arquivo baixado já será gerado em PDF.</p>
+          {report.cabecalho.status === "FECHADO" && (
+            <>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void download(
+                    `/freight-closures/${report.cabecalho.id}/print`,
+                    `fechamento-${report.cabecalho.numero}.html`,
+                    true,
+                  )
+                }
+              >
+                Imprimir fechamento de frete
+              </button>
+              <p className="muted">O relatório será aberto e baixado em HTML.</p>
+            </>
+          )}
           {report.cabecalho.status === "FECHADO" &&
             (cancel ? (
               <form onSubmit={cancelClosure}>
@@ -1145,14 +1279,21 @@ function Values({
   const creditsAndManifestsTotal = manifestTotal + creditTotal;
   const ctrbTotal = decimal(data.totals.total_ctrb);
   const manifestIds = new Set(data.manifests.map((manifest) => manifest.id));
-  const ctrbAdvance3333 = data.entries
+  const ctrbAdvanceEntries = [
+    ...data.entries,
+    ...(selectableDebits ?? []),
+  ]
     .filter(
-      (entry) =>
+      (entry, index, entries) =>
         String(entry.codigo_despesa ?? "").trim() === "3333" &&
         entry.manifesto_id != null &&
-        manifestIds.has(entry.manifesto_id),
-    )
-    .reduce((total, entry) => total + decimal(entry.valor), 0);
+        manifestIds.has(entry.manifesto_id) &&
+        entries.findIndex((candidate) => candidate.id === entry.id) === index,
+    );
+  const ctrbAdvance3333 = ctrbAdvanceEntries.reduce(
+    (total, entry) => total + decimal(entry.valor),
+    0,
+  );
   const ctrbMlnTotal =
     data.manifests.reduce(
       (total, manifest) => total + decimal(manifest.valor_liquido),
@@ -1161,7 +1302,6 @@ function Values({
   const driverCompany =
     data.payment?.primeira.empresa || "Empresa do motorista";
   const driverCompanyTotal = decimal(data.totals.total_liquido) - ctrbTotal;
-  const ctrbs = data.payment?.ctrbs ?? [];
   const creditRecords = [
     ...data.manifests.map((manifest) => ({
       kind: "manifest" as const,
@@ -1174,18 +1314,19 @@ function Values({
       entry,
     })),
   ].sort((a, b) => recordTime(a.date) - recordTime(b.date));
-  const ctrbRows = ctrbs
-    .map((numero) => {
-      const manifest = data.manifests.find(
-        (item) => item.ctrb_numero === numero,
-      );
-      return { numero, manifest };
-    })
+  const ctrbRows = data.manifests
+    .filter((manifest) => String(manifest.ctrb_numero ?? "").trim())
+    .map((manifest) => ({ numero: manifest.ctrb_numero!, manifest }))
     .sort(
       (a, b) => recordTime(a.manifest?.semana) - recordTime(b.manifest?.semana),
     );
   const debitRecords = [
-    ...debitEntries.map((entry) => ({
+    ...[
+      ...debitEntries,
+      ...ctrbAdvanceEntries.filter(
+        (advance) => !debitEntries.some((entry) => entry.id === advance.id),
+      ),
+    ].map((entry) => ({
       kind: "entry" as const,
       date: entry.data_lancamento,
       entry,
@@ -1215,12 +1356,12 @@ function Values({
             <strong>Créditos e manifestos</strong>
           </div>
           <table>
-            <thead><tr><th>Data</th><th>ID Lanç/Uni</th><th>Descrição / Manifesto</th><th>Horário</th><th>Destino</th><th className="right">Valor</th></tr></thead>
+            <thead><tr><th>Data</th><th>ID Lanç/Uni</th><th>Manifesto / Descrição</th><th>Horário</th><th>Destino</th><th className="right">Valor</th></tr></thead>
             <tbody>
               {creditRecords.map((record) => record.kind === "manifest" ? (
                 <tr key={`m${record.manifest.id}`}><td>{recordDate(record.date)}</td><td>{record.manifest.unit ?? "—"}</td><td>{manifestWithoutUnit(record.manifest.manifestos)}</td><td>{recordHour(record.manifest.hora)}</td><td>{record.manifest.destino || "—"}</td><td className="right">{money(record.manifest.frete_veiculo)}</td></tr>
               ) : (
-                <tr key={`e${record.entry.id}`}><td>{recordDate(record.date)}</td><td>{entryIdentifier(record.entry)}</td><td>{creditEntryDescription(record.entry, data.manifests)}</td><td>—</td><td>—</td><td className="right">{money(record.entry.valor)}</td></tr>
+                <tr key={`e${record.entry.id}`}><td>{recordDate(record.date)}</td><td>{entryIdentifier(record.entry)}</td><td>{entryManifestNumber(record.entry, data.manifests)}<small>{entryDescription(record.entry)}</small></td><td>—</td><td>—</td><td className="right">{money(record.entry.valor)}</td></tr>
               ))}
               {!data.manifests.length && !creditRows.length && <tr><td colSpan={6}>Nenhum crédito ou manifesto.</td></tr>}
             </tbody>
@@ -1232,7 +1373,7 @@ function Values({
           <table className="closure-ctrb-table">
             <thead><tr><th>Data</th><th>Manifesto</th><th>CTRB</th><th className="right">Adiantamento</th><th className="right">Vale-pedágio</th><th className="right">SEST/SENAT</th><th className="right">IRRF</th><th className="right">Prev. Social</th><th className="right">INSS</th><th className="right">Valor líquido</th><th className="right">Valor CTRB</th></tr></thead>
             <tbody>
-              {ctrbRows.map(({ numero, manifest }) => <tr key={numero}>
+              {ctrbRows.map(({ numero, manifest }) => <tr key={manifest.id}>
                 <td>{recordDate(manifest?.semana)}</td>
                 <td>{manifest ? manifestWithoutUnit(manifest.manifestos) : "—"}</td>
                 <td>{numero}</td>
@@ -1277,16 +1418,23 @@ function Values({
             </div>
           )}
           <table>
-            <thead><tr><th>Data</th><th>ID Vale</th><th>Descrição</th><th className="right">Valor</th></tr></thead>
+            <thead><tr><th>Data</th><th>ID Vale</th><th>Manifesto / Descrição</th><th className="right">Valor</th></tr></thead>
             <tbody>
               {debitRecords.map((record) => record.kind === "entry" ? (
                 <tr
                   key={`d${record.entry.id}`}
-                  className={selected.has(record.entry.id) ? "" : "muted-row"}
+                  className={
+                    ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id) ||
+                    selected.has(record.entry.id)
+                      ? ""
+                      : "muted-row"
+                  }
                 >
                   <td>{recordDate(record.date)}</td>
                   <td>
-                    {canSelectDebits ? (
+                    {ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id) ? (
+                      <>{entryIdentifier(record.entry)} · CTRB</>
+                    ) : canSelectDebits ? (
                       <><input
                           type="checkbox"
                           checked={selected.has(record.entry.id)}
@@ -1300,7 +1448,15 @@ function Values({
                       entryIdentifier(record.entry)
                     )}
                   </td>
-                  <td>{entryDescription(record.entry)}</td>
+                  <td>
+                    {entryManifestNumber(record.entry, data.manifests)}
+                    <small>
+                      {entryDescription(record.entry)}
+                      {ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id)
+                        ? " · subtrai do CTRB"
+                        : ""}
+                    </small>
+                  </td>
                   <td className="right">{money(record.entry.valor)}</td>
                 </tr>
               ) : (
@@ -1310,6 +1466,9 @@ function Values({
             </tbody>
             <tfoot>
               <tr className="closure-record-total"><td colSpan={3}>Total de vales selecionados</td><td className="right">{money(moneyValue(selectedDebitTotal))}</td></tr>
+              {ctrbAdvanceEntries.length > 0 && (
+                <tr className="closure-record-total"><td colSpan={3}>Total 3333 descontado do CTRB</td><td className="right">{money(moneyValue(ctrbAdvance3333))}</td></tr>
+              )}
             </tfoot>
           </table>
         </div>
@@ -1323,7 +1482,9 @@ function Values({
             ].map(([label, value]) => (
               <div key={label}>
                 <dt>{label}</dt>
-                <dd>{money(value)}</dd>
+                <dd className={decimal(value) < 0 ? "negative-value" : undefined}>
+                  {money(value)}
+                </dd>
               </div>
             ))}
           </dl>

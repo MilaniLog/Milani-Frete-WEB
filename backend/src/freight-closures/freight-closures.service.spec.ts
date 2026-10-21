@@ -79,8 +79,10 @@ describe('FreightClosuresService', () => {
       },
     ]);
     const result = await service.preview(dto, user);
-    expect(result.totals.debitos.toString()).toBe('35');
+    expect(result.totals.debitos.toString()).toBe('0');
     expect(result.totals.total_ctrb.toString()).toBe('200');
+    expect(result.availableDebits).toEqual([]);
+    expect(result.entries).toHaveLength(1);
   });
   it('consulta a ultima numeracao da semana globalmente', async () => {
     db.frete_carregamento_manifestos.findFirst.mockResolvedValue({
@@ -122,6 +124,38 @@ describe('FreightClosuresService', () => {
       expect.objectContaining({ data: { fechamento_id: 6, pago: true } }),
     );
   });
+  it('impede o fechamento quando o valor líquido está negativo', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([
+      {
+        id: 10,
+        num_fechamento: 10001,
+        frete_veiculo: new Decimal(0),
+        ctrb_total: new Decimal(0),
+      },
+    ]);
+
+    await expect(service.finalize(dto, user)).rejects.toThrow(
+      'o valor líquido está negativo',
+    );
+    expect(db.frete_fechamentos.create).not.toHaveBeenCalled();
+  });
+  it('gera novo número quando o número do manifesto pertence a fechamento cancelado', async () => {
+    db.frete_fechamentos.findFirst
+      .mockResolvedValueOnce({ id: 5, status: 'CANCELADO' })
+      .mockResolvedValueOnce({ numero: 10001 });
+    db.frete_fechamentos.create.mockResolvedValue({ id: 7, numero: 10002 });
+
+    await service.finalize(dto, user);
+
+    expect(db.frete_fechamentos.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ numero: 10002 }),
+    });
+    expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { fechamento_id: 7, num_fechamento: 10002 },
+      }),
+    );
+  });
   it('mantem debito desmarcado em aberto para proximo fechamento', async () => {
     db.frete_lancamentos.updateMany.mockResolvedValueOnce({ count: 2 });
     const result = await service.finalize(
@@ -134,6 +168,55 @@ describe('FreightClosuresService', () => {
         where: expect.objectContaining({ id: { in: [1, 3] } }),
       }),
     );
+  });
+  it('carrega todos os vales abertos e limita o 3333 aos manifestos da semana', async () => {
+    await service.preview(dto, user);
+
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
+      where: {
+        unit: 2,
+        placa: 'ABC1234',
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: { in: ['Credito', 'Debito', 'Adiantamento'] },
+        OR: [
+          { codigo_despesa: { not: '3333' } },
+          {
+            codigo_despesa: '3333',
+            OR: [
+              { manifesto_id: { in: [10] } },
+              { manifesto_id: null, manifesto_numero: { in: [] } },
+            ],
+          },
+        ],
+      },
+      orderBy: { id: 'asc' },
+    });
+  });
+  it('impede fechamento quando o CTRB está repetido em dois manifestos', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([
+      {
+        id: 10,
+        unit: 2,
+        placa: dto.placa,
+        ctrb_numero: '000373-5',
+        frete_veiculo: new Decimal(100),
+        ctrb_total: new Decimal(270),
+      },
+      {
+        id: 11,
+        unit: 2,
+        placa: dto.placa,
+        ctrb_numero: '000373-5',
+        frete_veiculo: new Decimal(100),
+        ctrb_total: new Decimal(270),
+      },
+    ]);
+
+    await expect(service.finalize(dto, user)).rejects.toThrow(
+      'CTRB 000373-5 está repetido',
+    );
+    expect(db.frete_fechamentos.create).not.toHaveBeenCalled();
   });
   it.each([
     { unit: 3 },
@@ -338,7 +421,7 @@ describe('FreightClosuresService', () => {
       });
       expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith({
         where: { fechamento_id: 6, unit: 2 },
-        data: { fechamento_id: null, num_fechamento: 6 },
+        data: { fechamento_id: null, num_fechamento: null },
       });
     });
     it('aceita fechamento legado sem histórico', async () => {

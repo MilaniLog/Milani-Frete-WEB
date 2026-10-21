@@ -42,6 +42,8 @@ describe('Relatórios de fechamento', () => {
     expect(html).toContain('R$ 860,00');
     expect(html).toMatch(/Saldo:<\/td><td[^>]*>R\$ 50,00/);
     expect(JSON.stringify(report)).toBe(before);
+    expect(html).toContain('colspan="1" class="">SUBTOTAL CTRB</td>');
+    expect(html).toContain('.summary .company col:nth-child(7){width:17.4%!important}');
   });
   it('mostra o número do fechamento no canto direito da primeira linha', () => {
     const html = renderClosureReport(
@@ -76,7 +78,31 @@ describe('Relatórios de fechamento', () => {
     expect(html).toContain('>—</td>');
     expect(html).not.toContain('R$ 0,00');
   });
-  it('agrupa vales pelo manifesto e mantém avulsos sem duplicar', () => {
+  it('ordena manifestos, vales e cupons por data dentro da placa', () => {
+    const html = renderClosureReport(
+      previewReport({
+        manifests: [
+          { id: 2, manifestos: 'MANIFESTO-TARDE', semana: '2026-10-10', frete_veiculo: '1' },
+          { id: 1, manifestos: 'MANIFESTO-CEDO', semana: '2026-10-08', frete_veiculo: '1' },
+        ],
+        entries: [
+          { id: 12, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-09', descricao: 'VALE-TARDE', valor: '1' },
+          { id: 11, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-07', descricao: 'VALE-CEDO', valor: '1' },
+        ],
+        coupons: [
+          { id: 22, data_cobranca: '2026-10-11', descricao: 'CUPOM-TARDE', valor: '1' },
+          { id: 21, data_cobranca: '2026-10-06', descricao: 'CUPOM-CEDO', valor: '1' },
+        ],
+        totals: { total_liquido: '0' },
+      }),
+    );
+    expect(html.indexOf('MANIFESTO-CEDO')).toBeLessThan(html.indexOf('MANIFESTO-TARDE'));
+    expect(html.indexOf('VALE-CEDO')).toBeLessThan(html.indexOf('VALE-TARDE'));
+    expect(html).toContain('07/10/2026');
+    expect(html).toContain('09/10/2026');
+    expect(html.indexOf('CUPOM-CEDO')).toBeLessThan(html.indexOf('CUPOM-TARDE'));
+  });
+  it('mantém créditos no manifesto e agrupa todos os vales abaixo sem duplicar', () => {
     const html = renderClosureReport(
       previewReport({
         manifests: [
@@ -99,20 +125,69 @@ describe('Relatórios de fechamento', () => {
             valor: '5',
             descricao: 'AVULSO',
           },
+          {
+            id: 4,
+            numero: 'OUTRO-MANIFESTO',
+            manifesto_id: 999,
+            codigo_despesa: '3333',
+            tipo_despesa: 'Adiantamento',
+            valor: '50',
+            descricao: 'NÃO DEVE APARECER',
+          },
+          {
+            id: 7,
+            numero: 'ADIANTAMENTO-ATUAL',
+            manifesto_id: 1,
+            codigo_despesa: '3333',
+            tipo_despesa: 'Adiantamento',
+            valor: '20',
+            descricao: 'ADIANTAMENTO NO MANIFESTO',
+          },
+          {
+            id: 6,
+            numero: 'DEBITO-ANTIGO',
+            manifesto_id: 998,
+            codigo_despesa: '0005',
+            tipo_despesa: 'Debito',
+            valor: '9',
+            descricao: 'DEBITO ANTIGO EM ABERTO',
+          },
+          {
+            id: 5,
+            numero: 'VINCULADO-POR-NUMERO',
+            manifesto_id: null,
+            manifesto_numero: 'M1',
+            tipo_despesa: 'Credito',
+            valor: '7',
+            descricao: 'VINCULADO POR NUMERO',
+          },
         ],
         coupons: [],
         totals: { total_liquido: '95' },
       }),
     );
-    expect(html.match(/VINCULADO/g)).toHaveLength(1);
+    expect(html.match(/>VINCULADO</g)).toHaveLength(1);
     expect(html.match(/>AVULSO</g)).toHaveLength(1);
     expect(html).toContain('12:29');
     expect(html).toContain('R$ 95,00');
-    expect(html.indexOf('VALES AVULSOS')).toBeLessThan(
-      html.indexOf('VINCULADO'),
+    expect(html.indexOf('>VINCULADO</td>')).toBeGreaterThan(
+      html.indexOf('<h2>VALES</h2>'),
     );
-    expect(html.indexOf('VALES AVULSOS')).toBeLessThan(
-      html.indexOf('AVULSO'),
+    expect(html.indexOf('VINCULADO POR NUMERO')).toBeLessThan(
+      html.indexOf('<h2>VALES</h2>'),
+    );
+    expect(html.indexOf('AVULSO')).toBeLessThan(html.indexOf('<h2>VALES</h2>'));
+    expect(html).toContain('DEBITO ANTIGO EM ABERTO');
+    expect(html.indexOf('ADIANTAMENTO NO MANIFESTO')).toBeLessThan(
+      html.indexOf('<h2>VALES</h2>'),
+    );
+    expect(html).toMatch(/>CTRB<\/td>[\s\S]*?ADIANTAMENTO NO MANIFESTO/);
+    expect(html).toMatch(
+      /<td colspan="1" class="">7<\/td>[\s\S]*?ADIANTAMENTO NO MANIFESTO/,
+    );
+    expect(html).not.toContain('NÃO DEVE APARECER');
+    expect(html).toMatch(
+      /<h2>VALES<\/h2>[\s\S]*?<td colspan="1" class="">2<\/td>/,
     );
   });
   const rows = {

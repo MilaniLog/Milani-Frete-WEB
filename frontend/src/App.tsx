@@ -19,6 +19,7 @@ import Destinations from "./Destinations";
 import Units from "./Units";
 import FinancialReports from "./FinancialReports";
 import ReprintClosures from "./ReprintClosures";
+import ManifestClosureReport from "./ManifestClosureReport";
 import { useManifestCalculation } from "./useManifestCalculation";
 import { installSelectAllFields } from "./select-all-fields";
 
@@ -36,6 +37,9 @@ type Manifest = {
   frete_total: string;
   fechamento_id: number | null;
   num_fechamento: number | null;
+  cancelado?: boolean;
+  cancelado_em?: string | null;
+  cancelado_por?: number | null;
   [key: string]: unknown;
 };
 type Week = { codigo: string; data_inicio: string; data_fim: string };
@@ -48,6 +52,7 @@ const money = (value: unknown) =>
 const date = (value: string) =>
   value.slice(0, 10).split("-").reverse().join("/");
 const closed = (m: Manifest) => m.fechamento_id != null;
+const canceled = (m: Manifest) => m.cancelado === true;
 const manifestNumbers = (m: Partial<Manifest>) =>
   [
     m.manifestos,
@@ -85,13 +90,19 @@ export default function App() {
       />
     );
   const allowed = canAccessPage(session, page);
+  const hasGlobalFreightAccess =
+    session.user.isAdmin ||
+    session.user.freightProfile === "FINANCEIRO" ||
+    session.user.freightProfile === "RH";
   const pageTitle =
     page === "destinations"
       ? "Destinos"
       : page === "reprint-closures"
         ? "Reimprimir fechamentos"
       : page === "financial-report"
-        ? "Relat?rio de lan?amentos"
+        ? "Relatório de vales"
+        : page === "manifest-closure-report"
+          ? "Relatório de CTRB"
         : page === "coupons-report"
           ? "Relat?rio de cupons"
           : page === "payments-report"
@@ -101,7 +112,7 @@ export default function App() {
               : page === "manifests"
                 ? "Manifestos"
                 : page === "entries"
-                  ? "Lan?amentos"
+                  ? "Vales"
                   : page === "weeks"
                     ? "Semanas"
                   : page === "units"
@@ -155,6 +166,16 @@ export default function App() {
               key={page}
               kind={page === "financial-report" ? "financial" : page === "coupons-report" ? "coupons" : "payments"}
               token={session.accessToken}
+              isAdmin={hasGlobalFreightAccess}
+              userUnit={session.user.unit}
+              expired={() => {
+                setSession(null);
+                setNotice("Sua sessão expirou. Entre novamente.");
+              }}
+            />
+          ) : page === "manifest-closure-report" ? (
+            <ManifestClosureReport
+              token={session.accessToken}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -164,7 +185,7 @@ export default function App() {
             <div className="content">
               <ReprintClosures
                 token={session.accessToken}
-                isAdmin={session.user.isAdmin}
+                isAdmin={hasGlobalFreightAccess}
                 userUnit={session.user.unit}
                 expired={() => {
                   setSession(null);
@@ -213,7 +234,7 @@ export default function App() {
           ) : page === "closures" ? (
             <Closures
               token={session.accessToken}
-              isAdmin={session.user.isAdmin}
+              isAdmin={hasGlobalFreightAccess}
               userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
@@ -547,14 +568,14 @@ function Manifests({
                     <td>{m.destino}</td>
                     <td className="currency">{money(m.frete_veiculo)}</td>
                     <td>
-                      <span className={`badge ${closed(m) ? "closed" : ""}`}>
-                        {closed(m) ? "Fechado" : "Em aberto"}
+                      <span className={`badge ${closed(m) || canceled(m) ? "closed" : ""}`}>
+                        {canceled(m) ? "Cancelado" : closed(m) ? "Fechado" : "Em aberto"}
                       </span>
                     </td>
                     <td>
                       <button
                         className="text-button"
-                        disabled={closed(m)}
+                        disabled={closed(m) || canceled(m)}
                         onClick={() => void editManifest(m.id)}
                         aria-label={`Editar manifesto ${manifestLabel(m)}`}
                       >
@@ -565,10 +586,10 @@ function Manifests({
                       <button
                         type="button"
                         className="manifest-trash-button"
-                        disabled={closed(m) || saving}
+                        disabled={closed(m) || canceled(m) || saving}
                         onClick={() => setDeletingManifest(m)}
-                        aria-label={`Excluir manifesto ${manifestLabel(m)}`}
-                        title={closed(m) ? "Manifesto fechado não pode ser excluído" : "Excluir manifesto"}
+                        aria-label={`Cancelar manifesto ${manifestLabel(m)}`}
+                        title={canceled(m) ? "Manifesto cancelado" : closed(m) ? "Manifesto fechado não pode ser cancelado" : "Cancelar manifesto"}
                       >
                         <span aria-hidden="true">🗑</span>
                       </button>
@@ -613,7 +634,9 @@ function Manifests({
             {date(selected.semana)} · {selected.destino}
           </p>
           <span className="badge">
-            {closed(selected)
+            {canceled(selected)
+              ? "Cancelado"
+              : closed(selected)
               ? `Fechado · ${selected.num_fechamento ?? selected.fechamento_id}`
               : "Em aberto"}
           </span>
@@ -633,7 +656,7 @@ function Manifests({
             ))}
           </dl>
           <p>{String(selected.observacao || "Sem observações.")}</p>
-          {!closed(selected) && (
+          {!closed(selected) && !canceled(selected) && (
             <button
               className="primary"
               disabled={saving}
@@ -653,7 +676,7 @@ function Manifests({
           >
             Abrir vales
           </button>
-          {!closed(selected) && (
+          {!closed(selected) && !canceled(selected) && (
             <DeleteManifest
               key={`delete-${selected.id}`}
               id={selected.id}
@@ -712,7 +735,7 @@ function Manifests({
       )}
       {deletingManifest && (
         <Modal
-          title={`Excluir manifesto ${manifestLabel(deletingManifest)}`}
+          title={`Cancelar manifesto ${manifestLabel(deletingManifest)}`}
           close={() => setDeletingManifest(null)}
           locked={saving}
         >

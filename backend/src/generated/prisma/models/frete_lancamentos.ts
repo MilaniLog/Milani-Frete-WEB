@@ -63,6 +63,7 @@ export type Frete_lancamentosMinAggregateOutputType = {
   descricao: string | null
   pago: boolean | null
   manifesto_id: number | null
+  manifesto_numero: string | null
   fechamento_id: number | null
   responsavel_cod: number | null
   departamento: string | null
@@ -88,6 +89,7 @@ export type Frete_lancamentosMaxAggregateOutputType = {
   descricao: string | null
   pago: boolean | null
   manifesto_id: number | null
+  manifesto_numero: string | null
   fechamento_id: number | null
   responsavel_cod: number | null
   departamento: string | null
@@ -113,6 +115,7 @@ export type Frete_lancamentosCountAggregateOutputType = {
   descricao: number
   pago: number
   manifesto_id: number
+  manifesto_numero: number
   fechamento_id: number
   responsavel_cod: number
   departamento: number
@@ -160,6 +163,7 @@ export type Frete_lancamentosMinAggregateInputType = {
   descricao?: true
   pago?: true
   manifesto_id?: true
+  manifesto_numero?: true
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
@@ -185,6 +189,7 @@ export type Frete_lancamentosMaxAggregateInputType = {
   descricao?: true
   pago?: true
   manifesto_id?: true
+  manifesto_numero?: true
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
@@ -210,6 +215,7 @@ export type Frete_lancamentosCountAggregateInputType = {
   descricao?: true
   pago?: true
   manifesto_id?: true
+  manifesto_numero?: true
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
@@ -322,6 +328,7 @@ export type Frete_lancamentosGroupByOutputType = {
   descricao: string | null
   pago: boolean
   manifesto_id: number | null
+  manifesto_numero: string | null
   fechamento_id: number | null
   responsavel_cod: number | null
   departamento: string | null
@@ -370,6 +377,7 @@ export type frete_lancamentosWhereInput = {
   descricao?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   pago?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
   manifesto_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  manifesto_numero?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
@@ -395,6 +403,7 @@ export type frete_lancamentosOrderByWithRelationInput = {
   descricao?: Prisma.SortOrderInput | Prisma.SortOrder
   pago?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_numero?: Prisma.SortOrderInput | Prisma.SortOrder
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrderInput | Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -425,6 +434,7 @@ export type frete_lancamentosWhereUniqueInput = Prisma.AtLeast<{
   descricao?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   pago?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
   manifesto_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  manifesto_numero?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
@@ -450,6 +460,7 @@ export type frete_lancamentosOrderByWithAggregationInput = {
   descricao?: Prisma.SortOrderInput | Prisma.SortOrder
   pago?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  manifesto_numero?: Prisma.SortOrderInput | Prisma.SortOrder
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrderInput | Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -483,6 +494,7 @@ export type frete_lancamentosScalarWhereWithAggregatesInput = {
   descricao?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
   pago?: Prisma.BoolWithAggregatesFilter<"frete_lancamentos"> | boolean
   manifesto_id?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
+  manifesto_numero?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
@@ -507,6 +519,7 @@ export type frete_lancamentosCreateInput = {
   descricao?: string | null
   pago?: boolean
   manifesto_id?: number | null
+  manifesto_numero?: string | null
   fechamento_id?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
@@ -532,6 +545,7 @@ export type frete_lancamentosUncheckedCreateInput = {
   descricao?: string | null
   pago?: boolean
   manifesto_id?: number | null
+  manifesto_numero?: string | null
   fechamento_id?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
@@ -556,6 +570,7 @@ export type frete_lancamentosUpdateInput = {
   descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -581,6 +596,7 @@ export type frete_lancamentosUncheckedUpdateInput = {
   descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -606,6 +622,7 @@ export type frete_lancamentosCreateManyInput = {
   descricao?: string | null
   pago?: boolean
   manifesto_id?: number | null
+  manifesto_numero?: string | null
   fechamento_id?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
@@ -630,6 +647,7 @@ export type frete_lancamentosUpdateManyMutationInput = {
   descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -655,6 +673,7 @@ export type frete_lancamentosUncheckedUpdateManyInput = {
   descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -691,6 +710,7 @@ export type frete_lancamentosCountOrderByAggregateInput = {
   descricao?: Prisma.SortOrder
   pago?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrder
+  manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
@@ -726,6 +746,7 @@ export type frete_lancamentosMaxOrderByAggregateInput = {
   descricao?: Prisma.SortOrder
   pago?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrder
+  manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
@@ -751,6 +772,7 @@ export type frete_lancamentosMinOrderByAggregateInput = {
   descricao?: Prisma.SortOrder
   pago?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrder
+  manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
@@ -767,10 +789,6 @@ export type frete_lancamentosSumOrderByAggregateInput = {
   manifesto_id?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
-}
-
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
 }
 
 
@@ -792,6 +810,7 @@ export type frete_lancamentosSelect<ExtArgs extends runtime.Types.Extensions.Int
   descricao?: boolean
   pago?: boolean
   manifesto_id?: boolean
+  manifesto_numero?: boolean
   fechamento_id?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
@@ -819,6 +838,7 @@ export type frete_lancamentosSelectScalar = {
   descricao?: boolean
   pago?: boolean
   manifesto_id?: boolean
+  manifesto_numero?: boolean
   fechamento_id?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
@@ -827,7 +847,7 @@ export type frete_lancamentosSelectScalar = {
   updated_at?: boolean
 }
 
-export type frete_lancamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "numero" | "unit" | "semana" | "placa" | "motorista" | "tipo_veiculo" | "destino" | "codigo_despesa" | "nome_despesa" | "tipo_despesa" | "data_lancamento" | "valor" | "descricao" | "pago" | "manifesto_id" | "fechamento_id" | "responsavel_cod" | "departamento" | "emitido_em" | "created_at" | "updated_at", ExtArgs["result"]["frete_lancamentos"]>
+export type frete_lancamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "numero" | "unit" | "semana" | "placa" | "motorista" | "tipo_veiculo" | "destino" | "codigo_despesa" | "nome_despesa" | "tipo_despesa" | "data_lancamento" | "valor" | "descricao" | "pago" | "manifesto_id" | "manifesto_numero" | "fechamento_id" | "responsavel_cod" | "departamento" | "emitido_em" | "created_at" | "updated_at", ExtArgs["result"]["frete_lancamentos"]>
 
 export type $frete_lancamentosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_lancamentos"
@@ -849,6 +869,7 @@ export type $frete_lancamentosPayload<ExtArgs extends runtime.Types.Extensions.I
     descricao: string | null
     pago: boolean
     manifesto_id: number | null
+    manifesto_numero: string | null
     fechamento_id: number | null
     responsavel_cod: number | null
     departamento: string | null
@@ -1240,6 +1261,7 @@ export interface frete_lancamentosFieldRefs {
   readonly descricao: Prisma.FieldRef<"frete_lancamentos", 'String'>
   readonly pago: Prisma.FieldRef<"frete_lancamentos", 'Boolean'>
   readonly manifesto_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
+  readonly manifesto_numero: Prisma.FieldRef<"frete_lancamentos", 'String'>
   readonly fechamento_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly responsavel_cod: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly departamento: Prisma.FieldRef<"frete_lancamentos", 'String'>

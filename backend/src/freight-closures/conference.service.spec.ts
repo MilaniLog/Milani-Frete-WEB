@@ -113,6 +113,21 @@ describe('Conferência VBA', () => {
     const result = await service.report({ semana: '3926' }, user);
     expect(result.groups[0].totals.total_ctrb.toString()).toBe('100');
   });
+  it('consulta todo débito aberto e restringe o 3333 aos manifestos da semana', async () => {
+    await service.report({ semana: '3926' }, user);
+    expect(db.frete_lancamentos.findMany.mock.calls[0][0].where.OR).toEqual(
+      expect.arrayContaining([
+        { tipo_despesa: 'Debito', codigo_despesa: { not: '3333' } },
+        {
+          codigo_despesa: '3333',
+          OR: [
+            { manifesto_id: { in: [1] } },
+            { manifesto_id: null, manifesto_numero: { in: [] } },
+          ],
+        },
+      ]),
+    );
+  });
   it('aplica unidade e usuário aos três conjuntos, categoria e ordenação', async () => {
     await service.report(
       {
@@ -183,6 +198,14 @@ describe('Conferência VBA', () => {
     expect(result.groups[0].manifests).toHaveLength(1);
     expect(db.frete_cupons.findMany).not.toHaveBeenCalled();
     expect(db.frete_lancamentos.findMany.mock.calls[0][0].where.OR).toEqual([
+      { tipo_despesa: 'Debito', codigo_despesa: { not: '3333' } },
+      {
+        codigo_despesa: '3333',
+        OR: [
+          { manifesto_id: { in: [1] } },
+          { manifesto_id: null, manifesto_numero: { in: [] } },
+        ],
+      },
       { manifesto_id: { in: [1] } },
     ]);
   });

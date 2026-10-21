@@ -85,6 +85,7 @@ export class AuthService {
       cod: user.cod,
       unit: user.unit,
       isAdmin: user.isAdmin,
+      freightProfile: user.freight_profile,
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
@@ -96,6 +97,7 @@ export class AuthService {
         name: user.Name,
         unit: user.unit,
         isAdmin: user.isAdmin,
+        freightProfile: user.freight_profile,
       },
 
       permissions,

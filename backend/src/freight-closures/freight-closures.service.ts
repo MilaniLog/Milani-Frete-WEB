@@ -9,6 +9,7 @@ import { Decimal } from '@prisma/client/runtime/client';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { getWeek } from '../weeks/period-policy';
 import { CancelClosureDto, ClosureDto } from './freight-closures.dto';
 import { allocatePayment } from './payment-allocation';
@@ -18,12 +19,12 @@ export class FreightClosuresService {
   constructor(private readonly prisma: PrismaService) {}
 
   private unitWhere(user: AuthUser, unit?: number) {
-    const targetUnit = user.isAdmin ? unit : user.unit;
+    const targetUnit = hasGlobalFreightAccess(user) ? unit : user.unit;
     return targetUnit == null ? {} : { unit: targetUnit };
   }
 
   private async scopeWhere(tx: Prisma.TransactionClient, user: AuthUser, dto: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {}) {
-    if (!user.isAdmin) return { unit: user.unit };
+    if (!hasGlobalFreightAccess(user)) return { unit: user.unit };
     if (dto.unit != null) return { unit: dto.unit };
     if (!dto.local && !dto.dominio) return {};
     const branches = await tx.branches.findMany({
@@ -67,6 +68,7 @@ export class FreightClosuresService {
     const dates = { gte: week.data_inicio, lte: week.data_fim };
     const manifests = await tx.frete_carregamento_manifestos.findMany({
       where: {
+        cancelado: false,
         ...await this.scopeWhere(tx, user, dto),
         placa: dto.placa,
         semana: dates,
@@ -75,20 +77,35 @@ export class FreightClosuresService {
       orderBy: { id: 'asc' },
     });
     const targetUnit = manifests[0]?.unit ?? user.unit;
-    const ids = manifests.map((row) => row.id);
-    // Linked expenses follow their manifest, including expenses dated outside the week.
+    const manifestIds = manifests.map((row) => row.id);
+    const manifestNumbers = manifests
+      .flatMap((row) => [
+        row.manifestos,
+        row.manifesto_adicional_1,
+        row.manifesto_adicional_2,
+        row.manifesto_adicional_3,
+      ])
+      .filter((number): number is string => Boolean(number));
+    // Every open entry for the plate remains available until selected. Code 3333
+    // is the exception: it follows only the week of its linked manifest.
     const entries = await tx.frete_lancamentos.findMany({
       where: {
+        unit: targetUnit,
+        placa: dto.placa,
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: { in: ['Credito', 'Debito', 'Adiantamento'] },
         OR: [
-          { manifesto_id: { in: ids } },
+          { codigo_despesa: { not: '3333' } },
           {
-            unit: targetUnit,
-            placa: dto.placa,
-            manifesto_id: null,
-            data_lancamento: dates,
-            pago: false,
-            fechamento_id: null,
-            tipo_despesa: { in: ['Credito', 'Debito'] },
+            codigo_despesa: '3333',
+            OR: [
+              { manifesto_id: { in: manifestIds } },
+              {
+                manifesto_id: null,
+                manifesto_numero: { in: manifestNumbers },
+              },
+            ],
           },
         ],
       },
@@ -101,11 +118,17 @@ export class FreightClosuresService {
         ? entries
         : entries.filter(
             (row) =>
-              row.tipo_despesa !== 'Debito' || debitSelection.has(row.id),
+              row.tipo_despesa !== 'Debito' ||
+              String(row.codigo_despesa ?? '').trim() === '3333' ||
+              debitSelection.has(row.id),
           );
     const selectedDebitIds = new Set(
       selectedEntries
-        .filter((row) => row.tipo_despesa === 'Debito')
+        .filter(
+          (row) =>
+            row.tipo_despesa === 'Debito' &&
+            String(row.codigo_despesa ?? '').trim() !== '3333',
+        )
         .map((row) => row.id),
     );
     if (
@@ -145,6 +168,16 @@ export class FreightClosuresService {
       throw new ConflictException(
         'Ha mais de um numero de fechamento aberto para esta placa e semana.',
       );
+    const ctrbNumbers = manifests
+      .map((row) => String(row.ctrb_numero ?? '').trim())
+      .filter(Boolean);
+    const duplicatedCtrb = ctrbNumbers.find(
+      (number, index) => ctrbNumbers.indexOf(number) !== index,
+    );
+    if (duplicatedCtrb)
+      throw new ConflictException(
+        `O CTRB ${duplicatedCtrb} está repetido nos manifestos desta placa. Corrija os manifestos antes de fechar.`,
+      );
     const coupons = await tx.frete_cupons.findMany({
       where: {
         unit: targetUnit,
@@ -165,7 +198,11 @@ export class FreightClosuresService {
     );
     const debits = sum(
       selectedEntries
-        .filter((row) => row.tipo_despesa === 'Debito')
+        .filter(
+          (row) =>
+            row.tipo_despesa === 'Debito' &&
+            String(row.codigo_despesa ?? '').trim() !== '3333',
+        )
         .map((row) => row.valor),
     );
     const couponValue = sum(coupons.map((row) => row.valor));
@@ -211,7 +248,11 @@ export class FreightClosuresService {
       periodo_fim: week.data_fim,
       manifests,
       entries: selectedEntries,
-      availableDebits: entries.filter((row) => row.tipo_despesa === 'Debito'),
+      availableDebits: entries.filter(
+        (row) =>
+          row.tipo_despesa === 'Debito' &&
+          String(row.codigo_despesa ?? '').trim() !== '3333',
+      ),
       coupons,
       closureNumber: closureNumbers[0] ?? null,
       totals: {
@@ -234,17 +275,18 @@ export class FreightClosuresService {
     semana: string,
     user: AuthUser,
     selections: { placa: string; debit_entry_ids: number[] }[] = [],
+    scope: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {},
   ) {
     return this.transaction(async (tx) => {
       const week = await getWeek(tx, semana);
       const dates = { gte: week.data_inicio, lte: week.data_fim };
       const manifests = await tx.frete_carregamento_manifestos.findMany({
-        where: { ...this.unitWhere(user), semana: dates, fechamento_id: null },
+        where: { ...await this.scopeWhere(tx, user, scope), cancelado: false, semana: dates, fechamento_id: null },
         select: { placa: true },
       });
       const entries = await tx.frete_lancamentos.findMany({
         where: {
-          ...this.unitWhere(user),
+          ...await this.scopeWhere(tx, user, scope),
           data_lancamento: dates,
           manifesto_id: null,
           pago: false,
@@ -255,7 +297,7 @@ export class FreightClosuresService {
       });
       const coupons = await tx.frete_cupons.findMany({
         where: {
-          ...this.unitWhere(user),
+          ...await this.scopeWhere(tx, user, scope),
           data_cobranca: dates,
           pago: false,
           fechamento_id: null,
@@ -284,8 +326,8 @@ export class FreightClosuresService {
           this.collect(
             tx,
             selectionByPlate.has(placa)
-              ? { semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
-              : { semana, placa },
+              ? { ...scope, semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
+              : { ...scope, semana, placa },
             user,
           ),
         ),
@@ -298,13 +340,15 @@ export class FreightClosuresService {
     user: AuthUser,
     selections: { placa: string; debit_entry_ids: number[] }[] = [],
     reviewedPlates?: string[],
+    scope: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {},
   ) {
     return this.transaction(async (tx) => {
       const week = await getWeek(tx, semana);
       const dates = { gte: week.data_inicio, lte: week.data_fim };
       const manifests = await tx.frete_carregamento_manifestos.findMany({
         where: {
-          ...this.unitWhere(user),
+          ...await this.scopeWhere(tx, user, scope),
+          cancelado: false,
           semana: dates,
           fechamento_id: null,
         },
@@ -312,7 +356,7 @@ export class FreightClosuresService {
       });
       const entries = await tx.frete_lancamentos.findMany({
         where: {
-          ...this.unitWhere(user),
+          ...await this.scopeWhere(tx, user, scope),
           data_lancamento: dates,
           manifesto_id: null,
           pago: false,
@@ -323,7 +367,7 @@ export class FreightClosuresService {
       });
       const coupons = await tx.frete_cupons.findMany({
         where: {
-          ...this.unitWhere(user),
+          ...await this.scopeWhere(tx, user, scope),
           data_cobranca: dates,
           pago: false,
           fechamento_id: null,
@@ -364,8 +408,8 @@ export class FreightClosuresService {
           await this.finalizeTransaction(
             tx,
             selectionByPlate.has(placa)
-              ? { semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
-              : { semana, placa },
+              ? { ...scope, semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
+              : { ...scope, semana, placa },
             user,
           ),
         );
@@ -387,9 +431,24 @@ export class FreightClosuresService {
       throw new BadRequestException(
         'Não há registros abertos para fechar nesta semana e placa.',
       );
+    if (new Decimal(data.totals.total_liquido).isNegative())
+      throw new BadRequestException(
+        `Não é possível fechar a placa ${data.placa}: o valor líquido está negativo (${data.totals.total_liquido.toFixed(2)}).`,
+      );
+    const cancelledNumber =
+      data.closureNumber == null
+        ? null
+        : await tx.frete_fechamentos.findFirst({
+            where: {
+              numero: data.closureNumber,
+              status: 'CANCELADO',
+            },
+            select: { id: true },
+          });
     const closureNumber =
-      data.closureNumber ??
-      (await this.nextClosureNumber(tx, data.semana));
+      data.closureNumber == null || cancelledNumber
+        ? await this.nextClosureNumber(tx, data.semana)
+        : data.closureNumber;
     const closure = await tx.frete_fechamentos.create({
       data: {
         numero: closureNumber,
@@ -529,7 +588,7 @@ export class FreightClosuresService {
       const scope = { ...where, unit: closure.unit };
       const m = await tx.frete_carregamento_manifestos.updateMany({
         where: scope,
-        data: { fechamento_id: null, num_fechamento: closure.numero },
+        data: { fechamento_id: null, num_fechamento: null },
       });
       const e = await tx.frete_lancamentos.updateMany({
         where: scope,

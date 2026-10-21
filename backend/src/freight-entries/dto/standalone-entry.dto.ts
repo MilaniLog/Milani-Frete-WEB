@@ -10,4 +10,10 @@ export class StandaloneEntryDto extends EntryDto {
   @Matches(/^\d{4}$/) declare semana: string;
   @IsOptional() @Matches(/^\d{1,11}$/) cpf_motorista?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) manifesto_id?: number;
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  )
+  @Matches(/^\d{9}-\d$/)
+  manifesto_numero?: string;
 }

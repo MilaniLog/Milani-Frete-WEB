@@ -18,6 +18,7 @@ export type Session = {
     name: string;
     unit: number;
     isAdmin: boolean;
+    freightProfile?: "OPERACAO" | "FINANCEIRO" | "RH";
   };
   permissions: {
     unit: number;
@@ -43,6 +44,7 @@ export async function api<T>(
   try {
     response = await fetch(apiUrl(path), {
       ...options,
+      cache: options.cache ?? "no-store",
       headers: {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

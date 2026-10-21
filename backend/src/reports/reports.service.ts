@@ -7,6 +7,7 @@ import { Decimal } from '@prisma/client/runtime/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../generated/prisma/client';
 import type { AuthUser } from '../auth/auth-user.types';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { getWeek } from '../weeks/period-policy';
 import {
   savedReport,
@@ -28,7 +29,7 @@ export class ReportsService {
   constructor(private readonly db: PrismaService) {}
 
   private unitWhere(user: AuthUser, unit?: number) {
-    const targetUnit = user.isAdmin ? unit : user.unit;
+    const targetUnit = hasGlobalFreightAccess(user) ? unit : user.unit;
     return targetUnit == null ? {} : { unit: targetUnit };
   }
 
@@ -37,7 +38,7 @@ export class ReportsService {
     user: AuthUser,
     q: Pick<ReportQuery, 'unit' | 'local' | 'dominio'>,
   ) {
-    if (!user.isAdmin) return { unit: user.unit };
+    if (!hasGlobalFreightAccess(user)) return { unit: user.unit };
     if (q.unit != null) return { unit: q.unit };
     if (!q.local && !q.dominio) return {};
     const branches = await tx.branches.findMany({
@@ -50,8 +51,15 @@ export class ReportsService {
     return { unit: { in: branches.map((branch) => branch.unit) } };
   }
 
-  private unitLabel(user: AuthUser) {
-    return user.isAdmin ? 'Todas as unidades' : `Unidade ${user.unit}`;
+  private unitLabel(
+    user: AuthUser,
+    q?: Pick<ReportQuery, 'unit' | 'local' | 'dominio'>,
+  ) {
+    if (!hasGlobalFreightAccess(user)) return `Unidade ${user.unit}`;
+    if (q?.local) return `Unidade ${q.local}`;
+    if (q?.unit != null) return `Unidade ${q.unit}`;
+    if (q?.dominio) return `DomÃ­nio ${q.dominio}`;
+    return 'Todas as unidades';
   }
 
   private async period(tx: Prisma.TransactionClient, q: ReportQuery) {
@@ -69,19 +77,101 @@ export class ReportsService {
       throw new BadRequestException('Início deve ser anterior ao fim.');
     return { start, end };
   }
+
+  manifests(q: ReportQuery, user: AuthUser): Promise<TableReport> {
+    return this.db.$transaction(async (tx) => {
+      const { start, end } = await this.period(tx, q);
+      const unitScope = q.unit != null
+        ? { unit: q.unit }
+        : q.local || q.dominio
+          ? {
+              unit: {
+                in: (
+                  await tx.branches.findMany({
+                    where: {
+                      ...(q.local ? { branch: q.local } : {}),
+                      ...(q.dominio ? { dominio: q.dominio } : {}),
+                    },
+                    select: { unit: true },
+                  })
+                ).map((branch) => branch.unit),
+              },
+            }
+          : {};
+      const manifests = await tx.frete_carregamento_manifestos.findMany({
+        where: {
+          cancelado: false,
+          ...unitScope,
+          semana: { gte: start, lte: end },
+          num_fechamento: { not: null },
+        },
+        orderBy: [{ placa: 'asc' }, { num_fechamento: 'asc' }],
+        select: {
+          placa: true,
+          num_fechamento: true,
+        },
+      });
+      const rows = [
+        ...new Map(
+          manifests.map((row) => [
+            `${row.placa}\u0000${row.num_fechamento}`,
+            row,
+          ]),
+        ).values(),
+      ];
+      return {
+        title: 'Relatório de CTRB',
+        printLayout: 'compact-pairs' as const,
+        notes: [
+          `Período: ${date(start)} a ${date(end)}`,
+          q.local
+            ? `Unidade ${q.local}`
+            : q.unit != null
+              ? `Unidade ${q.unit}`
+              : q.dominio
+                ? `Domínio ${q.dominio}`
+                : 'Todas as unidades',
+          `Total: ${rows.length}`,
+          'Ordenado por placa.',
+        ],
+        columns: ['Placa', 'Nº fechamento'],
+        rows: rows.map((row) => [row.placa, String(row.num_fechamento)]),
+        totals: [],
+        numeric: [],
+      };
+    });
+  }
+
+  reportUnits() {
+    return this.db.branches.findMany({
+      orderBy: [{ branch: 'asc' }, { unit: 'asc' }],
+      select: { unit: true, branch: true, dominio: true },
+    });
+  }
+
   financial(q: ReportQuery, user: AuthUser): Promise<TableReport> {
     return this.db.$transaction(
       async (tx) => {
         if (q.lancamentos === 'false' && q.cupons === 'false')
           throw new BadRequestException('Selecione vales ou cupons.');
-        const p = await this.period(tx, q),
+        const allEntriesByPlate = Boolean(
+          q.placa &&
+            !q.semana &&
+            !q.inicio &&
+            !q.fim &&
+            q.lancamentos !== 'false' &&
+            q.cupons === 'false',
+        );
+        const p = allEntriesByPlate ? null : await this.period(tx, q),
           inclusion = q.data_por === 'inclusao';
-        const range = {
-          gte: p.start,
-          lt: new Date(p.end.getTime() + 86400000),
-        };
+        const range = p
+          ? {
+              gte: p.start,
+              lt: new Date(p.end.getTime() + 86400000),
+            }
+          : null;
         const scope = {
-          ...this.unitWhere(user),
+          ...(await this.scopeWhere(tx, user, q)),
           ...(q.placa ? { placa: q.placa } : {}),
           ...(q.departamento
             ? { departamento: { startsWith: q.departamento } }
@@ -99,7 +189,11 @@ export class ReportsService {
             : await tx.frete_lancamentos.findMany({
                 where: {
                   ...scope,
-                  [inclusion ? 'created_at' : 'data_lancamento']: range,
+                  ...(range
+                    ? {
+                        [inclusion ? 'created_at' : 'data_lancamento']: range,
+                      }
+                    : {}),
                 },
                 orderBy: { id: 'asc' },
               });
@@ -109,7 +203,11 @@ export class ReportsService {
             : await tx.frete_cupons.findMany({
                 where: {
                   ...scope,
-                  [inclusion ? 'created_at' : 'data_cobranca']: range,
+                  ...(range
+                    ? {
+                        [inclusion ? 'created_at' : 'data_cobranca']: range,
+                      }
+                    : {}),
                 },
                 include: {
                   nota: {
@@ -124,7 +222,8 @@ export class ReportsService {
               });
         const manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
-            ...this.unitWhere(user),
+            cancelado: false,
+            ...(await this.scopeWhere(tx, user, q)),
             id: {
               in: entries.flatMap((e) =>
                 e.manifesto_id == null ? [] : [e.manifesto_id],
@@ -158,7 +257,7 @@ export class ReportsService {
             driver: e.motorista,
             document:
               e.manifesto_id == null
-                ? 'Avulso'
+                ? (e.manifesto_numero ?? 'Avulso')
                 : (numbers.get(e.manifesto_id) ?? 'Não registrado'),
             code: e.codigo_despesa,
             name: e.nome_despesa,
@@ -222,7 +321,9 @@ export class ReportsService {
           financialKind: q.lancamentos === 'false' ? 'coupons' : q.cupons === 'false' ? 'entries' : 'combined',
           title: q.lancamentos === 'false' ? 'Conferência de cupons' : q.cupons === 'false' ? 'Conferência de vales' : 'Conferência de vales e cupons',
           notes: [
-            `${this.unitLabel(user)} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`,
+            p
+              ? `${this.unitLabel(user, q)} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`
+              : `${this.unitLabel(user, q)} · Todos os vales da placa ${q.placa}`,
             `Data: ${inclusion ? 'inclusão no site' : 'despesa/cobrança'} · Situação: ${q.situacao ?? 'abertos'}${q.placa ? ` · Placa ${q.placa}` : ''}${q.departamento ? ` · Departamento ${q.departamento}` : ''}${q.usuario ? ` · Usuário ${q.usuario}` : ''}`,
           ],
           columns: [
@@ -230,8 +331,8 @@ export class ReportsService {
             q.lancamentos === 'false'
               ? 'Cupom'
               : q.cupons === 'false'
-                ? 'ID Lanç'
-                : 'ID Lanç/Cupom',
+                ? 'ID Vale'
+                : 'ID Vale/Cupom',
             'Data',
             'Placa',
             'Motorista',
@@ -286,7 +387,7 @@ export class ReportsService {
             ? { periodo_inicio: { lte: p.end }, periodo_fim: { gte: p.start } }
             : {}),
       },
-      orderBy: [{ numero: 'asc' }, { id: 'asc' }],
+      orderBy: [{ placa: 'asc' }, { numero: 'asc' }, { id: 'asc' }],
     });
     if (q.numero && !closures.length)
       throw new NotFoundException('Fechamento não encontrado nesta unidade.');
@@ -315,7 +416,7 @@ export class ReportsService {
   reprint(q: ReportQuery, user: AuthUser) {
     return this.db.$transaction(
       async (tx) => {
-        const data = await this.closures(tx, q, user, false);
+        const data = await this.closures(tx, q, user, true);
         return combineHtml(
           data.reports.map((r) => renderClosureReport(r.report)),
         );
@@ -326,7 +427,7 @@ export class ReportsService {
   reprintDrivers(q: ReportQuery, user: AuthUser) {
     return this.db.$transaction(
       async (tx) => {
-        const data = await this.closures(tx, q, user, false);
+        const data = await this.closures(tx, q, user, true);
         return combineHtml(
           data.reports.map((r) => renderDriverClosureReport(r.report)),
         );
@@ -338,22 +439,32 @@ export class ReportsService {
     return this.db.$transaction(
       async (tx) => {
         const data = await this.closures(tx, q, user, true);
-        const vehicles = await tx.vehicle.findMany({
-          where: { plate: { in: data.reports.map((r) => r.closure.placa) } },
-          select: {
-            plate: true,
-            owner: true,
-            owner_name: true,
-            empresa_sigla: true,
-            first_payer: true,
-          },
-        });
+        const [vehicles, branches] = await Promise.all([
+          tx.vehicle.findMany({
+            where: { plate: { in: data.reports.map((r) => r.closure.placa) } },
+            select: {
+              plate: true,
+              owner: true,
+              owner_name: true,
+              empresa_sigla: true,
+              first_payer: true,
+            },
+          }),
+          tx.branches.findMany({
+            where: {
+              unit: { in: [...new Set(data.reports.map((r) => r.closure.unit))] },
+            },
+            select: { unit: true, branch: true, dominio: true },
+          }),
+        ]);
         const byPlate = new Map(vehicles.map((v) => [v.plate, v]));
+        const branchByUnit = new Map(branches.map((branch) => [branch.unit, branch]));
         const rows: Cell[][] = [];
         let legacy = 0,
           currentOwner = 0;
         for (const { closure, report: r } of data.reports) {
           const v = byPlate.get(closure.placa),
+            branch = branchByUnit.get(closure.unit),
             h = closure.historico as any,
             owner = h?.finalizacao?.dados?.beneficiario;
           const company = r.payment?.primeira
@@ -400,6 +511,8 @@ export class ReportsService {
             money(gross.minus(net)),
             money(net.minus(ctrb)),
             String(closure.unit),
+            branch?.dominio ?? null,
+            branch?.branch ?? null,
             ctrbNet,
           ]);
         }
@@ -409,7 +522,7 @@ export class ReportsService {
             String(a[5]).localeCompare(String(b[5])) ||
             Number(a[4]) - Number(b[4]),
         );
-        const numeric = [6, 7, 8, 9, 10, 12],
+        const numeric = [6, 7, 8, 9, 10, 14],
           columns = [
             'EMPR',
             'CPF/CNPJ PROP',
@@ -422,7 +535,9 @@ export class ReportsService {
             'LIQ S/ CTRB',
             'VALES',
             'LIQ PAGAR',
-            'UN',
+            'CÓD. UN',
+            'DOMÍNIO',
+            'UNIDADE',
             'CTRB LIQ',
           ];
         const totals = numeric.map((i) => ({
@@ -438,7 +553,7 @@ export class ReportsService {
           numeric,
           totals,
           notes: [
-            `${this.unitLabel(user)}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.empresa ? ` · Empresa ${q.empresa}` : ''}`,
+            `${this.unitLabel(user, q)}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.empresa ? ` · Empresa ${q.empresa}` : ''}`,
             'Somente fechamentos finalizados. LIQ PAGAR = líquido do fechamento − CTRB bruto, conforme a planilha VBA. Nenhum pagamento é executado; não há rateio percentual.',
             ...(legacy
               ? [

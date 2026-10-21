@@ -121,11 +121,71 @@ describe('Relatórios VBA', () => {
           ]),
       },
       branches: {
-        findMany: jest.fn().mockResolvedValue([{ unit: 301 }, { unit: 830 }]),
+        findMany: jest.fn().mockImplementation((query) =>
+          query?.where?.unit
+            ? Promise.resolve([
+                { unit: 100, branch: 'SP', dominio: 'MLN' },
+              ])
+            : Promise.resolve([{ unit: 301 }, { unit: 830 }]),
+        ),
       },
     };
     db.$transaction = jest.fn((work) => work(db));
     service = new ReportsService(db);
+  });
+  it('lista números já atribuídos aos manifestos de todas as unidades, mesmo antes do fechamento', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([
+      {
+        placa: 'ABC1234',
+        num_fechamento: 41260001,
+      },
+      {
+        placa: 'DEF5678',
+        num_fechamento: 41260002,
+      },
+      {
+        placa: 'DEF5678',
+        num_fechamento: 41260002,
+      },
+    ]);
+    const result = await service.manifests({ semana: '3926' }, user);
+    expect(db.frete_carregamento_manifestos.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          cancelado: false,
+          semana: { gte: start, lte: end },
+          num_fechamento: { not: null },
+        },
+        orderBy: [{ placa: 'asc' }, { num_fechamento: 'asc' }],
+      }),
+    );
+    expect(result.columns).toEqual(['Placa', 'Nº fechamento']);
+    expect(result.printLayout).toBe('compact-pairs');
+    expect(result.rows).toEqual([
+      ['ABC1234', '41260001'],
+      ['DEF5678', '41260002'],
+    ]);
+    expect(result.notes).toContain('Todas as unidades');
+    expect(result.notes).toContain('Total: 2');
+    const html = reportHtml(result);
+    expect(html).toContain('@page{size:A4 portrait');
+    expect(html.match(/<th>PLACA<\/th>/g)).toHaveLength(2);
+    expect(html.match(/<th>Nº FECHAMENTO<\/th>/g)).toHaveLength(2);
+    expect(html).not.toContain('Valores em reais');
+  });
+
+  it('permite que usuário comum filtre o relatório de CTRB por local', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([]);
+    await service.manifests({ semana: '3926', local: 'VIX' }, user);
+    expect(db.branches.findMany).toHaveBeenCalledWith({
+      where: { branch: 'VIX' },
+      select: { unit: true },
+    });
+    expect(db.frete_carregamento_manifestos.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ unit: { in: [301, 830] } }),
+      }),
+    );
   });
   it('soma valores decimais, diferencia cupons e vales e escapa texto', async () => {
     const result = await service.financial({ semana: '3926' }, user);
@@ -137,6 +197,23 @@ describe('Relatórios VBA', () => {
     expect(result.totals.at(-1)?.value).toBe('-0.10');
     expect(reportHtml(result)).not.toContain('<script>');
     expect(reportHtml(result)).toContain('&lt;script&gt;');
+  });
+  it('consulta todos os vales da placa sem exigir período', async () => {
+    const result = await service.financial(
+      {
+        placa: 'ABC1234',
+        lancamentos: 'true',
+        cupons: 'false',
+        situacao: 'todos',
+      },
+      user,
+    );
+
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
+      where: { unit: 100, placa: 'ABC1234' },
+      orderBy: { id: 'asc' },
+    });
+    expect(result.notes[0]).toContain('Todos os vales da placa ABC1234');
   });
   it('aplica placa, departamento, usuário, status e intervalo de inclusão à unidade', async () => {
     await service.financial(
@@ -206,6 +283,8 @@ describe('Relatórios VBA', () => {
       '100.00',
       '700.00',
       '100',
+      'MLN',
+      'SP',
       '150.00',
     ]);
     expect(db.frete_fechamentos.findMany.mock.calls[0][0].where).toMatchObject({
@@ -218,9 +297,11 @@ describe('Relatórios VBA', () => {
       (await service.payments({ semana: '3926', empresa: 'ATT' }, user)).rows,
     ).toHaveLength(0);
     const sheet = reportSpreadsheet(result);
-    expect(sheet).toContain('ss:Type="String">00123456789');
-    expect(sheet).toContain('ss:Type="Number">700.00');
-    expect(sheet).not.toContain('ss:Formula');
+    const sheetContents = sheet.toString('utf8');
+    expect(sheet.subarray(0, 2).toString()).toBe('PK');
+    expect(sheetContents).toContain('00123456789');
+    expect(sheetContents).toContain('<v>700</v>');
+    expect(sheetContents).not.toContain('<f>');
   });
   it('reimprime por número usando histórico sem cálculos ou gravações', async () => {
     const html = await service.reprint({ numero: '40' }, user);
@@ -228,8 +309,14 @@ describe('Relatórios VBA', () => {
     expect(html).toContain('40');
     expect(db.frete_fechamentos.findMany.mock.calls[0][0].where).toEqual({
       unit: 100,
+      status: 'FECHADO',
       numero: 40,
     });
+    expect(db.frete_fechamentos.findMany.mock.calls[0][0].orderBy).toEqual([
+      { placa: 'asc' },
+      { numero: 'asc' },
+      { id: 'asc' },
+    ]);
     expect(db.frete_lancamentos.findMany).not.toHaveBeenCalled();
     db.frete_fechamentos.findMany.mockResolvedValue([]);
     await expect(service.reprint({ numero: '40' }, user)).rejects.toMatchObject(
@@ -247,29 +334,43 @@ describe('Relatórios VBA', () => {
     });
     expect(db.frete_fechamentos.findMany.mock.calls[0][0].where).toMatchObject({
       unit: { in: [301, 830] },
+      status: 'FECHADO',
       semana: '3926',
     });
   });
-  it('preserva marca de cancelamento na reimpressão e informa falta de dados legados', async () => {
+  it.each(['FINANCEIRO', 'RH'] as const)(
+    'aplica filtros globais à reimpressão para o perfil %s',
+    async (freightProfile) => {
+      await service.reprint(
+        { semana: '3926', dominio: 'MLN', local: 'SSA' },
+        { ...user, freightProfile },
+      );
+      expect(db.branches.findMany).toHaveBeenCalledWith({
+        where: { branch: 'SSA', dominio: 'MLN' },
+        select: { unit: true },
+      });
+      const call = db.frete_fechamentos.findMany.mock.calls.slice(-1)[0];
+      expect(call[0].where).toMatchObject({
+        unit: { in: [301, 830] },
+        status: 'FECHADO',
+        semana: '3926',
+      });
+    },
+  );
+  it('exclui cancelados da reimpressão e informa falta de dados legados', async () => {
     const closure = (await db.frete_fechamentos.findMany())[0];
-    db.frete_fechamentos.findMany.mockResolvedValue([
-      {
-        ...closure,
-        status: 'CANCELADO',
-        historico: {
-          finalizacao: { dados: original },
-          cancelamento: { motivo: 'Correção' },
-        },
-      },
-    ]);
-    expect(await service.reprint({ semana: '3926' }, user)).toContain(
+    db.frete_fechamentos.findMany.mockResolvedValue([]);
+    expect(await service.reprint({ semana: '3926' }, user)).not.toContain(
       'CANCELADO',
     );
+    expect(
+      db.frete_fechamentos.findMany.mock.calls.at(-1)[0].where,
+    ).toMatchObject({ status: 'FECHADO' });
     db.frete_fechamentos.findMany.mockResolvedValue([
       { ...closure, historico: null },
     ]);
     const r = await service.payments({ semana: '3926' }, user);
-    expect(r.rows[0][12]).toBeNull();
+    expect(r.rows[0][14]).toBeNull();
     expect(r.notes.join(' ')).toContain('sem cópia original');
   });
 });

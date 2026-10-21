@@ -76,6 +76,7 @@ export type Frete_carregamento_manifestosAvgAggregateOutputType = {
   total_retencoes: runtime.Decimal | null
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
+  cancelado_por: number | null
 }
 
 export type Frete_carregamento_manifestosSumAggregateOutputType = {
@@ -128,6 +129,7 @@ export type Frete_carregamento_manifestosSumAggregateOutputType = {
   total_retencoes: runtime.Decimal | null
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
+  cancelado_por: number | null
 }
 
 export type Frete_carregamento_manifestosMinAggregateOutputType = {
@@ -200,6 +202,9 @@ export type Frete_carregamento_manifestosMinAggregateOutputType = {
   total_retencoes: runtime.Decimal | null
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
+  cancelado: boolean | null
+  cancelado_em: Date | null
+  cancelado_por: number | null
   updated_at: Date | null
 }
 
@@ -273,6 +278,9 @@ export type Frete_carregamento_manifestosMaxAggregateOutputType = {
   total_retencoes: runtime.Decimal | null
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
+  cancelado: boolean | null
+  cancelado_em: Date | null
+  cancelado_por: number | null
   updated_at: Date | null
 }
 
@@ -346,6 +354,9 @@ export type Frete_carregamento_manifestosCountAggregateOutputType = {
   total_retencoes: number
   valor_liquido: number
   vale_pedagio: number
+  cancelado: number
+  cancelado_em: number
+  cancelado_por: number
   updated_at: number
   _all: number
 }
@@ -401,6 +412,7 @@ export type Frete_carregamento_manifestosAvgAggregateInputType = {
   total_retencoes?: true
   valor_liquido?: true
   vale_pedagio?: true
+  cancelado_por?: true
 }
 
 export type Frete_carregamento_manifestosSumAggregateInputType = {
@@ -453,6 +465,7 @@ export type Frete_carregamento_manifestosSumAggregateInputType = {
   total_retencoes?: true
   valor_liquido?: true
   vale_pedagio?: true
+  cancelado_por?: true
 }
 
 export type Frete_carregamento_manifestosMinAggregateInputType = {
@@ -525,6 +538,9 @@ export type Frete_carregamento_manifestosMinAggregateInputType = {
   total_retencoes?: true
   valor_liquido?: true
   vale_pedagio?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
   updated_at?: true
 }
 
@@ -598,6 +614,9 @@ export type Frete_carregamento_manifestosMaxAggregateInputType = {
   total_retencoes?: true
   valor_liquido?: true
   vale_pedagio?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
   updated_at?: true
 }
 
@@ -671,6 +690,9 @@ export type Frete_carregamento_manifestosCountAggregateInputType = {
   total_retencoes?: true
   valor_liquido?: true
   vale_pedagio?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
   updated_at?: true
   _all?: true
 }
@@ -831,6 +853,9 @@ export type Frete_carregamento_manifestosGroupByOutputType = {
   total_retencoes: runtime.Decimal
   valor_liquido: runtime.Decimal
   vale_pedagio: runtime.Decimal
+  cancelado: boolean
+  cancelado_em: Date | null
+  cancelado_por: number | null
   updated_at: Date
   _count: Frete_carregamento_manifestosCountAggregateOutputType | null
   _avg: Frete_carregamento_manifestosAvgAggregateOutputType | null
@@ -927,6 +952,9 @@ export type frete_carregamento_manifestosWhereInput = {
   total_retencoes?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFilter<"frete_carregamento_manifestos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableFilter<"frete_carregamento_manifestos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
 }
 
@@ -1000,6 +1028,9 @@ export type frete_carregamento_manifestosOrderByWithRelationInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.frete_carregamento_manifestosOrderByRelevanceInput
 }
@@ -1077,6 +1108,9 @@ export type frete_carregamento_manifestosWhereUniqueInput = Prisma.AtLeast<{
   total_retencoes?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFilter<"frete_carregamento_manifestos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableFilter<"frete_carregamento_manifestos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
 }, "id">
 
@@ -1150,6 +1184,9 @@ export type frete_carregamento_manifestosOrderByWithAggregationInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_carregamento_manifestosCountOrderByAggregateInput
   _avg?: Prisma.frete_carregamento_manifestosAvgOrderByAggregateInput
@@ -1231,6 +1268,9 @@ export type frete_carregamento_manifestosScalarWhereWithAggregatesInput = {
   total_retencoes?: Prisma.DecimalWithAggregatesFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalWithAggregatesFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalWithAggregatesFilter<"frete_carregamento_manifestos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolWithAggregatesFilter<"frete_carregamento_manifestos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_carregamento_manifestos"> | Date | string
 }
 
@@ -1303,6 +1343,9 @@ export type frete_carregamento_manifestosCreateInput = {
   total_retencoes?: runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1376,6 +1419,9 @@ export type frete_carregamento_manifestosUncheckedCreateInput = {
   total_retencoes?: runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1448,6 +1494,9 @@ export type frete_carregamento_manifestosUpdateInput = {
   total_retencoes?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1521,6 +1570,9 @@ export type frete_carregamento_manifestosUncheckedUpdateInput = {
   total_retencoes?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1594,6 +1646,9 @@ export type frete_carregamento_manifestosCreateManyInput = {
   total_retencoes?: runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1666,6 +1721,9 @@ export type frete_carregamento_manifestosUpdateManyMutationInput = {
   total_retencoes?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1739,6 +1797,9 @@ export type frete_carregamento_manifestosUncheckedUpdateManyInput = {
   total_retencoes?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   valor_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   vale_pedagio?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1818,6 +1879,9 @@ export type frete_carregamento_manifestosCountOrderByAggregateInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -1871,6 +1935,7 @@ export type frete_carregamento_manifestosAvgOrderByAggregateInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
 }
 
 export type frete_carregamento_manifestosMaxOrderByAggregateInput = {
@@ -1943,6 +2008,9 @@ export type frete_carregamento_manifestosMaxOrderByAggregateInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -2016,6 +2084,9 @@ export type frete_carregamento_manifestosMinOrderByAggregateInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -2069,6 +2140,7 @@ export type frete_carregamento_manifestosSumOrderByAggregateInput = {
   total_retencoes?: Prisma.SortOrder
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
 }
 
 export type NullableDecimalFieldUpdateOperationsInput = {
@@ -2077,6 +2149,10 @@ export type NullableDecimalFieldUpdateOperationsInput = {
   decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
   multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 
@@ -2151,6 +2227,9 @@ export type frete_carregamento_manifestosSelect<ExtArgs extends runtime.Types.Ex
   total_retencoes?: boolean
   valor_liquido?: boolean
   vale_pedagio?: boolean
+  cancelado?: boolean
+  cancelado_em?: boolean
+  cancelado_por?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["frete_carregamento_manifestos"]>
 
@@ -2226,10 +2305,13 @@ export type frete_carregamento_manifestosSelectScalar = {
   total_retencoes?: boolean
   valor_liquido?: boolean
   vale_pedagio?: boolean
+  cancelado?: boolean
+  cancelado_em?: boolean
+  cancelado_por?: boolean
   updated_at?: boolean
 }
 
-export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "manifesto_adicional_1" | "manifesto_adicional_2" | "manifesto_adicional_3" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
+export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "manifesto_adicional_1" | "manifesto_adicional_2" | "manifesto_adicional_3" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "cancelado" | "cancelado_em" | "cancelado_por" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
 
 export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_carregamento_manifestos"
@@ -2304,6 +2386,9 @@ export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.
     total_retencoes: runtime.Decimal
     valor_liquido: runtime.Decimal
     vale_pedagio: runtime.Decimal
+    cancelado: boolean
+    cancelado_em: Date | null
+    cancelado_por: number | null
     updated_at: Date
   }, ExtArgs["result"]["frete_carregamento_manifestos"]>
   composites: {}
@@ -2743,6 +2828,9 @@ export interface frete_carregamento_manifestosFieldRefs {
   readonly total_retencoes: Prisma.FieldRef<"frete_carregamento_manifestos", 'Decimal'>
   readonly valor_liquido: Prisma.FieldRef<"frete_carregamento_manifestos", 'Decimal'>
   readonly vale_pedagio: Prisma.FieldRef<"frete_carregamento_manifestos", 'Decimal'>
+  readonly cancelado: Prisma.FieldRef<"frete_carregamento_manifestos", 'Boolean'>
+  readonly cancelado_em: Prisma.FieldRef<"frete_carregamento_manifestos", 'DateTime'>
+  readonly cancelado_por: Prisma.FieldRef<"frete_carregamento_manifestos", 'Int'>
   readonly updated_at: Prisma.FieldRef<"frete_carregamento_manifestos", 'DateTime'>
 }
     

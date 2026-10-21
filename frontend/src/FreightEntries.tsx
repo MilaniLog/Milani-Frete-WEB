@@ -1,9 +1,10 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
 import { comparableManifestNumber, formatManifestNumber } from "./manifest-number";
 import SearchableSelect from "./SearchableSelect";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import ManifestEntries from "./ManifestEntries";
+import { parseQuickDate } from "./quick-date-time";
 type Manifest = {
   id: number;
   manifestos: string;
@@ -27,10 +28,12 @@ type Expense = {
   ativo: boolean;
 };
 type Driver = { cpf: string; name: string };
+type Vehicle = { plate: string };
 type SavedEntry = {
   id: number;
   numero: number;
   manifesto_id: number | null;
+  manifesto_numero: string | null;
   placa: string;
   semana: string | null;
   motorista: string | null;
@@ -48,6 +51,10 @@ type SavedEntry = {
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const displayDate = (iso: string) => {
+  const parsed = parseQuickDate(iso);
+  return parsed?.display ?? iso;
 };
 const normalize = (s: string) =>
   s
@@ -69,13 +76,14 @@ export default function FreightEntries({
 }) {
   const [weeks, setWeeks] = useState<EntryWeek[]>([]),
     [expenses, setExpenses] = useState<Expense[]>([]),
-    [drivers, setDrivers] = useState<Driver[]>([]);
+    [drivers, setDrivers] = useState<Driver[]>([]),
+    [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [number, setNumber] = useState(""),
     [manifest, setManifest] = useState<Manifest | null>(null),
     [plate, setPlate] = useState(""),
     [vehicleType, setVehicleType] = useState("");
   const [week, setWeek] = useState(""),
-    [date, setDate] = useState(today),
+    [date, setDate] = useState(() => displayDate(today())),
     [driver, setDriver] = useState("");
   const [editMode, setEditMode] = useState(false),
     [entryNumber, setEntryNumber] = useState(""),
@@ -90,6 +98,7 @@ export default function FreightEntries({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
+    [manifestMissing, setManifestMissing] = useState(false),
     [consult, setConsult] = useState(false),
     [attempt, setAttempt] = useState(0);
   const sequence = useRef(0);
@@ -98,13 +107,14 @@ export default function FreightEntries({
     else setError((e as Error).message);
   }
   function selectManifest(m: Manifest, calendar: EntryWeek[]) {
+    setManifestMissing(false);
     setManifest(m);
     setNumber(m.manifestos);
     setPlate(m.placa);
     setVehicleType(m.tipo_veiculo ?? "");
     setDriver("");
     const day = m.semana.slice(0, 10);
-    setDate(day);
+    setDate(displayDate(day));
     setWeek(
       calendar.find(
         (w) =>
@@ -120,15 +130,17 @@ export default function FreightEntries({
       api<EntryWeek[]>("/weeks", token),
       api<Expense[]>("/freight-expenses", token),
       api<Driver[]>("/drivers", token),
+      api<Vehicle[]>("/registrations/vehicles", token),
       initialManifestId
         ? api<Manifest>(`/manifests/${initialManifestId}`, token)
         : Promise.resolve(null),
     ])
-      .then(([w, e, d, m]) => {
+      .then(([w, e, d, v, m]) => {
         if (!active) return;
         setWeeks(w);
         setExpenses(e.filter((x) => x.ativo));
         setDrivers(d);
+        setVehicles(v);
         if (m) selectManifest(m, w);
         else {
           const day = today();
@@ -165,11 +177,13 @@ export default function FreightEntries({
         token,
       );
       if (request !== sequence.current) return;
+      if (!rows.length) {
+        setManifestMissing(true);
+        return;
+      }
       if (rows.length !== 1)
         throw new Error(
-          rows.length
-            ? "Mais de um manifesto encontrado. Confira o número completo."
-            : "Manifesto não encontrado nesta unidade. Corrija o número ou deixe o campo vazio para lançar sem manifesto.",
+          "Mais de um manifesto encontrado. Confira o número completo.",
         );
       selectManifest(rows[0], weeks);
     } catch (e) {
@@ -197,11 +211,12 @@ export default function FreightEntries({
       const e = result.entry;
       setEditing(e);
       setManifest(result.manifesto);
-      setNumber(result.manifesto?.manifestos ?? "");
+      setNumber(result.manifesto?.manifestos ?? e.manifesto_numero ?? "");
+      setManifestMissing(!result.manifesto && !!e.manifesto_numero);
       setPlate(e.placa ?? "");
       setVehicleType(e.tipo_veiculo ?? "");
       const day = e.data_lancamento.slice(0, 10);
-      setDate(day);
+      setDate(displayDate(day));
       setWeek(
         e.semana ??
           weeks.find(
@@ -248,6 +263,7 @@ export default function FreightEntries({
     setEditing(null);
     setEntryNumber("");
     setManifest(null);
+    setManifestMissing(false);
     setNumber("");
     setPlate("");
     setVehicleType("");
@@ -259,7 +275,7 @@ export default function FreightEntries({
     setSuccess("");
     setConsult(false);
     const day = today();
-    setDate(day);
+    setDate(displayDate(day));
     setWeek(
       weeks.find(
         (w) =>
@@ -285,12 +301,30 @@ export default function FreightEntries({
     }
     setError("");
     setSuccess("");
-    if (number.trim() && (!manifest?.manifestos || comparableManifestNumber(manifest.manifestos) !== comparableManifestNumber(number.trim()))) {
-      setError("Confira o manifesto antes de salvar ou deixe o campo vazio.");
+    if (
+      number.trim() &&
+      manifest?.manifestos &&
+      comparableManifestNumber(manifest.manifestos) !==
+        comparableManifestNumber(number.trim())
+    ) {
+      setError("Confira o número do manifesto antes de salvar.");
       return;
     }
     if (!week) {
       setError("Selecione a semana.");
+      return;
+    }
+    const enteredDate = parseQuickDate(date);
+    if (!enteredDate) {
+      setError("Informe uma data vÃ¡lida, como 121226 ou 12/12/2026.");
+      return;
+    }
+    if (
+      period &&
+      (enteredDate.iso < period.data_inicio.slice(0, 10) ||
+        enteredDate.iso > period.data_fim.slice(0, 10))
+    ) {
+      setError("A data do vale deve estar dentro da semana selecionada.");
       return;
     }
     setBusy(true);
@@ -303,16 +337,19 @@ export default function FreightEntries({
           body: JSON.stringify({
             placa: plate.trim().toUpperCase(),
             semana: week,
-            data_lancamento: date,
+            data_lancamento: enteredDate.iso,
             despesa_id: Number(expense),
             valor: Number(value),
             descricao: description.trim(),
             ...(editing ? { departamento: editing.departamento ?? "" } : {}),
             ...(manifest
               ? { manifesto_id: manifest.id }
-              : driver === "__historic__"
-                ? {}
-                : { cpf_motorista: driver || null }),
+              : {
+                  ...(number.trim() ? { manifesto_numero: number.trim() } : {}),
+                  ...(driver === "__historic__"
+                    ? {}
+                    : { cpf_motorista: driver || null }),
+                }),
           }),
         },
       );
@@ -363,6 +400,78 @@ export default function FreightEntries({
     }
   }
   const period = weeks.find((w) => w.codigo === week);
+  const weekOptions = useMemo(
+    () => [
+      <option key="empty-week" value="">
+        Selecione
+      </option>,
+      ...weeks.map((item) => (
+        <option key={item.codigo} value={item.codigo}>
+          {item.codigo} · {item.data_inicio.slice(0, 10).split("-").reverse().join("/")} a{" "}
+          {item.data_fim.slice(0, 10).split("-").reverse().join("/")}
+        </option>
+      )),
+    ],
+    [weeks],
+  );
+  const plateOptions = useMemo(
+    () => [
+      <option key="empty-plate" value="" disabled>
+        Selecione a placa
+      </option>,
+      ...(plate && !vehicles.some((vehicle) => vehicle.plate === plate)
+        ? [
+            <option key="selected-plate" value={plate}>
+              {plate}
+            </option>,
+          ]
+        : []),
+      ...vehicles.map((vehicle) => (
+        <option key={vehicle.plate} value={vehicle.plate}>
+          {vehicle.plate}
+        </option>
+      )),
+    ],
+    [vehicles, plate],
+  );
+  const driverOptions = useMemo(() => {
+    const nameCounts = new Map<string, number>();
+    for (const item of drivers) {
+      const name = normalize(item.name);
+      nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+    }
+    return [
+      <option key="empty-driver" value="">
+        Sem motorista informado
+      </option>,
+      ...(driver === "__historic__"
+        ? [
+            <option key="historic-driver" value="__historic__">
+              {editing?.motorista}
+            </option>,
+          ]
+        : []),
+      ...drivers.map((item) => (
+        <option key={item.cpf} value={item.cpf}>
+          {item.name}
+          {(nameCounts.get(normalize(item.name)) ?? 0) > 1
+            ? ` · CPF final ${item.cpf.slice(-4)}`
+            : ""}
+        </option>
+      )),
+    ];
+  }, [drivers, driver, editing?.motorista]);
+  const manifestPrefix = number.slice(0, 3);
+  const manifestSuffix = number.slice(3);
+  function changeManifestNumber(value: string) {
+    sequence.current++;
+    setSearching(false);
+    setNumber(value);
+    setManifest(null);
+    setManifestMissing(false);
+    setConsult(false);
+    setError("");
+  }
   const locked =
     (!!manifest && manifest.fechamento_id != null) ||
     (!!editing && (editing.pago || editing.fechamento_id != null));
@@ -403,25 +512,53 @@ export default function FreightEntries({
       {!consult && (
         <form className="launch-form" onSubmit={save}>
           <fieldset disabled={loading || busy}>
-            <label>
-              Manifesto
-              <input
-                name="manifesto"
-                readOnly={editMode}
-                maxLength={20}
-                value={number}
-                onBlur={() => void lookup()}
-                onChange={(e) => {
-                  sequence.current++;
-                  setSearching(false);
-                  setNumber(e.target.value);
-                  setManifest(null);
-                  setConsult(false);
-                  setError("");
-                }}
-              />
-            </label>
+            <div
+              className="manifest-number-field launch-manifest-number"
+              role="group"
+              aria-label="Manifesto"
+            >
+              <span>Manifesto</span>
+              <div className="manifest-number-parts">
+                <input
+                  aria-label="Primeiros três dígitos do manifesto"
+                  inputMode="numeric"
+                  maxLength={3}
+                  pattern="[0-9]{3}"
+                  placeholder="000"
+                  readOnly={editMode}
+                  value={manifestPrefix}
+                  onChange={(e) =>
+                    changeManifestNumber(
+                      `${e.target.value.replace(/\D/g, "").slice(0, 3)}${manifestSuffix}`,
+                    )
+                  }
+                />
+                <input
+                  aria-label="Número do manifesto"
+                  inputMode="numeric"
+                  maxLength={8}
+                  placeholder="000000-0"
+                  readOnly={editMode}
+                  value={manifestSuffix}
+                  onChange={(e) =>
+                    changeManifestNumber(`${manifestPrefix}${e.target.value}`)
+                  }
+                  onBlur={() => {
+                    if (!manifestSuffix.trim()) return;
+                    const formatted = formatManifestNumber(number);
+                    if (formatted) setNumber(formatted);
+                    void lookup();
+                  }}
+                />
+                <input type="hidden" name="manifesto" value={number} />
+              </div>
+            </div>
             {searching && <p role="status">Buscando manifesto…</p>}
+            {manifestMissing && !searching && (
+              <p className="muted" role="status">
+                Manifesto ainda não cadastrado. O vale será vinculado automaticamente quando ele for lançado.
+              </p>
+            )}
             {locked && (
               <p role="alert">
                 Registro pago ou fechado: alterações não são permitidas.
@@ -459,50 +596,41 @@ export default function FreightEntries({
               <div className="form-grid">
                 <label>
                   Semana
-                  <select
+                  <SearchableSelect
                     aria-label="Semana"
                     required
                     value={week}
                     onChange={(e) => {
                       setWeek(normalizeWeek(e.target.value));
                       const w = weeks.find((x) => x.codigo === e.target.value);
+                      const enteredDate = parseQuickDate(date);
                       if (
                         w &&
-                        (date < w.data_inicio.slice(0, 10) ||
-                          date > w.data_fim.slice(0, 10))
+                        (!enteredDate ||
+                          enteredDate.iso < w.data_inicio.slice(0, 10) ||
+                          enteredDate.iso > w.data_fim.slice(0, 10))
                       )
-                        setDate(w.data_inicio.slice(0, 10));
+                        setDate(displayDate(w.data_inicio.slice(0, 10)));
                     }}
                   >
-                    <option value="">Selecione</option>
-                    {weeks.map((w) => (
-                      <option key={w.codigo} value={w.codigo}>
-                        {w.codigo} ·{" "}
-                        {w.data_inicio
-                          .slice(0, 10)
-                          .split("-")
-                          .reverse()
-                          .join("/")}{" "}
-                        a{" "}
-                        {w.data_fim.slice(0, 10).split("-").reverse().join("/")}
-                      </option>
-                    ))}
-                  </select>
+                    {weekOptions}
+                  </SearchableSelect>
                 </label>
                 <label>
                   Placa
-                  <input
+                  <SearchableSelect
+                    aria-label="Placa"
                     name="placa"
                     required
-                    maxLength={8}
-                    pattern="[A-Za-z]{3}[0-9][A-Za-z0-9][0-9]{2}"
-                    readOnly={!!manifest}
+                    disabled={!!manifest}
                     value={plate}
                     onChange={(e) => {
                       setPlate(normalizePlate(e.target.value));
                       setVehicleType("");
                     }}
-                  />
+                  >
+                    {plateOptions}
+                  </SearchableSelect>
                 </label>
                 {vehicleType && (
                   <label>
@@ -526,22 +654,7 @@ export default function FreightEntries({
                         value={driver}
                         onChange={(e) => setDriver(e.target.value)}
                       >
-                        <option value="">Sem motorista informado</option>
-                        {driver === "__historic__" && (
-                          <option value="__historic__">
-                            {editing?.motorista}
-                          </option>
-                        )}
-                        {drivers.map((d) => (
-                          <option key={d.cpf} value={d.cpf}>
-                            {d.name}
-                            {drivers.filter(
-                              (x) => normalize(x.name) === normalize(d.name),
-                            ).length > 1
-                              ? ` · CPF final ${d.cpf.slice(-4)}`
-                              : ""}
-                          </option>
-                        ))}
+                        {driverOptions}
                       </SearchableSelect>
                     </label>
                   </>
@@ -549,12 +662,25 @@ export default function FreightEntries({
                 <label>
                   Data do vale
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="DD/MM/AAAA"
                     required
-                    min={period?.data_inicio.slice(0, 10)}
-                    max={period?.data_fim.slice(0, 10)}
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      e.target.setCustomValidity("");
+                    }}
+                    onBlur={(e) => {
+                      const parsed = parseQuickDate(e.target.value);
+                      if (parsed) setDate(parsed.display);
+                      e.target.setCustomValidity(
+                        parsed || !e.target.value
+                          ? ""
+                          : "Informe uma data vÃ¡lida, como 121226 ou 12/12/2026.",
+                      );
+                    }}
                   />
                 </label>
                 <label>

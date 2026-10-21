@@ -121,12 +121,12 @@ it("não oferece edição para manifesto fechado", async () => {
   expect(screen.queryByRole("dialog", { name: "Editar manifesto M123" })).toBeNull();
 });
 
-it("abre o aviso de exclusão pela lixeira da consulta", async () => {
+it("abre o aviso de cancelamento pela lixeira da consulta", async () => {
   await login();
   await screen.findByText("M123");
-  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto M123" }));
-  expect(await screen.findByText(/A exclusão não pode ser desfeita/)).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Confirmar exclusão do manifesto" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar manifesto M123" }));
+  expect(await screen.findByText(/permanecerá no histórico como cancelado/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Confirmar cancelamento" })).toBeTruthy();
 });
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {

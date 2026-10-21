@@ -6,6 +6,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { getWeek } from '../weeks/period-policy';
 import { ConferenceDto } from './freight-closures.dto';
 @Injectable()
@@ -13,12 +14,12 @@ export class ConferenceService {
   constructor(private readonly db: PrismaService) {}
 
   private unitWhere(user: AuthUser, unit?: number) {
-    const targetUnit = user.isAdmin ? unit : user.unit;
+    const targetUnit = hasGlobalFreightAccess(user) ? unit : user.unit;
     return targetUnit == null ? {} : { unit: targetUnit };
   }
 
   private async scopeWhere(tx: any, user: AuthUser, dto: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {}) {
-    if (!user.isAdmin) return { unit: user.unit };
+    if (!hasGlobalFreightAccess(user)) return { unit: user.unit };
     if (dto.unit != null) return { unit: dto.unit };
     if (!dto.local && !dto.dominio) return {};
     const branches = await tx.branches.findMany({ where: { ...(dto.local ? { branch: dto.local } : {}), ...(dto.dominio ? { dominio: dto.dominio } : {}) }, select: { unit: true } });
@@ -68,6 +69,7 @@ export class ConferenceService {
         const plates = vehicles.map((v) => v.plate);
         let manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
+            cancelado: false,
             ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
             placa: { in: plates },
             semana: dates,
@@ -97,6 +99,14 @@ export class ConferenceService {
               ).length > 1,
           );
         const ids = manifests.map((m) => m.id);
+        const manifestNumbers = manifests
+          .flatMap((manifest) => [
+            manifest.manifestos,
+            manifest.manifesto_adicional_1,
+            manifest.manifesto_adicional_2,
+            manifest.manifesto_adicional_3,
+          ])
+          .filter((number): number is string => Boolean(number));
         const entries = await tx.frete_lancamentos.findMany({
           where: {
             ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
@@ -108,6 +118,23 @@ export class ConferenceService {
                 ? {}
                 : { fechamento_id: null, pago: false }),
             OR: [
+              // Todo débito comum em aberto continua disponível nas semanas
+              // seguintes até ser efetivamente selecionado no fechamento.
+              {
+                tipo_despesa: 'Debito',
+                codigo_despesa: { not: '3333' },
+              },
+              // O 3333 acompanha exclusivamente o manifesto da semana atual.
+              {
+                codigo_despesa: '3333',
+                OR: [
+                  { manifesto_id: { in: ids } },
+                  {
+                    manifesto_id: null,
+                    manifesto_numero: { in: manifestNumbers },
+                  },
+                ],
+              },
               { manifesto_id: { in: ids } },
               ...(dto.mista === 'true'
                 ? []
@@ -162,7 +189,11 @@ export class ConferenceService {
               e.filter((x) => x.tipo_despesa === 'Credito').map((x) => x.valor),
             ),
             debitos = sum(
-              e.filter((x) => x.tipo_despesa === 'Debito').map((x) => x.valor),
+              e.filter(
+                (x) =>
+                  x.tipo_despesa === 'Debito' &&
+                  String(x.codigo_despesa ?? '').trim() !== '3333',
+              ).map((x) => x.valor),
             ),
             cupons = sum(c.map((x) => x.valor));
           const bruto = fretes.plus(creditos),
@@ -184,6 +215,9 @@ export class ConferenceService {
                 m.find((x) => x.num_fechamento != null)?.num_fechamento ??
                 closure?.numero ??
                 null,
+              isClosed:
+                !!closure ||
+                m.some((manifest) => manifest.fechamento_id != null),
               periodo_inicio: start,
               periodo_fim: end,
               manifests: m,

@@ -89,15 +89,14 @@ export default function DeleteManifest({
           disabled={disabled || busy}
           onClick={() => void check()}
         >
-          Excluir manifesto
+          Cancelar manifesto
         </button>
       ) : (
         <div className="alert">
           <p>
-            Excluir o manifesto <strong>{number}</strong> e seus{" "}
-            <strong>{count} vales abertos</strong>? A exclusão não pode
-            ser desfeita. O servidor verificará novamente os vínculos antes de
-            excluir.
+            Cancelar o manifesto <strong>{number}</strong> e remover seus{" "}
+            <strong>{count} vales abertos</strong>? O manifesto permanecerá no
+            histórico como cancelado. O cancelamento não pode ser desfeito.
           </p>
           <button
             type="button"
@@ -105,7 +104,7 @@ export default function DeleteManifest({
             disabled={disabled || busy}
             onClick={() => void remove()}
           >
-            Confirmar exclusão do manifesto
+            Confirmar cancelamento
           </button>{" "}
           <button
             type="button"

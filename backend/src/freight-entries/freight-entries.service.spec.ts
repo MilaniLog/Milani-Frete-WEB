@@ -20,6 +20,32 @@ describe('Vales vinculados ao manifesto', () => {
       {sub:1,cod:1,unit:100,isAdmin:false}, id)).rejects.toBeInstanceOf(ForbiddenException);
     expect(transaction).not.toHaveBeenCalled();
   });
+  it('cadastra despesa global na unidade técnica existente', async () => {
+    const create = jest.fn(async ({ data }) => ({ id: 1, ...data }));
+    const transaction = jest.fn(async (work) =>
+      work({ frete_despesas: { create } }),
+    );
+    const entriesService = new FreightEntriesService(
+      { $transaction: transaction } as any,
+      {} as any,
+    );
+
+    await expect(
+      entriesService.saveExpense(
+        { codigo: '0003', nome: 'Teste', tipo: 'Debito', ativo: true },
+        { sub: 1, cod: 1, unit: 850, isAdmin: true },
+      ),
+    ).resolves.toMatchObject({ unit: 100, codigo: '0003' });
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        codigo: '0003',
+        nome: 'Teste',
+        tipo: 'Debito',
+        ativo: true,
+        unit: 100,
+      },
+    });
+  });
   const user = { sub: 1, cod: 10, unit: 101, isAdmin: false };
   const dto = { despesa_id: 1, data_lancamento: '2026-09-22', valor: 50 };
   let manifest: any;
@@ -267,6 +293,18 @@ describe('Vales vinculados ao manifesto', () => {
       NotFoundException,
     );
   });
+
+  it.each(['FINANCEIRO', 'RH'] as const)(
+    'permite ao perfil %s gerar vale em manifesto de outra unidade',
+    async (freightProfile) => {
+      const globalUser = { ...user, unit: 202, freightProfile };
+      const result = await service.changeEntry(1, globalUser, {
+        kind: 'create',
+        dto,
+      });
+      expect(result.entry.unit).toBe(101);
+    },
+  );
 
   it.each(['fechamento_id'])(
     'bloqueia manifesto com %s',

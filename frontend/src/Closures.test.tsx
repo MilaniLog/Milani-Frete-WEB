@@ -19,7 +19,10 @@ const data = {
   placa: "ABC1234",
   closureNumber: 10001,
   manifests: [{ id: 1, manifestos: "M1", frete_veiculo: "100" }],
-  entries: [],
+  entries: [
+    { id: 10, numero: 10, manifesto_id: 1, data_lancamento: "2026-09-21", codigo_despesa: "0060", nome_despesa: "COMPLEMENTO", tipo_despesa: "Credito", valor: "20" },
+    { id: 11, numero: 11, manifesto_id: 1, data_lancamento: "2026-09-22", codigo_despesa: "0004", nome_despesa: "VALE", tipo_despesa: "Debito", valor: "10" },
+  ],
   coupons: [],
   totals: { total_bruto: "100", total_liquido: "80", total_ctrb: "0" },
   payment: null,
@@ -38,7 +41,14 @@ beforeEach(() => {
       if (path.endsWith("/freight-closures/week"))
         return response({ results: [{ closure }] }, 201);
       if (options?.method) return response({ closure }, 201);
-      if (path.includes("/conference?")) return response({ groups: [data] });
+      if (path.includes("/conference?"))
+        return response({
+          groups: [
+            path.includes("finalizados=true")
+              ? { ...data, isClosed: true }
+              : data,
+          ],
+        });
       if (path.includes("/preview")) return response(data);
       if (path.endsWith("/report")) return response(report);
       return response([closure]);
@@ -58,6 +68,8 @@ it("conferência filtrada não oferece finalização parcial e envia os filtros"
     screen.getByRole("button", { name: "Relatório de conferência" }),
   );
   await screen.findByRole("heading", { name: /Confer.ncia por placa/ });
+  expect(screen.getByText("0060 - COMPLEMENTO").tagName).toBe("SMALL");
+  expect(screen.getByText("0004 - VALE").tagName).toBe("SMALL");
   const call = vi
     .mocked(fetch)
     .mock.calls.find(([p]) => String(p).includes("/conference?"));
@@ -67,6 +79,10 @@ it("conferência filtrada não oferece finalização parcial e envia os filtros"
   expect(
     screen.queryByRole("button", { name: "Finalizar fechamento" }),
   ).toBeNull();
+  expect(screen.getByText("Fechamento já finalizado")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Fechar placa" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Fechar semana" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
@@ -124,9 +140,9 @@ it("fecha somente a placa exibida na seleção atual", async () => {
   });
   expect(screen.queryByRole("button", { name: "Fechar placa" })).toBeNull();
   expect(
-    vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith("/pdf")),
+    vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith("/drivers")),
   ).toEqual([
-    expect.arrayContaining(["/api/freight-closures/week/drivers/pdf"]),
+    expect.arrayContaining(["/api/freight-closures/week/drivers"]),
   ]);
 });
 afterEach(() => {
@@ -169,6 +185,30 @@ it("exige confirmação e envia apenas semana e placa ao finalizar", async () =>
     placa: "ABC1234",
     debit_entry_ids: [],
   });
+});
+it("destaca líquido negativo e impede a finalização", async () => {
+  const original = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (path, options) => {
+    if (!options?.method && String(path).includes("/preview"))
+      return response({
+        ...data,
+        totals: { ...data.totals, total_liquido: "-10" },
+      });
+    return original(path, options);
+  });
+  mount();
+  await preview();
+  expect(document.querySelector(".negative-value")?.textContent).toContain(
+    "10,00",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Finalizar fechamento" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Confirmar finalização" }),
+  );
+  await screen.findByText(/o valor líquido está negativo/i);
+  expect(
+    vi.mocked(fetch).mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
 });
 it("mudança de placa invalida a conferência e sua confirmação", async () => {
   mount();

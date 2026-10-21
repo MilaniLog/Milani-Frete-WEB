@@ -45,6 +45,7 @@ export type EmployeesMinAggregateOutputType = {
   password: string | null
   unit: number | null
   isAdmin: boolean | null
+  freight_profile: string | null
 }
 
 export type EmployeesMaxAggregateOutputType = {
@@ -54,6 +55,7 @@ export type EmployeesMaxAggregateOutputType = {
   password: string | null
   unit: number | null
   isAdmin: boolean | null
+  freight_profile: string | null
 }
 
 export type EmployeesCountAggregateOutputType = {
@@ -63,6 +65,7 @@ export type EmployeesCountAggregateOutputType = {
   password: number
   unit: number
   isAdmin: number
+  freight_profile: number
   _all: number
 }
 
@@ -86,6 +89,7 @@ export type EmployeesMinAggregateInputType = {
   password?: true
   unit?: true
   isAdmin?: true
+  freight_profile?: true
 }
 
 export type EmployeesMaxAggregateInputType = {
@@ -95,6 +99,7 @@ export type EmployeesMaxAggregateInputType = {
   password?: true
   unit?: true
   isAdmin?: true
+  freight_profile?: true
 }
 
 export type EmployeesCountAggregateInputType = {
@@ -104,6 +109,7 @@ export type EmployeesCountAggregateInputType = {
   password?: true
   unit?: true
   isAdmin?: true
+  freight_profile?: true
   _all?: true
 }
 
@@ -200,6 +206,7 @@ export type EmployeesGroupByOutputType = {
   password: string | null
   unit: number
   isAdmin: boolean
+  freight_profile: string
   _count: EmployeesCountAggregateOutputType | null
   _avg: EmployeesAvgAggregateOutputType | null
   _sum: EmployeesSumAggregateOutputType | null
@@ -232,6 +239,7 @@ export type employeesWhereInput = {
   password?: Prisma.StringNullableFilter<"employees"> | string | null
   unit?: Prisma.IntFilter<"employees"> | number
   isAdmin?: Prisma.BoolFilter<"employees"> | boolean
+  freight_profile?: Prisma.StringFilter<"employees"> | string
 }
 
 export type employeesOrderByWithRelationInput = {
@@ -241,6 +249,7 @@ export type employeesOrderByWithRelationInput = {
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrder
   isAdmin?: Prisma.SortOrder
+  freight_profile?: Prisma.SortOrder
   _relevance?: Prisma.employeesOrderByRelevanceInput
 }
 
@@ -254,6 +263,7 @@ export type employeesWhereUniqueInput = Prisma.AtLeast<{
   password?: Prisma.StringNullableFilter<"employees"> | string | null
   unit?: Prisma.IntFilter<"employees"> | number
   isAdmin?: Prisma.BoolFilter<"employees"> | boolean
+  freight_profile?: Prisma.StringFilter<"employees"> | string
 }, "id" | "cod">
 
 export type employeesOrderByWithAggregationInput = {
@@ -263,6 +273,7 @@ export type employeesOrderByWithAggregationInput = {
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrder
   isAdmin?: Prisma.SortOrder
+  freight_profile?: Prisma.SortOrder
   _count?: Prisma.employeesCountOrderByAggregateInput
   _avg?: Prisma.employeesAvgOrderByAggregateInput
   _max?: Prisma.employeesMaxOrderByAggregateInput
@@ -280,6 +291,7 @@ export type employeesScalarWhereWithAggregatesInput = {
   password?: Prisma.StringNullableWithAggregatesFilter<"employees"> | string | null
   unit?: Prisma.IntWithAggregatesFilter<"employees"> | number
   isAdmin?: Prisma.BoolWithAggregatesFilter<"employees"> | boolean
+  freight_profile?: Prisma.StringWithAggregatesFilter<"employees"> | string
 }
 
 export type employeesCreateInput = {
@@ -288,6 +300,7 @@ export type employeesCreateInput = {
   password?: string | null
   unit: number
   isAdmin?: boolean
+  freight_profile?: string
 }
 
 export type employeesUncheckedCreateInput = {
@@ -297,6 +310,7 @@ export type employeesUncheckedCreateInput = {
   password?: string | null
   unit: number
   isAdmin?: boolean
+  freight_profile?: string
 }
 
 export type employeesUpdateInput = {
@@ -305,6 +319,7 @@ export type employeesUpdateInput = {
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  freight_profile?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type employeesUncheckedUpdateInput = {
@@ -314,6 +329,7 @@ export type employeesUncheckedUpdateInput = {
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  freight_profile?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type employeesCreateManyInput = {
@@ -323,6 +339,7 @@ export type employeesCreateManyInput = {
   password?: string | null
   unit: number
   isAdmin?: boolean
+  freight_profile?: string
 }
 
 export type employeesUpdateManyMutationInput = {
@@ -331,6 +348,7 @@ export type employeesUpdateManyMutationInput = {
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  freight_profile?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type employeesUncheckedUpdateManyInput = {
@@ -340,6 +358,7 @@ export type employeesUncheckedUpdateManyInput = {
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   isAdmin?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  freight_profile?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type employeesOrderByRelevanceInput = {
@@ -355,6 +374,7 @@ export type employeesCountOrderByAggregateInput = {
   password?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   isAdmin?: Prisma.SortOrder
+  freight_profile?: Prisma.SortOrder
 }
 
 export type employeesAvgOrderByAggregateInput = {
@@ -370,6 +390,7 @@ export type employeesMaxOrderByAggregateInput = {
   password?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   isAdmin?: Prisma.SortOrder
+  freight_profile?: Prisma.SortOrder
 }
 
 export type employeesMinOrderByAggregateInput = {
@@ -379,6 +400,7 @@ export type employeesMinOrderByAggregateInput = {
   password?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   isAdmin?: Prisma.SortOrder
+  freight_profile?: Prisma.SortOrder
 }
 
 export type employeesSumOrderByAggregateInput = {
@@ -396,6 +418,7 @@ export type employeesSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   password?: boolean
   unit?: boolean
   isAdmin?: boolean
+  freight_profile?: boolean
 }, ExtArgs["result"]["employees"]>
 
 
@@ -407,9 +430,10 @@ export type employeesSelectScalar = {
   password?: boolean
   unit?: boolean
   isAdmin?: boolean
+  freight_profile?: boolean
 }
 
-export type employeesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cod" | "Name" | "password" | "unit" | "isAdmin", ExtArgs["result"]["employees"]>
+export type employeesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cod" | "Name" | "password" | "unit" | "isAdmin" | "freight_profile", ExtArgs["result"]["employees"]>
 
 export type $employeesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "employees"
@@ -421,6 +445,7 @@ export type $employeesPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     password: string | null
     unit: number
     isAdmin: boolean
+    freight_profile: string
   }, ExtArgs["result"]["employees"]>
   composites: {}
 }
@@ -796,6 +821,7 @@ export interface employeesFieldRefs {
   readonly password: Prisma.FieldRef<"employees", 'String'>
   readonly unit: Prisma.FieldRef<"employees", 'Int'>
   readonly isAdmin: Prisma.FieldRef<"employees", 'Boolean'>
+  readonly freight_profile: Prisma.FieldRef<"employees", 'String'>
 }
     
 

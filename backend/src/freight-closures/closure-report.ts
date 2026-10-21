@@ -2,6 +2,15 @@ import { ConflictException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
 
 type Row = Record<string, any>;
+const chronological = (rows: Row[], field: string) =>
+  [...rows].sort((left, right) => {
+    const leftTime = Date.parse(String(left[field] ?? ''));
+    const rightTime = Date.parse(String(right[field] ?? ''));
+    const byDate =
+      (Number.isNaN(leftTime) ? Number.POSITIVE_INFINITY : leftTime) -
+      (Number.isNaN(rightTime) ? Number.POSITIVE_INFINITY : rightTime);
+    return byDate || Number(left.id ?? 0) - Number(right.id ?? 0);
+  });
 const manifestLabel = (manifest: Row) =>
   [
     manifest.manifestos,
@@ -130,11 +139,12 @@ export function renderClosureReport(report: ClosureReport): string {
     v == null
       ? '—'
       : `${new Decimal(String(v)).mul(100).toFixed(2).replace('.', ',')}%`;
-  type Cell = { value: unknown; span?: number; right?: boolean };
-  const cell = (value: unknown, span = 1, right = false): Cell => ({
+  type Cell = { value: unknown; span?: number; right?: boolean; nowrap?: boolean };
+  const cell = (value: unknown, span = 1, right = false, nowrap = false): Cell => ({
     value,
     span,
     right,
+    nowrap,
   });
   const cols =
     '<colgroup>' +
@@ -143,7 +153,7 @@ export function renderClosureReport(report: ClosureReport): string {
       .join('') +
     '</colgroup>';
   const row = (cells: Cell[], heading = false) =>
-    `<tr>${cells.map((c) => `<${heading ? 'th' : 'td'} colspan="${c.span ?? 1}" class="${c.right ? 'right' : ''}">${escape(c.value ?? '')}</${heading ? 'th' : 'td'}>`).join('')}</tr>`;
+    `<tr>${cells.map((c) => `<${heading ? 'th' : 'td'} colspan="${c.span ?? 1}" class="${[c.right ? 'right' : '', c.nowrap ? 'nowrap' : ''].filter(Boolean).join(' ')}">${escape(c.value ?? '')}</${heading ? 'th' : 'td'}>`).join('')}</tr>`;
   const table = (rows: string[], cls = '') =>
     `<table class="sheet ${cls}">${cols}<tbody>${rows.join('')}</tbody></table>`;
   const paired = (labels: string[], values: unknown[]) =>
@@ -249,25 +259,27 @@ export function renderClosureReport(report: ClosureReport): string {
         cell(moneyOrDash(m.vale_pedagio), 1, true),
       ]),
     ]);
-  const entries = (list: Row[], advances = false) =>
+  const entries = (list: Row[], advances = false, valeIds = false) =>
     table(
-      list.map((e) =>
+      chronological(list, 'data_lancamento').map((e) =>
         advances
           ? row([
-              cell(e.id, 1, true),
+              cell(date(e.data_lancamento)),
+              cell(e.id, 1, !valeIds),
               cell(money(e.valor)),
-              cell('ADIANTAMENTO'),
+              cell('CTRB'),
               cell(e.codigo_despesa),
-              cell(e.descricao, 4),
+              cell(e.descricao, 3),
             ])
           : row([
-              cell(e.id, 1, true),
+              cell(date(e.data_lancamento)),
+              cell(e.id, 1, !valeIds),
               cell(e.codigo_despesa),
               cell(
                 `${e.nome_despesa ?? ''} ${e.tipo_despesa === 'Credito' ? 'C' : 'D'}`,
                 2,
               ),
-              cell(e.descricao, 3),
+              cell(e.descricao, 2),
               cell(
                 `${e.tipo_despesa === 'Credito' ? '+' : '−'}${money(e.valor)}`,
                 1,
@@ -280,21 +292,32 @@ export function renderClosureReport(report: ClosureReport): string {
   const ids = new Set(
     report.manifests.map((m) => m.id).filter((id) => id != null),
   );
-  const unlinked = report.entries.filter(
-    (e) => e.manifesto_id == null || !ids.has(e.manifesto_id),
+  const manifestNumbers = (m: Row) =>
+    [
+      m.manifestos,
+      m.manifesto_adicional_1,
+      m.manifesto_adicional_2,
+      m.manifesto_adicional_3,
+    ]
+      .filter(Boolean)
+      .map(String);
+  const linkedTo = (e: Row, m: Row) =>
+    (m.id != null && e.manifesto_id === m.id) ||
+    (e.manifesto_id == null &&
+      e.manifesto_numero != null &&
+      manifestNumbers(m).includes(String(e.manifesto_numero)));
+  const bottomEntries = report.entries.filter(
+    (e) => e.tipo_despesa === 'Debito',
   );
-  const linkedDebits = report.manifests.flatMap((m) =>
-    report.entries.filter(
-      (e) =>
-        m.id != null && e.manifesto_id === m.id && e.tipo_despesa === 'Debito',
-    ),
+  const outsideCredits = report.entries.filter(
+    (e) =>
+      e.tipo_despesa === 'Credito' &&
+      !report.manifests.some((manifest) => linkedTo(e, manifest)),
   );
-  const bottomEntries = [
-    ...linkedDebits,
-    ...unlinked.filter((e) => e.tipo_despesa !== 'Adiantamento'),
-  ];
-  const bottomAdvances = unlinked.filter(
-    (e) => e.tipo_despesa === 'Adiantamento',
+  const bottomAdvances = report.entries.filter(
+    (e) =>
+      e.tipo_despesa === 'Adiantamento' &&
+      String(e.codigo_despesa ?? '').trim() !== '3333',
   );
   const payments = [report.payment?.primeira, report.payment?.segunda].filter(
     (p) =>
@@ -359,7 +382,6 @@ export function renderClosureReport(report: ClosureReport): string {
   ];
   const linkedAdvance3333 = report.entries.filter(
     (entry) =>
-      entry.tipo_despesa === 'Adiantamento' &&
       String(entry.codigo_despesa ?? '').trim() === '3333' &&
       entry.manifesto_id != null &&
       ids.has(entry.manifesto_id),
@@ -375,17 +397,17 @@ export function renderClosureReport(report: ClosureReport): string {
   const owner = `${h.beneficiario?.nome ?? 'Não registrado'}${report.payment?.primeira?.empresa ? ` - ${report.payment.primeira.empresa}` : ''}`;
   const warnings = `${report.origem === 'PREVIA' ? '<p>PRÉVIA — NÃO FINALIZADO. Conferência provisória.</p>' : report.origem !== 'FINALIZACAO' ? '<p>Fechamento legado: sem cópia original da finalização; dados dos vínculos atuais ou do cancelamento.</p>' : ''}${h.status && h.status !== 'FINALIZADO' && report.origem !== 'PREVIA' ? `<p>${escape(h.status)}</p>` : ''}${h.cancelamento ? `<p>Cancelado em ${escape(date(h.cancelamento.em))}. Usuário: ${escape(h.cancelamento.usuario?.cod)}. Motivo: ${escape(h.cancelamento.motivo)}</p>` : ''}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(report.titulo)}</title><style>
-@page{size:A4 portrait;margin:2mm 1mm 12mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:9pt Arial}}
-*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:208mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
+@page{size:A4 portrait;margin:10mm 10mm 14mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:9pt Arial}}
+*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:190mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.summary .company col:nth-child(6){width:9.4%!important}.summary .company col:nth-child(7){width:17.4%!important}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
 </style></head><body><h1>${report.origem === 'FINALIZACAO' ? 'FECHAMENTO DE FRETE' : 'CONFERÊNCIA DE FRETES E VALES'}</h1>
 ${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(`UNIDADE:${h.unit ?? '—'}`), cell(`FECH:${closureNumber}`)])], 'metadata')}
 ${table([row([cell('PLACA:'), cell(h.placa), cell('', 2), cell('PROPRIETÁRIO'), cell(owner, 3)])], 'owner')}
-<div class="warnings">${warnings}</div><p class="screen">Ctrl+P para imprimir ou salvar em PDF.</p>
+<div class="warnings">${warnings}</div>
 ${
-  report.manifests
+  chronological(report.manifests, 'semana')
     .map((m, index) => {
       const linked = report.entries.filter(
-        (e) => m.id != null && e.manifesto_id === m.id,
+        (e) => linkedTo(e, m),
       );
       return `<div class="manifest"><div class="manifest-head">${table(
         [
@@ -427,22 +449,29 @@ ${
         ],
         'manifest-heading',
       )}</div>${entries(linked.filter((e) => e.tipo_despesa === 'Credito'))}${extras(m)}${paired([...freight.map((x) => x[0]), 'PERCENT', '% TEST'], [...freight.map((x) => moneyOrDash(m[x[1]])), percent(m.percentual_antigo), percent(ratio(m.frt_tl_vlc, extrasForTest(m)))])}${ctrb(m)}${entries(
-        linked.filter((e) => e.tipo_despesa === 'Adiantamento'),
+        linked.filter(
+          (e) =>
+            e.tipo_despesa === 'Adiantamento' &&
+            String(e.codigo_despesa ?? '').trim() === '3333',
+        ),
+        true,
         true,
       )}</div>`;
     })
     .join('') || '<p>Nenhum manifesto.</p>'
 }
 
+${entries(outsideCredits)}
 ${
   bottomEntries.length || bottomAdvances.length
-    ? `<h2>VALES AVULSOS / SEM MANIFESTO</h2>${entries(bottomEntries)}${entries(
+    ? `<h2>VALES</h2>${entries(bottomEntries, false, true)}${entries(
         bottomAdvances,
+        true,
         true,
       )}`
     : ''
 }
-${report.coupons.length ? `<h2>CUPONS</h2>${table(report.coupons.map((c) => row([cell(c.id), cell(date(c.data_cobranca)), cell(`Nota (ID): ${c.nota_id}`), cell(c.descricao, 4), cell(`−${money(c.valor)}`, 1, true)])))}` : ''}
+${report.coupons.length ? `<h2>CUPONS</h2>${table(chronological(report.coupons, 'data_cobranca').map((c) => row([cell(c.id), cell(date(c.data_cobranca)), cell(`Nota (ID): ${c.nota_id}`), cell(c.descricao, 4), cell(`−${money(c.valor)}`, 1, true)])))}` : ''}
 <div class="summary">${table([row([cell('T Bruto:'), cell(moneyOrDash(reportGross)), cell('T CTRB:'), cell(moneyOrDash(totalCtrb)), cell('T Vales:'), cell(moneyOrDash(deductions)), cell('Saldo:'), cell(moneyOrDash(reportSaldo), 1, true)])])}
 ${table(
   [
@@ -503,20 +532,20 @@ export function renderDriverClosureReport(report: ClosureReport): string {
   const driver =
     report.manifests.find((row) => row.motorista)?.motorista ??
     'Não informado';
-  const manifestRows = report.manifests
+  const manifestRows = chronological(report.manifests, 'semana')
     .map(
       (manifest) =>
         `<tr><td>${escape(date(manifest.semana))}</td><td>${escape(manifestLabel(manifest))}</td><td>${escape(manifest.destino)}</td><td class="right">${escape(money(manifest.frete_veiculo))}</td><td class="right">${escape(money(manifest.vlr_ctrb))}</td><td class="right">${escape(money(manifest.vlr_liquido))}</td></tr>`,
     )
     .join('');
-  const entryRows = report.entries
+  const entryRows = chronological(report.entries, 'data_lancamento')
     .map(
       (entry) =>
         `<tr><td>${escape(entry.id)}</td><td>${escape(entry.codigo_despesa)}</td><td>${escape(entry.nome_despesa)}</td><td>${escape(entry.tipo_despesa)}</td><td>${escape(date(entry.data_lancamento))}</td><td class="right">${escape(money(entry.valor))}</td></tr>`,
     )
     .join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório por motorista</title><style>
-@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font:10pt Arial;color:#000}h1{text-align:center;font-size:13pt;margin:0 0 18px}h2{font-size:10pt;margin:18px 0 5px}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:18px}.meta strong{display:inline-block;min-width:95px}table{width:100%;border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eee}.right{text-align:right}.totals{margin-top:18px;margin-left:auto;width:310px}.totals td:first-child{font-weight:bold}</style></head><body>
+@page{size:A4 portrait;margin:10mm 10mm 14mm}*{box-sizing:border-box}body{font:10pt Arial;color:#000;margin:0}h1{text-align:center;font-size:13pt;margin:0 0 18px}h2{font-size:10pt;margin:18px 0 5px}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:18px}.meta strong{display:inline-block;min-width:95px}table{width:100%;border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eee}.right{text-align:right}.totals{margin-top:18px;margin-left:auto;width:310px}.totals td:first-child{font-weight:bold}</style></head><body>
 <h1>RELATÓRIO POR MOTORISTA</h1><div class="meta"><div><strong>Fechamento:</strong>${escape(h.numero)}</div><div><strong>Semana:</strong>${escape(h.semana)}</div><div><strong>Placa:</strong>${escape(h.placa)}</div><div><strong>Motorista:</strong>${escape(driver)}</div><div><strong>Período:</strong>${escape(date(h.periodo_inicio))} a ${escape(date(h.periodo_fim))}</div><div><strong>Unidade:</strong>${escape(h.unit)}</div></div>
 <h2>MANIFESTOS</h2><table><thead><tr><th>Data</th><th>Manifesto</th><th>Destino</th><th class="right">Frete</th><th class="right">CTRB</th><th class="right">Líquido</th></tr></thead><tbody>${manifestRows || '<tr><td colspan="6">Nenhum manifesto.</td></tr>'}</tbody></table>
 <h2>VALES</h2><table><thead><tr><th>ID</th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Data</th><th class="right">Valor</th></tr></thead><tbody>${entryRows || '<tr><td colspan="6">Nenhum vale.</td></tr>'}</tbody></table>

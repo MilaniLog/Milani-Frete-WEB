@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Header,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -42,7 +43,9 @@ export class FreightClosuresController {
     private readonly service: FreightClosuresService,
     private readonly conference: ConferenceService,
   ) {}
-  @Get('conference') conferenceReport(
+  @Get('conference')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  conferenceReport(
     @Query() dto: ConferenceDto,
     @Req() req: AuthenticatedRequest,
   ) {
@@ -62,7 +65,6 @@ export class FreightClosuresController {
     const data = await this.conference.report(dto, req.user);
     const reports = data.groups.map((group) => {
       const report = previewReport(group);
-      report.cabecalho.unit = req.user.unit;
       report.cabecalho.status = 'CONFERÊNCIA — NÃO FINALIZA PAGAMENTOS';
       return renderClosureReport(report);
     });
@@ -111,10 +113,10 @@ export class FreightClosuresController {
       dto.semana,
       req.user,
       dto.selections,
+      dto,
     );
     const reports = previews.map((preview) => {
       const report = previewReport(preview);
-      report.cabecalho.unit = req.user.unit;
       report.cabecalho.status = 'CONFERÊNCIA — NÃO FINALIZA PAGAMENTOS';
       return renderClosureReport(report);
     });
@@ -150,12 +152,59 @@ export class FreightClosuresController {
       }).join('') + '</body></html>';
   }
 
+  private async selectedReports(ids: number[], user: AuthenticatedRequest['user']) {
+    const reports = await Promise.all(
+      ids.map(async (id) => savedReport(await this.service.findOne(id, user))),
+    );
+    return reports.sort((left, right) =>
+      String(left.cabecalho.placa ?? '').localeCompare(
+        String(right.cabecalho.placa ?? ''),
+        'pt-BR',
+        { sensitivity: 'base' },
+      ),
+    );
+  }
+
+  @Post('week/freight')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  async weekFreightHtml(
+    @Body() dto: ClosureReportsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const reports = (await this.selectedReports(dto.ids, req.user)).map(
+      renderClosureReport,
+    );
+    return this.combineReports(reports);
+  }
+
+  @Post('week/drivers')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  async weekDriversHtml(
+    @Body() dto: ClosureReportsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const reports = (await this.selectedReports(dto.ids, req.user)).map(
+      renderDriverClosureReport,
+    );
+    return this.combineReports(reports);
+  }
+
   @Post(['week/freight.pdf', 'week/freight/pdf'])
   @Header('Cache-Control', 'no-store')
   async weekFreightPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
-    const reports = await Promise.all(dto.ids.map(async (id) =>
-      renderClosureReport(savedReport(await this.service.findOne(id, req.user))),
-    ));
+    const reports = (await this.selectedReports(dto.ids, req.user)).map(
+      renderClosureReport,
+    );
     const pdf = await renderHtmlPdf(this.combineReports(reports));
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="fechamento-de-frete.pdf"');
@@ -165,9 +214,9 @@ export class FreightClosuresController {
   @Post(['week/drivers.pdf', 'week/drivers/pdf'])
   @Header('Cache-Control', 'no-store')
   async weekDriversPdf(@Body() dto: ClosureReportsDto, @Req() req: AuthenticatedRequest, @Res() res: Response) {
-    const reports = await Promise.all(dto.ids.map(async (id) =>
-      renderDriverClosureReport(savedReport(await this.service.findOne(id, req.user))),
-    ));
+    const reports = (await this.selectedReports(dto.ids, req.user)).map(
+      renderDriverClosureReport,
+    );
     const pdf = await renderHtmlPdf(this.combineReports(reports));
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="relatorio-por-motorista.pdf"');
@@ -192,7 +241,6 @@ export class FreightClosuresController {
     @Req() req: AuthenticatedRequest,
   ) {
     const report = previewReport(await this.service.preview(dto, req.user));
-    report.cabecalho.unit = req.user.unit;
     return renderClosureReport(report);
   }
 
@@ -233,9 +281,10 @@ export class FreightClosuresController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    return renderClosureReport(
-      savedReport(await this.service.findOne(id, req.user)),
-    );
+    const detail = await this.service.findOne(id, req.user);
+    if (detail.closure.status !== 'FECHADO')
+      throw new NotFoundException('Fechamento ativo não encontrado.');
+    return renderClosureReport(savedReport(detail));
   }
 
   @Get([':id/print.pdf', ':id/print/pdf'])
@@ -256,6 +305,7 @@ export class FreightClosuresController {
   }
 
   @Get('preview')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
   preview(@Query() dto: ClosureDto, @Req() req: AuthenticatedRequest) {
     return this.service.preview(dto, req.user);
   }
@@ -274,7 +324,7 @@ export class FreightClosuresController {
 
   @Post('week')
   finalizeWeek(@Body() dto: WeekClosureDto, @Req() req: AuthenticatedRequest) {
-    return this.service.finalizeWeek(dto.semana, req.user, dto.selections, dto.placas);
+    return this.service.finalizeWeek(dto.semana, req.user, dto.selections, dto.placas, dto);
   }
 
   @Delete(':id/cancel')

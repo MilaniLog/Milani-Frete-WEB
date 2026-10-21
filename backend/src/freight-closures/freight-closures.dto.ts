@@ -103,6 +103,15 @@ export class WeekClosureDto {
   @Min(1)
   unit?: number;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  local?: string;
+
+  @IsOptional()
+  @IsIn(['MLN', 'LOOG'])
+  dominio?: 'MLN' | 'LOOG';
+
   @Matches(/^\d{4}$/)
   semana: string;
 

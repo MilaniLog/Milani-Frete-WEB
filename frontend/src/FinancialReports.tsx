@@ -3,6 +3,7 @@ import SortableTable from "./SortableTable";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import { downloadReport } from "./report-download";
+import SearchableSelect from "./SearchableSelect";
 type Report = {
   title: string;
   notes: string[];
@@ -18,25 +19,33 @@ const money = (v: string | number) =>
 export default function FinancialReports({
   kind,
   token,
+  isAdmin = false,
+  userUnit = 0,
   expired,
 }: {
   kind: "financial" | "coupons" | "payments";
   token: string;
+  isAdmin?: boolean;
+  userUnit?: number;
   expired: () => void;
 }) {
   const payments = kind === "payments";
   const endpoint = payments ? "payments" : "financial";
-  const filename = payments ? "pagamentos" : kind === "coupons" ? "cupons" : "lancamentos";
+  const filename = payments ? "pagamentos" : kind === "coupons" ? "cupons" : "vales";
   const reportRef = useRef<HTMLElement | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]),
     [vehicles, setVehicles] = useState<{ plate: string; codVehicleType: number }[]>([]),
     [types, setTypes] = useState<{ codVehicleType: number; typeName: string }[]>([]),
-    [companies, setCompanies] = useState<{ sigla: string; nome: string }[]>([]);
+    [companies, setCompanies] = useState<{ sigla: string; nome: string }[]>([]),
+    [units, setUnits] = useState<
+      { codigo: number; local: string; dominio: "MLN" | "LOOG" | null }[]
+    >([]);
   const [emission] = useState(() => new Date().toLocaleString("pt-BR"));
   const [form, setForm] = useState({
     semana: "",
     inicio: "",
     fim: "",
+    local: "",
     placa: "",
     empresa: "",
     departamento: "",
@@ -66,13 +75,17 @@ export default function FinancialReports({
           )
         : Promise.resolve([]),
       api<typeof types>("/registrations/vehicle-types", token),
+      !payments && isAdmin
+        ? api<typeof units>("/registrations/units", token)
+        : Promise.resolve([]),
     ])
-      .then(([w, v, c, t]) => {
+      .then(([w, v, c, t, u]) => {
         if (active) {
           setWeeks(w);
           setVehicles(v);
           setCompanies(c);
           setTypes(t);
+          setUnits(u);
         }
       })
       .catch((e) => {
@@ -81,7 +94,7 @@ export default function FinancialReports({
     return () => {
       active = false;
     };
-  }, [token, kind]);
+  }, [token, kind, isAdmin, payments]);
   useEffect(() => {
     if (!report) return;
     window.setTimeout(
@@ -115,6 +128,7 @@ export default function FinancialReports({
         "inicio",
         "fim",
         "placa",
+        ...(!payments && isAdmin ? ["local"] : []),
         ...(payments
           ? ["empresa"]
           : [
@@ -152,9 +166,11 @@ export default function FinancialReports({
         `/freight-reports/${endpoint}/${sheet ? "spreadsheet" : "print"}?${query}`,
         token,
         sheet
-          ? "planilha-pagamentos.xml"
+          ? "planilha-pagamentos.xlsx"
           : `${filename}.html`,
-        sheet ? "application/vnd.ms-excel;charset=utf-8" : undefined,
+        sheet
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : undefined,
       );
     } catch (e) {
       fail(e);
@@ -166,6 +182,13 @@ export default function FinancialReports({
   const vehicle = vehicles.find((v) => v.plate === form.placa);
   const vehicleType = types.find((t) => t.codVehicleType === vehicle?.codVehicleType)?.typeName;
   const company = companies.find((c) => c.sigla === form.empresa);
+  const unitLocations = [...new Set(units.map((row) => row.local).filter(Boolean))]
+    .filter(
+      (local) =>
+        local.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() !==
+        "ARACARIGUAMA",
+    )
+    .sort();
   return (
     <div className="content">
       {error && (
@@ -195,6 +218,26 @@ export default function FinancialReports({
               </label>
               <span className="report-vba-description">{vehicleType || (form.placa ? "" : "Todos os veículos")}</span>
             </div>
+            {!payments && (
+              <div className="report-vba-row">
+                <label>Unidade
+                  <SearchableSelect
+                    aria-label="Unidade"
+                    value={isAdmin ? form.local : String(userUnit)}
+                    disabled={!isAdmin}
+                    onChange={(e) => change("local", e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    {isAdmin ? unitLocations.map((local) => (
+                      <option key={local} value={local}>{local}</option>
+                    )) : <option value={String(userUnit)}>{userUnit}</option>}
+                  </SearchableSelect>
+                </label>
+                <span className="report-vba-description">
+                  {isAdmin ? (form.local || "Todas as unidades") : `Unidade ${userUnit}`}
+                </span>
+              </div>
+            )}
             {payments ? <>
               <div className="report-vba-row">
                 <label>Empresa

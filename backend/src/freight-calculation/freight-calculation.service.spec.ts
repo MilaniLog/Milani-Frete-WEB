@@ -22,6 +22,10 @@ describe('Cálculos do VBA', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn(async ({ data }) => data),
       },
+      frete_lancamentos: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
       vehicle: {
         findUnique: jest.fn().mockResolvedValue({ codVehicleType: 1 }),
       },

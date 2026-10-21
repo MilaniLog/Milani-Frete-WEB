@@ -878,6 +878,21 @@ aside {
   align-items: center;
   gap: 12px;
 }
+.launch-form .launch-manifest-number {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.launch-form .launch-manifest-number .manifest-number-parts {
+  width: 100%;
+  min-width: 0;
+}
+.launch-form .launch-manifest-number .manifest-number-parts input:first-child {
+  flex-basis: 64px;
+  width: 64px;
+  box-sizing: border-box;
+}
 .launch-heading {
   display: flex;
   gap: 18px;
@@ -1100,6 +1115,7 @@ aside {
 .closure-values-summary div{padding:4px 6px;min-height:auto}
 .closure-values-summary dt{font-size:10px;line-height:1.1;margin:0}
 .closure-values-summary dd{font-size:12px;line-height:1.15;margin:1px 0 0}
+.closure-values-summary dd.negative-value{color:#c62828;font-weight:800}
 .closure-payment-totals{margin-left:auto;min-width:230px;padding:4px 8px;text-align:right}
 .closure-payment-totals p{display:flex;justify-content:flex-end;gap:14px;margin:0 0 5px;white-space:nowrap}
 .closure-payment-totals span{font-size:12px;font-weight:700}

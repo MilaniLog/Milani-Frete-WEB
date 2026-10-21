@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import {
   DriverRegistrationDto,
   UnitRegistrationDto,
@@ -26,8 +27,8 @@ export class RegistrationsService {
     return this.db.frete_empresas.findMany({ orderBy: { matriz: 'asc' } });
   }
   async units(user: AuthUser) {
-    if (!user.isAdmin)
-      throw new ForbiddenException('Somente administradores podem acessar unidades.');
+    if (!hasGlobalFreightAccess(user))
+      throw new ForbiddenException('Usuário sem acesso global às unidades.');
     try {
       const rows = await this.db.branches.findMany({ orderBy: { unit: 'asc' } });
       return rows.map(row => ({ codigo: row.unit, local: row.branch, dominio: row.dominio }));

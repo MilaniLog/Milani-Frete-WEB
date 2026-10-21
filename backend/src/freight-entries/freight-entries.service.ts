@@ -8,6 +8,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/client';
 import type { Prisma } from '../generated/prisma/client';
 import type { AuthUser } from '../auth/auth-user.types';
+import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { PrismaService } from '../prisma/prisma.service';
 import { FreightCalculationService } from '../freight-calculation/freight-calculation.service';
 import { EntryDto } from './dto/entry.dto';
@@ -29,11 +30,13 @@ export class FreightEntriesService {
   ) {}
 
   private unitWhere(user: AuthUser, unit?: number) {
-    return user.isAdmin ? (unit == null ? {} : { unit }) : { unit: user.unit };
+    return hasGlobalFreightAccess(user)
+      ? (unit == null ? {} : { unit })
+      : { unit: user.unit };
   }
 
   private async operationalUnits(user: AuthUser) {
-    if (user.isAdmin) return undefined;
+    if (hasGlobalFreightAccess(user)) return undefined;
     if (!this.prisma.user_permissions?.findMany) return [user.unit];
     const rows = await this.prisma.user_permissions.findMany({
       where: {
@@ -46,7 +49,7 @@ export class FreightEntriesService {
   }
 
   private async operationalUnitWhere(user: AuthUser, unit?: number) {
-    if (user.isAdmin) return unit == null ? {} : { unit };
+    if (hasGlobalFreightAccess(user)) return unit == null ? {} : { unit };
     const units = await this.operationalUnits(user);
     if (unit != null) {
       if (!units!.includes(unit))
@@ -57,7 +60,12 @@ export class FreightEntriesService {
   }
 
   private unitFromRecord(user: AuthUser, record: { unit: number }) {
-    return user.isAdmin ? record.unit : user.unit;
+    return hasGlobalFreightAccess(user) ? record.unit : user.unit;
+  }
+
+  private unitFromManifestNumber(value?: string) {
+    const prefix = value?.trim().slice(0, 3);
+    return prefix && /^\d{3}$/.test(prefix) ? Number(prefix) : undefined;
   }
 
   listExpenses(_user: AuthUser) {
@@ -210,6 +218,17 @@ export class FreightEntriesService {
               throw new NotFoundException(
                 'Veículo não encontrado ou cancelado.',
               );
+            const requestedUnit = this.unitFromManifestNumber(
+              dto.manifesto_numero,
+            );
+            if (requestedUnit != null)
+              await this.operationalUnitWhere(user, requestedUnit);
+            const targetUnit =
+              existing?.unit ??
+              requestedUnit ??
+              (hasGlobalFreightAccess(user) && vehicle.unit > 0
+                ? vehicle.unit
+                : user.unit);
             const type = await tx.vehicleType.findUnique({
               where: { codVehicleType: vehicle.codVehicleType },
             });
@@ -238,7 +257,7 @@ export class FreightEntriesService {
             const last = existing
               ? null
               : await tx.frete_lancamentos.aggregate({
-                  where: { unit: existing?.unit ?? user.unit },
+                  where: { unit: targetUnit },
                   _max: { numero: true },
                 });
             const data = {
@@ -257,6 +276,7 @@ export class FreightEntriesService {
               descricao: dto.descricao?.trim() || null,
               departamento: dto.departamento?.trim() || null,
               responsavel_cod: user.cod,
+              manifesto_numero: dto.manifesto_numero ?? null,
               updated_at: new Date(),
             };
             const entry = existing
@@ -271,7 +291,7 @@ export class FreightEntriesService {
               : await tx.frete_lancamentos.create({
                   data: {
                     ...data,
-                    unit: user.unit,
+                    unit: targetUnit,
                     numero: (last!._max.numero ?? 0) + 1,
                     manifesto_id: null,
                     emitido_em: new Date(),
@@ -312,7 +332,9 @@ export class FreightEntriesService {
             data: { ...dto, updated_at: new Date() },
           });
         }
-        return tx.frete_despesas.create({ data: { ...dto, unit: 0 } });
+        // Expense definitions are global; unit 100 is the canonical persisted
+        // owner used by the existing catalog and satisfies the branches FK.
+        return tx.frete_despesas.create({ data: { ...dto, unit: 100 } });
       });
     } catch (error) {
       if (error.code === 'P2002')
@@ -329,7 +351,7 @@ export class FreightEntriesService {
     user: AuthUser,
   ) {
     const manifest = await tx.frete_carregamento_manifestos.findFirst({
-      where: { id, ...(await this.operationalUnitWhere(user)) },
+      where: { id, cancelado: false, ...(await this.operationalUnitWhere(user)) },
     });
     if (!manifest)
       throw new NotFoundException('Manifesto não encontrado nesta unidade.');
@@ -454,6 +476,7 @@ export class FreightEntriesService {
                     numero: (last._max.numero ?? 0) + 1,
                     unit: manifest.unit,
                     manifesto_id: manifestId,
+                    manifesto_numero: manifest.manifestos,
                     placa: manifest.placa,
                     motorista: manifest.motorista,
                     tipo_veiculo: manifest.tipo_veiculo,

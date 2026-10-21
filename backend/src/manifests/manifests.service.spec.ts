@@ -96,6 +96,7 @@ describe('Manutenção de manifestos', () => {
       frete_veiculo: 100,
       fechamento_id: null,
       num_fechamento: null,
+      cancelado: false,
     };
     entries = [
       {
@@ -139,6 +140,7 @@ describe('Manutenção de manifestos', () => {
         update: jest.fn(
           async ({ data }) => (manifest = { ...manifest, ...data }),
         ),
+        create: jest.fn(async ({ data }) => (manifest = { id: 2, ...data })),
         delete: jest.fn(async () => {
           const previous = manifest;
           manifest = null;
@@ -205,6 +207,38 @@ describe('Manutenção de manifestos', () => {
     service = new ManifestsService(db, new FreightCalculationService(db));
   });
 
+  it('vincula automaticamente os vales cadastrados antes do manifesto', async () => {
+    entries = [
+      {
+        id: 20,
+        manifesto_id: null,
+        manifesto_numero: dto.manifestos,
+        unit: 101,
+        tipo_despesa: 'Credito',
+        valor: 50,
+        pago: false,
+        fechamento_id: null,
+      },
+    ];
+    const created = await service.create(dto, user);
+    expect(created.id).toBe(2);
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
+      where: {
+        unit: 101,
+        manifesto_id: null,
+        manifesto_numero: { in: [dto.manifestos] },
+        pago: false,
+        fechamento_id: null,
+      },
+    });
+    expect(entries[0]).toMatchObject({
+      manifesto_id: 2,
+      placa: dto.placa,
+      motorista: 'Novo motorista',
+      destino: 'NOVO DESTINO',
+    });
+  });
+
   it('preserva origem/frete manual, inclui créditos e sincroniza os dados vinculados', async () => {
     const result = await service.update(
       1,
@@ -264,18 +298,23 @@ describe('Manutenção de manifestos', () => {
     expect((await service.update(1, dto, user)).frt_tl_vlc).toBe(100);
   });
 
-  it('exclui os vales abertos antes de excluir o manifesto', async () => {
+  it('remove os vales abertos e mantém o manifesto como cancelado', async () => {
     expect(await service.remove(1, user)).toEqual({
       id: 1,
-      deleted: true,
+      canceled: true,
       deletedEntries: 3,
     });
     expect(entries).toHaveLength(0);
-    expect(manifest).toBeNull();
+    expect(manifest).toMatchObject({
+      id: 1,
+      cancelado: true,
+      cancelado_por: user.cod,
+    });
+    expect(manifest.cancelado_em).toBeInstanceOf(Date);
     expect(
       db.frete_lancamentos.deleteMany.mock.invocationCallOrder[0],
     ).toBeLessThan(
-      db.frete_carregamento_manifestos.delete.mock.invocationCallOrder[0],
+      db.frete_carregamento_manifestos.update.mock.invocationCallOrder[0],
     );
   });
 
@@ -293,13 +332,13 @@ describe('Manutenção de manifestos', () => {
     },
   );
 
-  it('permite editar e excluir manifesto numerado mas ainda aberto', async () => {
+  it('permite editar e cancelar manifesto numerado mas ainda aberto', async () => {
     manifest.num_fechamento = 26390001;
     await expect(service.update(1, dto, user)).resolves.toMatchObject({
       num_fechamento: 26390001,
     });
     await expect(service.remove(1, user)).resolves.toMatchObject({
-      deleted: true,
+      canceled: true,
     });
   });
 
@@ -336,6 +375,20 @@ describe('Manutenção de manifestos', () => {
     expect(db.frete_carregamento_manifestos.update).not.toHaveBeenCalled();
   });
 
+  it('rejeita CTRB duplicado na mesma unidade', async () => {
+    db.frete_carregamento_manifestos.findFirst
+      .mockResolvedValueOnce(manifest)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 2, manifestos: '101000002-2' });
+
+    await expect(
+      service.update(1, { ...dto, ctrb_numero: '000373-5' }, user),
+    ).rejects.toThrow(
+      'já está cadastrado no manifesto 101000002-2',
+    );
+    expect(db.frete_carregamento_manifestos.update).not.toHaveBeenCalled();
+  });
+
   it('aborta a edição se a sincronização dos vales falhar', async () => {
     db.frete_lancamentos.updateMany.mockRejectedValue({ code: 'P2003' });
     await expect(service.update(1, dto, user)).rejects.toBeInstanceOf(
@@ -344,8 +397,8 @@ describe('Manutenção de manifestos', () => {
     expect(manifest.manifestos).toBe('101000001-1');
   });
 
-  it('aborta a exclusão dos vales se outro vínculo impedir excluir o manifesto', async () => {
-    db.frete_carregamento_manifestos.delete.mockRejectedValue({
+  it('aborta a remoção dos vales se não conseguir marcar o manifesto como cancelado', async () => {
+    db.frete_carregamento_manifestos.update.mockRejectedValue({
       code: 'P2003',
     });
     await expect(service.remove(1, user)).rejects.toBeInstanceOf(

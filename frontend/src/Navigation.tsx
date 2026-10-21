@@ -17,7 +17,8 @@ export type Page =
   | "reprint-closures"
   | "financial-report"
   | "coupons-report"
-  | "payments-report";
+  | "payments-report"
+  | "manifest-closure-report";
 
 export function canAccessPage(session: Session, page: Page): boolean {
   return !["weeks", "units"].includes(page) || session.user.isAdmin;
@@ -127,6 +128,7 @@ export default function Navigation({
                 ["financial-report", "Relatório de vales"],
                 ["coupons-report", "Relatório de cupons"],
                 ["payments-report", "Planilha de pagamentos"],
+                ["manifest-closure-report", "Relatório de CTRB"],
               ] as const
             )
               .filter(([id]) => canAccessPage(session, id))

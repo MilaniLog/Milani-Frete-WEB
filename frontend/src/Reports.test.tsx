@@ -85,7 +85,12 @@ it("permite cadastrar destino e pesquisar pelo nome sem acentos", async () => {
   expect(screen.queryByRole("cell", { name: "Campinas" })).toBeNull();
 });
 it("envia filtros de vales e invalida o resultado ao trocar o período", async () => {
-  render(<FinancialReports kind="financial" token="t" expired={vi.fn()} />);
+  render(<FinancialReports kind="financial" token="t" isAdmin userUnit={100} expired={vi.fn()} />);
+  await waitFor(() =>
+    expect(document.querySelectorAll('.searchable-select select option').length).toBe(3),
+  );
+  fireEvent.click(screen.getByLabelText("Unidade"));
+  fireEvent.click(await screen.findByRole("option", { name: "SSA" }));
   fireEvent.change(screen.getByLabelText("Semana"), {
     target: { value: "3926" },
   });
@@ -101,10 +106,11 @@ it("envia filtros de vales e invalida o resultado ao trocar o período", async (
   const q = new URL(String(call?.[0]), "http://test").searchParams;
   expect(q.get("semana")).toBe("3926");
   expect(q.get("departamento")).toBe("FIN");
+  expect(q.get("local")).toBe("SSA");
   expect(q.get("data_por")).toBe("inclusao");
   expect((screen.getByLabelText("Dt. da desp.") as HTMLInputElement).checked).toBe(false);
   await waitFor(() => expect(downloadReport).toHaveBeenCalledWith(
-    expect.stringContaining("/financial/print?"), "t", "lancamentos.html",
+    expect.stringContaining("/financial/print?"), "t", "vales.html",
   ));
   expect(q.get("lancamentos")).toBe("true");
   expect(q.get("cupons")).toBe("false");
@@ -128,7 +134,9 @@ it("planilha filtra por empresa e oferece arquivo Excel", async () => {
   });
   expect(screen.getByText("Empresa MMA")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Relatório" }));
-  await screen.findByRole("button", { name: "Baixar planilha Excel" });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Baixar planilha Excel" }),
+  );
   expect(
     vi
       .mocked(fetch)
@@ -136,6 +144,14 @@ it("planilha filtra por empresa e oferece arquivo Excel", async () => {
         String(p).includes("/payments?semana=3926&empresa=MMA"),
       ),
   ).toBe(true);
+  await waitFor(() =>
+    expect(downloadReport).toHaveBeenCalledWith(
+      expect.stringContaining("/payments/spreadsheet?"),
+      "t",
+      "planilha-pagamentos.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ),
+  );
 });
 it("reimprime por número sem enviar gravações nem filtros de outro fechamento", async () => {
   vi.spyOn(window, "open").mockReturnValue(null);
@@ -154,7 +170,7 @@ it("reimprime por número sem enviar gravações nem filtros de outro fechamento
     { target: { value: "40" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Imprimir fechamento de frete" }));
-  await screen.findByText("Relatório em PDF baixado com sucesso.");
+  await screen.findByText("Relatório em HTML baixado com sucesso.");
   expect(window.open).toHaveBeenCalledWith("", "_blank");
   expect(
     screen.queryByRole("button", { name: /relatório por motorista/i }),
@@ -162,7 +178,7 @@ it("reimprime por número sem enviar gravações nem filtros de outro fechamento
   expect(
     vi.mocked(fetch).mock.calls.some(
       ([path]) =>
-        path === "/api/freight-reports/closures/reprint/pdf?numero=40",
+        path === "/api/freight-reports/closures/reprint?numero=40",
     ),
   ).toBe(true);
   expect(vi.mocked(fetch).mock.calls.some(([, o]) => o?.method)).toBe(false);
@@ -183,7 +199,7 @@ it("filtra a reimpressão por domínio e unidade", async () => {
   fireEvent.change(screen.getByLabelText("Número do fechamento para reimpressão"), { target: { value: "40" } });
   fireEvent.click(screen.getByRole("button", { name: "Imprimir fechamento de frete" }));
   await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-    "/api/freight-reports/closures/reprint/pdf?numero=40&dominio=MLN&local=SSA",
+    "/api/freight-reports/closures/reprint?numero=40&dominio=MLN&local=SSA",
     expect.anything(),
   ));
 });

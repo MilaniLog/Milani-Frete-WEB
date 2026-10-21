@@ -47,7 +47,7 @@ describe('Layout de vales do Excel', () => {
     expect(layout.selected.every((s) => s.total.isZero())).toBe(true);
     for (const code of selectedCodes) {
       expect(reportHtml(r)).toContain(code);
-      expect(reportSpreadsheet(r)).toContain(code);
+      expect(reportSpreadsheet(r).toString('utf8')).toContain(code);
     }
   });
   it('agrupa códigos equivalentes e não mistura cupons no resumo de vales', () => {
@@ -71,9 +71,11 @@ describe('Layout de vales do Excel', () => {
     expect(html).toContain('-R$ 0,30');
     expect(html).toContain('(CUPONS)');
     expect(html).toContain('Adiantamento');
-    const xml = reportSpreadsheet(r);
-    expect(xml).toContain('SELECIONADOS');
-    expect(xml).toContain('TOTAL GERAL');
-    expect(xml).toContain('ss:Type="Number">-0.30');
+    const workbook = reportSpreadsheet(r);
+    const contents = workbook.toString('utf8');
+    expect(workbook.subarray(0, 2).toString()).toBe('PK');
+    expect(contents).toContain('SELECIONADOS');
+    expect(contents).toContain('TOTAL GERAL');
+    expect(contents).toContain('<v>-0.3</v>');
   });
 });

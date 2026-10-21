@@ -74,7 +74,7 @@ export default function ReprintClosures({
             ...(isAdmin && unit ? { local: unit } : {}),
           });
       const response = await fetch(
-        apiUrl(`/freight-reports/closures/reprint/pdf?${q}`),
+        apiUrl(`/freight-reports/closures/reprint?${q}`),
         { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (!response.ok) {
@@ -92,13 +92,13 @@ export default function ReprintClosures({
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = number
-        ? `fechamento-${number}.pdf`
-        : `fechamentos-${week}.pdf`;
+        ? `fechamento-${number}.html`
+        : `fechamentos-${week}.html`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
-      setSuccess("Relatório em PDF baixado com sucesso.");
+      setSuccess("Relatório em HTML baixado com sucesso.");
     } catch (e) {
       reportWindow?.close();
       fail(e);
