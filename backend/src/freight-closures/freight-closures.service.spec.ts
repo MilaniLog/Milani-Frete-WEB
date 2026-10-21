@@ -169,7 +169,7 @@ describe('FreightClosuresService', () => {
       }),
     );
   });
-  it('carrega todos os vales abertos e limita o 3333 aos manifestos da semana', async () => {
+  it('carrega débitos abertos de qualquer semana e limita créditos à semana selecionada', async () => {
     await service.preview(dto, user);
 
     expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
@@ -178,14 +178,27 @@ describe('FreightClosuresService', () => {
         placa: 'ABC1234',
         pago: false,
         fechamento_id: null,
-        tipo_despesa: { in: ['Credito', 'Debito', 'Adiantamento'] },
         OR: [
-          { codigo_despesa: { not: '3333' } },
+          {
+            tipo_despesa: 'Debito',
+            codigo_despesa: { not: '3333' },
+          },
           {
             codigo_despesa: '3333',
             OR: [
               { manifesto_id: { in: [10] } },
               { manifesto_id: null, manifesto_numero: { in: [] } },
+            ],
+          },
+          {
+            tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+            data_lancamento: {
+              gte: new Date('2026-09-21'),
+              lte: new Date('2026-09-27'),
+            },
+            OR: [
+              { manifesto_id: { in: [10] } },
+              { manifesto_id: null },
             ],
           },
         ],

@@ -86,17 +86,19 @@ export class FreightClosuresService {
         row.manifesto_adicional_3,
       ])
       .filter((number): number is string => Boolean(number));
-    // Every open entry for the plate remains available until selected. Code 3333
-    // is the exception: it follows only the week of its linked manifest.
+    // Common debits remain available until selected. Credits and advances belong
+    // only to the selected week. Code 3333 follows its manifest in that week.
     const entries = await tx.frete_lancamentos.findMany({
       where: {
         unit: targetUnit,
         placa: dto.placa,
         pago: false,
         fechamento_id: null,
-        tipo_despesa: { in: ['Credito', 'Debito', 'Adiantamento'] },
         OR: [
-          { codigo_despesa: { not: '3333' } },
+          {
+            tipo_despesa: 'Debito',
+            codigo_despesa: { not: '3333' },
+          },
           {
             codigo_despesa: '3333',
             OR: [
@@ -105,6 +107,14 @@ export class FreightClosuresService {
                 manifesto_id: null,
                 manifesto_numero: { in: manifestNumbers },
               },
+            ],
+          },
+          {
+            tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+            data_lancamento: dates,
+            OR: [
+              { manifesto_id: { in: manifestIds } },
+              { manifesto_id: null },
             ],
           },
         ],

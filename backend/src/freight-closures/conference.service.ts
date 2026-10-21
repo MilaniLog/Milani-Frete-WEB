@@ -135,14 +135,18 @@ export class ConferenceService {
                   },
                 ],
               },
-              { manifesto_id: { in: ids } },
+              {
+                tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+                data_lancamento: dates,
+                manifesto_id: { in: ids },
+              },
               ...(dto.mista === 'true'
                 ? []
                 : [
                     {
                       manifesto_id: null,
                       data_lancamento: dates,
-                      tipo_despesa: { in: ['Credito', 'Debito'] },
+                      tipo_despesa: { in: ['Credito', 'Adiantamento'] },
                     },
                   ]),
             ],

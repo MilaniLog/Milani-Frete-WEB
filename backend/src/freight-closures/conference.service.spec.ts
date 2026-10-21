@@ -113,7 +113,7 @@ describe('Conferência VBA', () => {
     const result = await service.report({ semana: '3926' }, user);
     expect(result.groups[0].totals.total_ctrb.toString()).toBe('100');
   });
-  it('consulta todo débito aberto e restringe o 3333 aos manifestos da semana', async () => {
+  it('consulta todo débito aberto e restringe créditos à semana selecionada', async () => {
     await service.report({ semana: '3926' }, user);
     expect(db.frete_lancamentos.findMany.mock.calls[0][0].where.OR).toEqual(
       expect.arrayContaining([
@@ -124,6 +124,14 @@ describe('Conferência VBA', () => {
             { manifesto_id: { in: [1] } },
             { manifesto_id: null, manifesto_numero: { in: [] } },
           ],
+        },
+        {
+          tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+          data_lancamento: {
+            gte: new Date('2026-09-20'),
+            lte: new Date('2026-09-26'),
+          },
+          manifesto_id: { in: [1] },
         },
       ]),
     );
@@ -206,7 +214,14 @@ describe('Conferência VBA', () => {
           { manifesto_id: null, manifesto_numero: { in: [] } },
         ],
       },
-      { manifesto_id: { in: [1] } },
+      {
+        tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+        data_lancamento: {
+          gte: new Date('2026-09-20'),
+          lte: new Date('2026-09-26'),
+        },
+        manifesto_id: { in: [1] },
+      },
     ]);
   });
 });
