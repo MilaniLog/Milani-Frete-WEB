@@ -42,4 +42,29 @@ describe('Cadastros de motoristas e veículos', () => {
     });
     expect(db.$transaction).not.toHaveBeenCalled();
   });
+  it('permite cadastrar placas diferentes para o mesmo proprietario', async () => {
+    const owner = '11222333000181';
+    const saved: any[] = [];
+    const tx = {
+      driver: { findUnique: jest.fn() },
+      frete_empresas: { findUnique: jest.fn().mockResolvedValue({ sigla: 'AZN' }) },
+      vehicleType: { findUnique: jest.fn().mockResolvedValue({ codVehicleType: 1 }) },
+      vehicle: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(async ({ data }) => { saved.push(data); return data; }),
+      },
+      companies: {
+        findUnique: jest.fn().mockResolvedValue({ cnpj: owner, fantasy_name: 'Mesmo proprietario' }),
+        create: jest.fn(),
+      },
+    };
+    const service = new RegistrationsService({ $transaction: (fn) => fn(tx) } as any);
+    const user = { sub: 1, cod: 2, unit: 100, isAdmin: false };
+    const base = { codVehicleType: 1, owner, owner_name: 'Mesmo proprietario', empresa_sigla: 'AZN', driver_cpf: null };
+    await service.vehicle({ ...base, plate: 'ABC1D23' }, user);
+    await service.vehicle({ ...base, plate: 'DEF4G56' }, user);
+    expect(saved.map((vehicle) => vehicle.plate)).toEqual(['ABC1D23', 'DEF4G56']);
+    expect(tx.companies.create).not.toHaveBeenCalled();
+  });
+
 });

@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 
 import { DestinationsService } from './destinations.service';
@@ -14,6 +15,7 @@ import { DestinationDto } from './destination.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermission } from '../auth/require-permission.decorator';
+import type { AuthenticatedRequest } from '../auth/auth-user.types';
 
 @Controller('destinations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -21,8 +23,8 @@ export class DestinationsController {
   constructor(private readonly destinationsService: DestinationsService) {}
   @Post()
   @RequirePermission('freight_service')
-  create(@Body() dto: DestinationDto) {
-    return this.destinationsService.create(dto.nome);
+  create(@Body() dto: DestinationDto, @Req() req: AuthenticatedRequest) {
+    return this.destinationsService.create(dto.nome, req.user);
   }
 
   @Get()

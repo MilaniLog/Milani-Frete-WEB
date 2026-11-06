@@ -1,14 +1,20 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
-import { comparableManifestNumber, formatManifestNumber } from "./manifest-number";
+import {
+  comparableManifestNumber,
+  formatManifestNumber,
+} from "./manifest-number";
 import SearchableSelect from "./SearchableSelect";
+import { expenseName, expenseType } from "./expense-display";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import ManifestEntries from "./ManifestEntries";
+import { valeIdentifier } from "./vale-identifier";
 import { parseQuickDate } from "./quick-date-time";
 type Manifest = {
   id: number;
   manifestos: string;
   semana: string;
+  hora?: string | null;
   placa: string;
   motorista: string;
   tipo_veiculo: string;
@@ -31,6 +37,7 @@ type Driver = { cpf: string; name: string };
 type Vehicle = { plate: string };
 type SavedEntry = {
   id: number;
+  controle_id?: number | null;
   numero: number;
   manifesto_id: number | null;
   manifesto_numero: string | null;
@@ -47,6 +54,9 @@ type SavedEntry = {
   departamento: string | null;
   pago: boolean;
   fechamento_id: number | null;
+  numero_fechamento?: number | null;
+  fatura_id: number | null;
+  numero_fatura: number | null;
 };
 const today = () => {
   const d = new Date();
@@ -83,13 +93,15 @@ export default function FreightEntries({
     [plate, setPlate] = useState(""),
     [vehicleType, setVehicleType] = useState("");
   const [week, setWeek] = useState(""),
-    [date, setDate] = useState(() => displayDate(today())),
+    [date, setDate] = useState(""),
     [driver, setDriver] = useState("");
   const [editMode, setEditMode] = useState(false),
     [entryNumber, setEntryNumber] = useState(""),
     [editing, setEditing] = useState<SavedEntry | null>(null);
   const entryInput = useRef<HTMLInputElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<SavedEntry | null>(null);
+  const [savedAwaitingNewData, setSavedAwaitingNewData] = useState(false);
+  const [emptySaveClicks, setEmptySaveClicks] = useState(0);
   const [expense, setExpense] = useState(""),
     [value, setValue] = useState(""),
     [description, setDescription] = useState("");
@@ -114,7 +126,6 @@ export default function FreightEntries({
     setVehicleType(m.tipo_veiculo ?? "");
     setDriver("");
     const day = m.semana.slice(0, 10);
-    setDate(displayDate(day));
     setWeek(
       calendar.find(
         (w) =>
@@ -167,7 +178,13 @@ export default function FreightEntries({
   async function lookup() {
     if (editMode) return;
     const text = number.trim();
-    if (!text || (manifest?.manifestos && comparableManifestNumber(manifest.manifestos) === comparableManifestNumber(text))) return;
+    if (
+      !text ||
+      (manifest?.manifestos &&
+        comparableManifestNumber(manifest.manifestos) ===
+          comparableManifestNumber(text))
+    )
+      return;
     const request = ++sequence.current;
     setSearching(true);
     setError("");
@@ -196,7 +213,7 @@ export default function FreightEntries({
     setDeleteTarget(null);
     if (!editMode || !/^\d+$/.test(entryNumber) || Number(entryNumber) < 1)
       return;
-    if (editing?.id === Number(entryNumber)) return;
+    if (editing && valeIdentifier(editing) === Number(entryNumber)) return;
     const request = ++sequence.current;
     setSearching(true);
     setError("");
@@ -256,6 +273,8 @@ export default function FreightEntries({
     }
   }
   function newEntry() {
+    setSavedAwaitingNewData(false);
+    setEmptySaveClicks(0);
     setDeleteTarget(null);
     sequence.current++;
     setSearching(false);
@@ -274,8 +293,8 @@ export default function FreightEntries({
     setError("");
     setSuccess("");
     setConsult(false);
+    setDate("");
     const day = today();
-    setDate(displayDate(day));
     setWeek(
       weeks.find(
         (w) =>
@@ -287,16 +306,18 @@ export default function FreightEntries({
     event.preventDefault();
     setDeleteTarget(null);
     if (busy || loading || searching) return;
-    if (editMode && (!editing || editing.id !== Number(entryNumber))) {
+    if (editMode && (!editing || valeIdentifier(editing) !== Number(entryNumber))) {
       setError("Informe o ID e carregue o vale antes de salvar.");
       return;
     }
-    if (editing && (editing.pago || editing.fechamento_id != null)) {
-      setError("Vale pago ou fechado não pode ser alterado.");
-      return;
-    }
-    if (manifest && manifest.fechamento_id != null) {
-      setError("Manifesto fechado: não é possível incluir vales nele.");
+    if (
+      editing &&
+      (editing.pago ||
+        editing.fechamento_id != null ||
+        editing.fatura_id != null ||
+        editing.numero_fatura != null)
+    ) {
+      setError("Vale pago ou incluído em fechamento de vale não pode ser alterado.");
       return;
     }
     setError("");
@@ -316,7 +337,7 @@ export default function FreightEntries({
     }
     const enteredDate = parseQuickDate(date);
     if (!enteredDate) {
-      setError("Informe uma data vÃ¡lida, como 121226 ou 12/12/2026.");
+      setError("Informe uma data vÒ¡lida, como 121226 ou 12/12/2026.");
       return;
     }
     if (
@@ -354,15 +375,23 @@ export default function FreightEntries({
         },
       );
       setSuccess(
-        `Vale ${result.entry.numero} salvo com sucesso${manifest ? "" : ` para a placa ${plate.toUpperCase()} e semana ${week}`}.`,
+        `Vale ${valeIdentifier(result.entry)} salvo com sucesso${manifest ? "" : ` para a placa ${plate.toUpperCase()} e semana ${week}`}.`,
       );
       if (!editing) {
         setValue("");
         setDescription("");
         setExpense("");
+        setSavedAwaitingNewData(true);
+        setEmptySaveClicks(0);
       } else {
-        setEditing({...editing,placa:plate.trim().toUpperCase(),semana:week,valor:value,...result.entry});
-        setEntryNumber(String(result.entry.id));
+        setEditing({
+          ...editing,
+          placa: plate.trim().toUpperCase(),
+          semana: week,
+          valor: value,
+          ...result.entry,
+        });
+        setEntryNumber(String(valeIdentifier(result.entry)));
       }
       setConsult(false);
     } catch (e) {
@@ -378,8 +407,8 @@ export default function FreightEntries({
       searching ||
       !editMode ||
       editing?.id !== deleteTarget.id ||
-      editing.id !== Number(entryNumber) ||
-      locked
+      valeIdentifier(editing) !== Number(entryNumber) ||
+      deletionLocked
     )
       return;
     setBusy(true);
@@ -389,9 +418,9 @@ export default function FreightEntries({
       await api(`/freight-entries/${deleteTarget.id}`, token, {
         method: "DELETE",
       });
-      const numero = deleteTarget.numero;
+      const id = valeIdentifier(deleteTarget);
       newEntry();
-      setSuccess(`Vale ${numero} excluído com sucesso.`);
+      setSuccess(`Vale ${id} cancelado com sucesso. Histórico preservado.`);
     } catch (e) {
       fail(e);
       setDeleteTarget(null);
@@ -407,7 +436,8 @@ export default function FreightEntries({
       </option>,
       ...weeks.map((item) => (
         <option key={item.codigo} value={item.codigo}>
-          {item.codigo} · {item.data_inicio.slice(0, 10).split("-").reverse().join("/")} a{" "}
+          {item.codigo} ·{" "}
+          {item.data_inicio.slice(0, 10).split("-").reverse().join("/")} a{" "}
           {item.data_fim.slice(0, 10).split("-").reverse().join("/")}
         </option>
       )),
@@ -473,17 +503,18 @@ export default function FreightEntries({
     setError("");
   }
   const locked =
-    (!!manifest && manifest.fechamento_id != null) ||
-    (!!editing && (editing.pago || editing.fechamento_id != null));
+    !!editing &&
+    (editing.pago ||
+      editing.fechamento_id != null ||
+      editing.fatura_id != null ||
+      editing.numero_fatura != null);
+  const deletionLocked =
+    !!editing && (editing.pago || editing.fechamento_id != null);
   return (
     <section className="content">
       <h1>Vales</h1>
       <h2>
-        {editMode
-          ? "Editar vale"
-          : consult
-            ? "Consultar vales"
-            : "Novo vale"}
+        {editMode ? "Editar vale" : consult ? "Consultar vales" : "Novo vale"}
       </h2>
       <p className="muted">
         Informe o manifesto para preencher os dados automaticamente ou deixe
@@ -499,7 +530,7 @@ export default function FreightEntries({
           {success}
         </p>
       )}
-      {loading && <p role="status">Carregando cadastros…</p>}
+      {loading && <p role="status">Carregando cadastros⬦</p>}
       {!loading && error && (
         <button
           type="button"
@@ -510,64 +541,31 @@ export default function FreightEntries({
         </button>
       )}
       {!consult && (
-        <form className="launch-form" onSubmit={save}>
+        <form
+          className="launch-form"
+          onSubmit={save}
+          onChange={() => {
+            setSavedAwaitingNewData(false);
+            setEmptySaveClicks(0);
+          }}
+        >
           <fieldset disabled={loading || busy}>
-            <div
-              className="manifest-number-field launch-manifest-number"
-              role="group"
-              aria-label="Manifesto"
-            >
-              <span>Manifesto</span>
-              <div className="manifest-number-parts">
-                <input
-                  aria-label="Primeiros três dígitos do manifesto"
-                  inputMode="numeric"
-                  maxLength={3}
-                  pattern="[0-9]{3}"
-                  placeholder="000"
-                  readOnly={editMode}
-                  value={manifestPrefix}
-                  onChange={(e) =>
-                    changeManifestNumber(
-                      `${e.target.value.replace(/\D/g, "").slice(0, 3)}${manifestSuffix}`,
-                    )
-                  }
-                />
-                <input
-                  aria-label="Número do manifesto"
-                  inputMode="numeric"
-                  maxLength={8}
-                  placeholder="000000-0"
-                  readOnly={editMode}
-                  value={manifestSuffix}
-                  onChange={(e) =>
-                    changeManifestNumber(`${manifestPrefix}${e.target.value}`)
-                  }
-                  onBlur={() => {
-                    if (!manifestSuffix.trim()) return;
-                    const formatted = formatManifestNumber(number);
-                    if (formatted) setNumber(formatted);
-                    void lookup();
-                  }}
-                />
-                <input type="hidden" name="manifesto" value={number} />
-              </div>
-            </div>
-            {searching && <p role="status">Buscando manifesto…</p>}
-            {manifestMissing && !searching && (
-              <p className="muted" role="status">
-                Manifesto ainda não cadastrado. O vale será vinculado automaticamente quando ele for lançado.
+            {manifest?.fechamento_id != null && !locked && (
+              <p className="muted">
+                Manifesto fechado: o credito sera pago em um fechamento extra e
+                os debitos permanecerao disponiveis para as semanas seguintes.
               </p>
             )}
             {locked && (
               <p role="alert">
-                Registro pago ou fechado: alterações não são permitidas.
+                Registro pago ou incluido em fechamento de vale: alteracoes nao sao permitidas.
               </p>
             )}
             {editMode && (
-              <label>
-                ID do vale
-                <input
+              <>
+                <label>
+                  ID do vale
+                  <input
                   ref={entryInput}
                   value={entryNumber}
                   inputMode="numeric"
@@ -587,8 +585,16 @@ export default function FreightEntries({
                       void lookupEntry();
                     }
                   }}
-                />
-              </label>
+                  />
+                </label>
+                {editing?.fechamento_id != null && (
+                  <p className="muted" role="status">
+                    {editing.numero_fechamento != null
+                      ? `Fechamento: ${String(editing.numero_fechamento).padStart(8, "0")}`
+                      : "Vale fechado"}
+                  </p>
+                )}
+              </>
             )}
             <fieldset
               disabled={(editMode && (!editing || searching)) || locked}
@@ -606,16 +612,75 @@ export default function FreightEntries({
                       const enteredDate = parseQuickDate(date);
                       if (
                         w &&
-                        (!enteredDate ||
-                          enteredDate.iso < w.data_inicio.slice(0, 10) ||
+                        enteredDate &&
+                        (enteredDate.iso < w.data_inicio.slice(0, 10) ||
                           enteredDate.iso > w.data_fim.slice(0, 10))
                       )
-                        setDate(displayDate(w.data_inicio.slice(0, 10)));
+                        setDate("");
                     }}
                   >
                     {weekOptions}
                   </SearchableSelect>
                 </label>
+                <div
+                  className="manifest-number-field launch-manifest-number"
+                  role="group"
+                  aria-label="Manifesto"
+                >
+                  <span>Manifesto</span>
+                  <div className="launch-manifest-content">
+                    <div className="manifest-number-parts">
+                      <input
+                        aria-label="Primeiros três dígitos do manifesto"
+                        inputMode="numeric"
+                        maxLength={3}
+                        pattern="[0-9]{3}"
+                        placeholder="000"
+                        readOnly={editMode}
+                        value={manifestPrefix}
+                        onChange={(e) =>
+                          changeManifestNumber(
+                            `${e.target.value.replace(/\D/g, "").slice(0, 3)}${manifestSuffix}`,
+                          )
+                        }
+                      />
+                      <input
+                        aria-label="Número do manifesto"
+                        inputMode="numeric"
+                        maxLength={8}
+                        placeholder="000000-0"
+                        readOnly={editMode}
+                        value={manifestSuffix}
+                        onChange={(e) =>
+                          changeManifestNumber(
+                            `${manifestPrefix}${e.target.value}`,
+                          )
+                        }
+                        onBlur={() => {
+                          if (!manifestSuffix.trim()) return;
+                          const formatted = formatManifestNumber(number);
+                          if (formatted) setNumber(formatted);
+                          void lookup();
+                        }}
+                      />
+                      <input type="hidden" name="manifesto" value={number} />
+                    </div>
+                    {manifest && (
+                      <small className="manifest-date-time" role="status">
+                        Hora: {manifest.hora || "Não informada"} · Data:{" "}
+                        {displayDate(manifest.semana.slice(0, 10))}
+                      </small>
+                    )}
+                  </div>
+                </div>
+                {searching && <p role="status">Buscando manifesto⬦</p>}
+                {manifestMissing && !searching && (
+                  <p className="muted" role="status">
+                    Manifesto ainda não cadastrado. O vale será vinculado
+                    automaticamente quando ele for lançado.
+                  </p>
+                )}
+
                 <label>
                   Placa
                   <SearchableSelect
@@ -641,7 +706,11 @@ export default function FreightEntries({
                 {manifest ? (
                   <label>
                     Motorista
-                    <SearchableSelect aria-label="Motorista" disabled value="manifest">
+                    <SearchableSelect
+                      aria-label="Motorista"
+                      disabled
+                      value="manifest"
+                    >
                       <option value="manifest">{manifest.motorista}</option>
                     </SearchableSelect>
                   </label>
@@ -678,7 +747,7 @@ export default function FreightEntries({
                       e.target.setCustomValidity(
                         parsed || !e.target.value
                           ? ""
-                          : "Informe uma data vÃ¡lida, como 121226 ou 12/12/2026.",
+                          : "Informe uma data vÒ¡lida, como 121226 ou 12/12/2026.",
                       );
                     }}
                   />
@@ -694,7 +763,7 @@ export default function FreightEntries({
                     <option value="">Selecione</option>
                     {expenses.map((e) => (
                       <option key={e.id} value={e.id}>
-                        {e.codigo} · {e.nome} · {e.tipo}
+                        {e.codigo} · {expenseName(e.codigo, e.nome)} · {expenseType(e.codigo, e.tipo)}
                       </option>
                     ))}
                   </select>
@@ -729,6 +798,17 @@ export default function FreightEntries({
             )}
             <button
               className="primary"
+              onClick={(event) => {
+                if (!editMode && savedAwaitingNewData) {
+                  if (emptySaveClicks === 0) {
+                    setEmptySaveClicks(1);
+                    return;
+                  }
+                  event.preventDefault();
+                  newEntry();
+                  setWeek("");
+                }
+              }}
               disabled={
                 busy ||
                 searching ||
@@ -737,7 +817,7 @@ export default function FreightEntries({
                 (editMode && !editing)
               }
             >
-              {busy ? "Salvando…" : "Salvar vale"}
+              {busy ? "Salvando⬦" : "Salvar vale"}
             </button>{" "}
             {!editMode ? (
               <button
@@ -769,7 +849,7 @@ export default function FreightEntries({
               <button
                 type="button"
                 className="secondary"
-                disabled={busy || searching || !editing || locked}
+                disabled={busy || searching || !editing || deletionLocked}
                 onClick={() => {
                   setDeleteTarget(editing);
                   setError("");
@@ -793,8 +873,8 @@ export default function FreightEntries({
       {deleteTarget && (
         <div className="alert" role="alert">
           <p>
-            Excluir o vale {deleteTarget.numero}, placa{" "}
-            {deleteTarget.placa}, no valor de{" "}
+            Excluir o vale {valeIdentifier(deleteTarget)}, placa {deleteTarget.placa}, no
+            valor de{" "}
             {Number(deleteTarget.valor).toLocaleString("pt-BR", {
               style: "currency",
               currency: "BRL",
@@ -807,7 +887,7 @@ export default function FreightEntries({
             disabled={busy || searching}
             onClick={() => void removeEntry()}
           >
-            Confirmar exclusão
+            Confirmar cancelamento
           </button>{" "}
           <button
             type="button"
@@ -826,9 +906,7 @@ export default function FreightEntries({
             disabled={busy || searching}
             onClick={() => setConsult(!consult)}
           >
-            {consult
-              ? "Ocultar vales"
-              : "Consultar vales do manifesto"}
+            {consult ? "Ocultar vales" : "Consultar vales do manifesto"}
           </button>
           {consult && (
             <ManifestEntries

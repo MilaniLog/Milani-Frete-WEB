@@ -58,8 +58,8 @@ export class RegistrationsService {
     if (key == null && existing)
       throw new ConflictException('Código de unidade já cadastrado.');
     return key == null
-      ? this.db.branches.create({ data: { unit: dto.codigo, branch: dto.local, dominio: dto.dominio } })
-      : this.db.branches.update({ where: { unit: key }, data: { branch: dto.local, dominio: dto.dominio } });
+      ? this.db.branches.create({ data: { unit: dto.codigo, branch: dto.local, dominio: dto.dominio, alterado_por: user.cod } })
+      : this.db.branches.update({ where: { unit: key }, data: { branch: dto.local, dominio: dto.dominio, alterado_por: user.cod } });
   }
   types() {
     return this.db.vehicleType.findMany({
@@ -70,10 +70,23 @@ export class RegistrationsService {
   async drivers() {
     return (
       await this.db.driver.findMany({
+        where: { canceled: false },
         orderBy: { name: 'asc' },
         select: { cpf: true, name: true, unit: true },
       })
     ).map((d) => ({ ...d, cpf: d.cpf.toString().padStart(11, '0') }));
+  }
+  async removeDriver(value: string, user: AuthUser) {
+    const cpf = value.replace(/\D/g, '');
+    if (!/^\d{11}$/.test(cpf) || !validDocument(cpf))
+      throw new BadRequestException('CPF inválido.');
+    const result = await this.db.driver.updateMany({
+      where: { cpf: BigInt(cpf), canceled: false },
+      data: { canceled: true, user: user.cod, alterado_por: user.cod },
+    });
+    if (!result.count)
+      throw new NotFoundException('Motorista não encontrado ou já desativado.');
+    return { cpf, deactivated: true };
   }
   async vehicles() {
     const vehicles = await this.db.vehicle.findMany({
@@ -90,7 +103,10 @@ export class RegistrationsService {
       },
     });
     const drivers = await this.db.driver.findMany({
-      where: { cpf: { in: vehicles.flatMap(v=>v.driver_cpf ? [BigInt(v.driver_cpf)] : []) } },
+      where: {
+        canceled: false,
+        cpf: { in: vehicles.flatMap(v=>v.driver_cpf ? [BigInt(v.driver_cpf)] : []) },
+      },
       select: { cpf:true, name:true },
     });
     const names = new Map(drivers.map(d=>[d.cpf.toString().padStart(11,'0'),d.name]));
@@ -104,19 +120,22 @@ export class RegistrationsService {
       return await this.db.$transaction(async (tx) => {
         const existing = await tx.driver.findUnique({
           where: { cpf: BigInt(dto.cpf) },
-          select: { cpf: true },
+          select: { cpf: true, canceled: true },
         });
-        if (key && !existing)
-          throw new NotFoundException('Motorista não encontrado.');
+        if (key && (!existing || existing.canceled))
+          throw new NotFoundException('Motorista não encontrado ou desativado.');
         if (!key && existing)
           throw new ConflictException(
-            'CPF já cadastrado. Localize o motorista pelo nome para editar.',
+            existing.canceled
+              ? 'CPF pertence a um motorista desativado.'
+              : 'CPF já cadastrado. Localize o motorista pelo nome para editar.',
           );
         const unit = this.registrationUnit(dto, user);
         const data = {
           name: dto.name,
           unit,
           user: user.cod,
+          alterado_por: user.cod,
         };
         const select = { cpf: true, name: true, unit: true };
         const saved = key
@@ -135,7 +154,7 @@ export class RegistrationsService {
       throw new BadRequestException('Placa inválida.');
     const result = await this.db.vehicle.updateMany({
       where: { plate, canceled: false },
-      data: { canceled: true, user: user.cod },
+      data: { canceled: true, user: user.cod, alterado_por: user.cod },
     });
     if (!result.count)
       throw new NotFoundException('Veículo não encontrado ou já excluído.');
@@ -148,8 +167,14 @@ export class RegistrationsService {
       throw new BadRequestException('A placa não pode ser alterada.');
     try {
       return await this.db.$transaction(async (tx) => {
-        if (!dto.owner_is_driver && dto.driver_cpf && !(await tx.driver.findUnique({where:{cpf:BigInt(dto.driver_cpf)},select:{cpf:true}})))
-          throw new BadRequestException('Motorista não cadastrado. Selecione um motorista da lista.');
+        if (!dto.owner_is_driver && dto.driver_cpf) {
+          const linkedDriver = await tx.driver.findUnique({
+            where: { cpf: BigInt(dto.driver_cpf) },
+            select: { cpf: true, canceled: true },
+          });
+          if (!linkedDriver || linkedDriver.canceled)
+            throw new BadRequestException('Motorista não cadastrado ou desativado. Selecione um motorista ativo.');
+        }
         if (
           !(await tx.frete_empresas.findUnique({
             where: { sigla: dto.empresa_sigla },
@@ -176,20 +201,20 @@ export class RegistrationsService {
         });
         if (!owner)
           await tx.companies.create({
-            data: { cnpj: dto.owner, fantasy_name: dto.owner_name },
+            data: { cnpj: dto.owner, fantasy_name: dto.owner_name, alterado_por: user.cod },
           });
         // Registration only: no percentage or historic settlement changes.
         const { owner_is_driver, unit: _dtoUnit, ...registration } = dto;
         if (owner_is_driver) {
-          const driver = dto.driver_cpf ? await tx.driver.findUnique({ where: { cpf: BigInt(dto.driver_cpf) }, select: { cpf: true, name: true } }) : null;
-          if (!driver)
+          const driver = dto.driver_cpf ? await tx.driver.findUnique({ where: { cpf: BigInt(dto.driver_cpf) }, select: { cpf: true, name: true, canceled: true } }) : null;
+          if (!driver || driver.canceled)
             throw new BadRequestException('Proprietário não encontrado nos motoristas. Cadastre o motorista antes de vinculá-lo.');
           const normalize = (name: string) => name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
           if (normalize(driver.name) !== normalize(dto.owner_name))
             throw new BadRequestException('Selecione o motorista com o nome do proprietário.');
         }
         const unit = this.registrationUnit(dto, user);
-        const data = { ...registration, unit, user: user.cod,
+        const data = { ...registration, unit, user: user.cod, alterado_por: user.cod,
           first_payer: dto.empresa_sigla, second_payer: null, second_payer_percent: 0 };
         return key
           ? tx.vehicle.update({ where: { plate: key }, data })
@@ -198,7 +223,7 @@ export class RegistrationsService {
     } catch (e) {
       if (e.code === 'P2002')
         throw new ConflictException(
-          'Placa ou nome do proprietário já cadastrado. Confira os dados.',
+          'Placa já cadastrada. Localize o veículo para editar.',
         );
       throw e;
     }

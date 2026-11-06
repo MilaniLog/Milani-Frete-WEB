@@ -11,8 +11,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
 import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { getWeek } from '../weeks/period-policy';
-import { CancelClosureDto, ClosureDto } from './freight-closures.dto';
+import { CancelClosureDto, ClosureDto, ConferenceDto } from './freight-closures.dto';
 import { allocatePayment } from './payment-allocation';
+import { savedReport } from './closure-report';
 
 @Injectable()
 export class FreightClosuresService {
@@ -76,9 +77,25 @@ export class FreightClosuresService {
       },
       orderBy: { id: 'asc' },
     });
-    const targetUnit = manifests[0]?.unit ?? user.unit;
     const manifestIds = manifests.map((row) => row.id);
     const manifestNumbers = manifests
+      .flatMap((row) => [
+        row.manifestos,
+        row.manifesto_adicional_1,
+        row.manifesto_adicional_2,
+        row.manifesto_adicional_3,
+      ])
+      .filter((number): number is string => Boolean(number));
+    const weekManifestReferences = await tx.frete_carregamento_manifestos.findMany({
+      where: {
+        cancelado: false,
+        ...await this.scopeWhere(tx, user, dto),
+        placa: dto.placa,
+        semana: dates,
+      },
+    });
+    const priorityManifestIds = weekManifestReferences.map((row) => row.id);
+    const priorityManifestNumbers = weekManifestReferences
       .flatMap((row) => [
         row.manifestos,
         row.manifesto_adicional_1,
@@ -90,8 +107,8 @@ export class FreightClosuresService {
     // only to the selected week. Code 3333 follows its manifest in that week.
     const entries = await tx.frete_lancamentos.findMany({
       where: {
-        unit: targetUnit,
         placa: dto.placa,
+        cancelado: false,
         pago: false,
         fechamento_id: null,
         OR: [
@@ -102,25 +119,57 @@ export class FreightClosuresService {
           {
             codigo_despesa: '3333',
             OR: [
-              { manifesto_id: { in: manifestIds } },
+              { manifesto_id: { in: priorityManifestIds } },
               {
                 manifesto_id: null,
-                manifesto_numero: { in: manifestNumbers },
+                manifesto_numero: { in: priorityManifestNumbers },
               },
             ],
           },
           {
             tipo_despesa: { in: ['Credito', 'Adiantamento'] },
-            data_lancamento: dates,
             OR: [
-              { manifesto_id: { in: manifestIds } },
-              { manifesto_id: null },
+              { manifesto_id: { in: priorityManifestIds } },
+              {
+                manifesto_id: null,
+                manifesto_numero: { in: priorityManifestNumbers },
+              },
+              {
+                manifesto_id: null,
+                manifesto_numero: null,
+                data_lancamento: dates,
+              },
             ],
           },
         ],
       },
       orderBy: { id: 'asc' },
     });
+    const referenceManifestIds = [
+      ...new Set(
+        entries
+          .map((row) => row.manifesto_id)
+          .filter(
+            (id): id is number =>
+              id != null &&
+              !manifestIds.includes(id) &&
+              !priorityManifestIds.includes(id),
+          ),
+      ),
+    ];
+    const referenceManifests = [
+      ...weekManifestReferences.filter((row) => !manifestIds.includes(row.id)),
+      ...(referenceManifestIds.length
+        ? await tx.frete_carregamento_manifestos.findMany({
+            where: { id: { in: referenceManifestIds }, cancelado: false },
+          })
+        : []),
+    ];
+    const targetUnit =
+      manifests[0]?.unit ??
+      referenceManifests[0]?.unit ??
+      entries[0]?.unit ??
+      user.unit;
     const debitSelection =
       dto.debit_entry_ids === undefined ? null : new Set(dto.debit_entry_ids);
     const selectedEntries =
@@ -151,7 +200,6 @@ export class FreightClosuresService {
     if (
       entries.some(
         (row) =>
-          row.unit !== targetUnit ||
           row.placa !== dto.placa ||
           row.pago ||
           row.fechamento_id !== null,
@@ -188,16 +236,32 @@ export class FreightClosuresService {
       throw new ConflictException(
         `O CTRB ${duplicatedCtrb} está repetido nos manifestos desta placa. Corrija os manifestos antes de fechar.`,
       );
-    const coupons = await tx.frete_cupons.findMany({
+    const availableCoupons = await tx.frete_cupons.findMany({
       where: {
-        unit: targetUnit,
         placa: dto.placa,
-        data_cobranca: dates,
         pago: false,
         fechamento_id: null,
       },
+      include: {
+        nota: { select: { codigo_tipo: true, nome_tipo: true } },
+      },
       orderBy: { id: 'asc' },
     });
+    const couponSelection =
+      dto.coupon_ids === undefined ? null : new Set(dto.coupon_ids);
+    const coupons =
+      couponSelection === null
+        ? availableCoupons
+        : availableCoupons.filter((row) => couponSelection.has(row.id));
+    if (
+      couponSelection &&
+      [...couponSelection].some(
+        (id) => !availableCoupons.some((coupon) => coupon.id === id),
+      )
+    )
+      throw new BadRequestException(
+        'Selecao de cupons contem cupom indisponivel para este fechamento.',
+      );
     const sum = (values: Decimal[]) =>
       values.reduce((total, value) => total.plus(value), new Decimal(0));
     const freight = sum(manifests.map((row) => row.frete_veiculo));
@@ -249,11 +313,25 @@ export class FreightClosuresService {
       unit: targetUnit,
       semana: week.codigo,
       placa: dto.placa,
-      motorista: manifests.find((row) => row.motorista)?.motorista ?? null,
+      motorista:
+        manifests.find((row) => row.motorista)?.motorista ??
+        referenceManifests.find((row) => row.motorista)?.motorista ??
+        entries.find((row) => row.motorista)?.motorista ??
+        null,
+      tipoVeiculo:
+        manifests.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+        referenceManifests.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+        entries.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+        coupons.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+        null,
       origem:
         [...new Set(manifests.map((row) => row.origem).filter(Boolean))].join(
           ' / ',
-        ) || null,
+        ) ||
+        [...new Set(referenceManifests.map((row) => row.origem).filter(Boolean))].join(
+          ' / ',
+        ) ||
+        null,
       periodo_inicio: week.data_inicio,
       periodo_fim: week.data_fim,
       manifests,
@@ -263,6 +341,7 @@ export class FreightClosuresService {
           row.tipo_despesa === 'Debito' &&
           String(row.codigo_despesa ?? '').trim() !== '3333',
       ),
+      availableCoupons,
       coupons,
       closureNumber: closureNumbers[0] ?? null,
       totals: {
@@ -284,7 +363,7 @@ export class FreightClosuresService {
   async adjustedWeekPreview(
     semana: string,
     user: AuthUser,
-    selections: { placa: string; debit_entry_ids: number[] }[] = [],
+    selections: { placa: string; debit_entry_ids: number[]; coupon_ids: number[] }[] = [],
     scope: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {},
   ) {
     return this.transaction(async (tx) => {
@@ -297,11 +376,18 @@ export class FreightClosuresService {
       const entries = await tx.frete_lancamentos.findMany({
         where: {
           ...await this.scopeWhere(tx, user, scope),
+          cancelado: false,
           data_lancamento: dates,
-          manifesto_id: null,
           pago: false,
           fechamento_id: null,
-          tipo_despesa: { in: ['Credito', 'Debito'] },
+          OR: [
+            {
+              tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+              manifesto_id: null,
+              manifesto_numero: null,
+            },
+            { tipo_despesa: 'Debito', manifesto_id: null },
+          ],
         },
         select: { placa: true },
       });
@@ -326,17 +412,14 @@ export class FreightClosuresService {
       const registered = new Set(registeredVehicles.map((row) => row.plate));
       const plates = candidatePlates.filter((placa) => registered.has(placa));
       const selectionByPlate = new Map(
-        selections.map((selection) => [
-          selection.placa,
-          selection.debit_entry_ids,
-        ]),
+        selections.map((selection) => [selection.placa, selection]),
       );
       return Promise.all(
         plates.map((placa) =>
           this.collect(
             tx,
             selectionByPlate.has(placa)
-              ? { ...scope, semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
+              ? { ...scope, semana, placa, ...selectionByPlate.get(placa) }
               : { ...scope, semana, placa },
             user,
           ),
@@ -348,7 +431,7 @@ export class FreightClosuresService {
   finalizeWeek(
     semana: string,
     user: AuthUser,
-    selections: { placa: string; debit_entry_ids: number[] }[] = [],
+    selections: { placa: string; debit_entry_ids: number[]; coupon_ids: number[] }[] = [],
     reviewedPlates?: string[],
     scope: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {},
   ) {
@@ -367,11 +450,18 @@ export class FreightClosuresService {
       const entries = await tx.frete_lancamentos.findMany({
         where: {
           ...await this.scopeWhere(tx, user, scope),
+          cancelado: false,
           data_lancamento: dates,
-          manifesto_id: null,
           pago: false,
           fechamento_id: null,
-          tipo_despesa: { in: ['Credito', 'Debito'] },
+          OR: [
+            {
+              tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+              manifesto_id: null,
+              manifesto_numero: null,
+            },
+            { tipo_despesa: 'Debito', manifesto_id: null },
+          ],
         },
         select: { placa: true },
       });
@@ -398,10 +488,7 @@ export class FreightClosuresService {
       if (!plates.length)
         throw new BadRequestException('Selecione ao menos uma placa revisada para fechar.');
       const selectionByPlate = new Map(
-        selections.map((selection) => [
-          selection.placa,
-          selection.debit_entry_ids,
-        ]),
+        selections.map((selection) => [selection.placa, selection]),
       );
       const unknownSelection = [...selectionByPlate.keys()].find(
         (placa) => !plates.includes(placa),
@@ -418,7 +505,7 @@ export class FreightClosuresService {
           await this.finalizeTransaction(
             tx,
             selectionByPlate.has(placa)
-              ? { ...scope, semana, placa, debit_entry_ids: selectionByPlate.get(placa) }
+              ? { ...scope, semana, placa, ...selectionByPlate.get(placa) }
               : { ...scope, semana, placa },
             user,
           ),
@@ -471,6 +558,7 @@ export class FreightClosuresService {
         total_ctrb: data.totals.total_ctrb,
         total_liquido: data.totals.total_liquido,
         status: 'FECHADO',
+        alterado_por: user.cod,
         historico: this.snapshot({
           versao: 1,
           finalizacao: {
@@ -487,25 +575,26 @@ export class FreightClosuresService {
         unit: data.unit,
         fechamento_id: null,
       },
-      data: { fechamento_id: closure.id, num_fechamento: closure.numero },
+      data: { fechamento_id: closure.id, num_fechamento: closure.numero, alterado_por: user.cod },
     });
     const entries = await tx.frete_lancamentos.updateMany({
       where: {
         id: { in: data.entries.map((row) => row.id) },
-        unit: data.unit,
+        cancelado: false,
+        placa: data.placa,
         pago: false,
         fechamento_id: null,
       },
-      data: { fechamento_id: closure.id, pago: true },
+      data: { fechamento_id: closure.id, pago: true, alterado_por: user.cod },
     });
     const coupons = await tx.frete_cupons.updateMany({
       where: {
         id: { in: data.coupons.map((row) => row.id) },
-        unit: data.unit,
+        placa: data.placa,
         pago: false,
         fechamento_id: null,
       },
-      data: { fechamento_id: closure.id, pago: true },
+      data: { fechamento_id: closure.id, pago: true, alterado_por: user.cod },
     });
     if (
       manifests.count !== data.manifests.length ||
@@ -516,12 +605,152 @@ export class FreightClosuresService {
     return { closure, totals: data.totals, payment: data.payment };
   }
 
-  list(user: AuthUser) {
+  list(user: AuthUser, numero?: string) {
+    const searched = numero?.trim();
     return this.prisma.frete_fechamentos.findMany({
-      where: this.unitWhere(user),
+      where: {
+        ...this.unitWhere(user),
+        ...(searched && /^\d+$/.test(searched) ? { numero: Number(searched) } : {}),
+      },
       orderBy: { id: 'desc' },
-      take: 50,
+      take: searched ? 10 : 50,
     });
+  }
+
+  historicalConference(dto: ConferenceDto, user: AuthUser) {
+    return this.transaction(async (tx) => {
+      if ((dto.inicio && !dto.fim) || (!dto.inicio && dto.fim))
+        throw new BadRequestException('Preencha início e fim.');
+      if (dto.semana && (dto.inicio || dto.fim))
+        throw new BadRequestException('Escolha semana ou período de pesquisa.');
+      if (!dto.semana && !dto.inicio)
+        throw new BadRequestException(
+          'Escolha uma semana ou informe início e fim.',
+        );
+      const week = dto.semana ? await getWeek(tx, dto.semana) : null;
+      const start = week?.data_inicio ?? new Date(`${dto.inicio}T00:00:00Z`);
+      const end = week?.data_fim ?? new Date(`${dto.fim}T00:00:00Z`);
+      if (start > end)
+        throw new BadRequestException('Início deve ser anterior ao fim.');
+      const vehicleFilter =
+        dto.tipo || (dto.categoria && dto.categoria !== 'Todos')
+          ? await tx.vehicle.findMany({
+              where: {
+                ...(dto.placa ? { plate: dto.placa } : {}),
+                ...(dto.tipo
+                  ? { codVehicleType: Number(dto.tipo) }
+                  : dto.categoria === 'Agregado'
+                    ? { codVehicleType: { lt: 100 } }
+                    : { codVehicleType: { gte: 100 } }),
+              },
+              select: { plate: true },
+            })
+          : null;
+      const closures = await tx.frete_fechamentos.findMany({
+        where: {
+          status: 'FECHADO',
+          ...await this.scopeWhere(tx, user, dto),
+          ...(dto.numero ? { numero: Number(dto.numero) } : {}),
+          ...(dto.placa ? { placa: dto.placa } : {}),
+          ...(vehicleFilter
+            ? { placa: { in: vehicleFilter.map((vehicle) => vehicle.plate) } }
+            : {}),
+          ...(dto.semana
+            ? { semana: dto.semana }
+            : {
+                periodo_inicio: { gte: start },
+                periodo_fim: { lte: end },
+              }),
+        },
+        orderBy: [{ placa: 'asc' }, { numero: 'asc' }],
+      });
+      const groups = [];
+      for (const closure of closures) {
+        const detail = {
+          closure,
+          manifests: await tx.frete_carregamento_manifestos.findMany({
+            where: { unit: closure.unit, fechamento_id: closure.id },
+          }),
+          entries: await tx.frete_lancamentos.findMany({
+            where: {
+              placa: closure.placa,
+              fechamento_id: closure.id,
+              cancelado: false,
+            },
+          }),
+          coupons: await tx.frete_cupons.findMany({
+            where: { placa: closure.placa, fechamento_id: closure.id },
+            include: {
+              nota: { select: { codigo_tipo: true, nome_tipo: true } },
+            },
+          }),
+        };
+        const report = savedReport(detail);
+        if (
+          dto.usuario &&
+          !report.entries.some(
+            (entry) => Number(entry.responsavel_cod) === Number(dto.usuario),
+          ) &&
+          !report.coupons.some(
+            (coupon) => Number(coupon.responsavel_cod) === Number(dto.usuario),
+          ) &&
+          !report.manifests.some(
+            (manifest) => String(manifest.usuario ?? '') === dto.usuario,
+          )
+        ) continue;
+        if (
+          dto.despesa &&
+          !report.entries.some(
+            (entry) => String(entry.codigo_despesa) === dto.despesa,
+          )
+        ) continue;
+        if (
+          dto.mista === 'true' &&
+          !report.manifests.some(
+            (manifest) =>
+              manifest.carga_mista ||
+              [manifest.cod_777_00, manifest.cod_888_00, manifest.cod_999_00]
+                .filter((value) => Number(value) > 0).length > 1,
+          )
+        ) continue;
+        groups.push({
+          unit: closure.unit,
+          semana: closure.semana ?? dto.semana ?? '',
+          placa: closure.placa,
+          motorista:
+            report.manifests.find((row) => row.motorista)?.motorista ??
+            report.entries.find((row) => row.motorista)?.motorista ??
+            report.coupons.find((row) => row.motorista)?.motorista ??
+            null,
+          tipoVeiculo:
+            report.manifests.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+            report.entries.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+            report.coupons.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+            null,
+          origem:
+            [...new Set(report.manifests.map((row) => row.origem).filter(Boolean))]
+              .join(' / ') || null,
+          closureNumber: closure.numero,
+          isClosed: true,
+          periodo_inicio: closure.periodo_inicio,
+          periodo_fim: closure.periodo_fim,
+          manifests: report.manifests,
+          entries: report.entries,
+          coupons: report.coupons,
+          totals: report.totals,
+          payment: report.payment,
+          cabecalho: report.cabecalho,
+          titulo: report.titulo,
+          reportOrigin: report.origem,
+        });
+      }
+      return {
+        groups,
+        periodo_inicio: start,
+        periodo_fim: end,
+        filtros: dto,
+      };
+    }, 30000);
   }
   async findByNumber(numero: number, user: AuthUser) {
     const closure = await this.prisma.frete_fechamentos.findFirst({
@@ -556,11 +785,16 @@ export class FreightClosuresService {
       const manifests = await tx.frete_carregamento_manifestos.findMany({
         where,
       });
-      const entries = await tx.frete_lancamentos.findMany({ where });
+      const entries = await tx.frete_lancamentos.findMany({
+        where: { ...where, cancelado: false },
+      });
       const coupons = await tx.frete_cupons.findMany({ where });
       if (
-        [...manifests, ...entries, ...coupons].some(
+        manifests.some(
           (row) => row.unit !== closure.unit || row.placa !== closure.placa,
+        ) ||
+        [...entries, ...coupons].some(
+          (row) => row.placa !== closure.placa,
         ) ||
         manifests.some((row) => row.num_fechamento !== closure.numero) ||
         [...entries, ...coupons].some((row) => !row.pago)
@@ -591,22 +825,23 @@ export class FreightClosuresService {
       });
       const changed = await tx.frete_fechamentos.updateMany({
         where: { id, unit: closure.unit, status: 'FECHADO' },
-        data: { status: 'CANCELADO', historico },
+        data: { status: 'CANCELADO', historico, alterado_por: user.cod },
       });
       if (changed.count !== 1)
         throw new ConflictException('Fechamento alterado simultaneamente.');
-      const scope = { ...where, unit: closure.unit };
+      const manifestScope = { ...where, unit: closure.unit };
+      const plateScope = { ...where, placa: closure.placa };
       const m = await tx.frete_carregamento_manifestos.updateMany({
-        where: scope,
-        data: { fechamento_id: null, num_fechamento: null },
+        where: manifestScope,
+        data: { fechamento_id: null, num_fechamento: null, alterado_por: user.cod },
       });
       const e = await tx.frete_lancamentos.updateMany({
-        where: scope,
-        data: { fechamento_id: null, pago: false },
+        where: { ...plateScope, cancelado: false },
+        data: { fechamento_id: null, pago: false, alterado_por: user.cod },
       });
       const c = await tx.frete_cupons.updateMany({
-        where: scope,
-        data: { fechamento_id: null, pago: false },
+        where: plateScope,
+        data: { fechamento_id: null, pago: false, alterado_por: user.cod },
       });
       if (
         m.count !== manifests.length ||
@@ -629,12 +864,20 @@ export class FreightClosuresService {
         where: { id, ...this.unitWhere(user) },
       });
       if (!closure) throw new NotFoundException('Fechamento não encontrado.');
-      const where = { unit: closure.unit, fechamento_id: id };
+      const manifestWhere = { unit: closure.unit, fechamento_id: id };
+      const plateWhere = { placa: closure.placa, fechamento_id: id };
       return {
         closure,
-        manifests: await tx.frete_carregamento_manifestos.findMany({ where }),
-        entries: await tx.frete_lancamentos.findMany({ where }),
-        coupons: await tx.frete_cupons.findMany({ where }),
+        manifests: await tx.frete_carregamento_manifestos.findMany({ where: manifestWhere }),
+        entries: await tx.frete_lancamentos.findMany({
+          where: { ...plateWhere, cancelado: false },
+        }),
+        coupons: await tx.frete_cupons.findMany({
+          where: plateWhere,
+          include: {
+            nota: { select: { codigo_tipo: true, nome_tipo: true } },
+          },
+        }),
       };
     });
   }

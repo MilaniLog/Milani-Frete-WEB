@@ -22,7 +22,8 @@ describe('Cadastro de pagadoras', () => {
     await service.updatePayers(' abc1234 ', dto, admin);
     const query = db.vehicle.update.mock.calls[0][0];
     expect(query.where).toEqual({ plate: 'ABC1234', canceled: false });
-    expect(Object.keys(query.data).sort()).toEqual(Object.keys(dto).sort());
+    expect(Object.keys(query.data).sort()).toEqual([...Object.keys(dto), 'alterado_por'].sort());
+    expect(query.data.alterado_por).toBe(1);
     expect(query.data.second_payer_percent.toString()).toBe('0.3');
   });
   it('permite remover o rateio explicitamente', async () => {

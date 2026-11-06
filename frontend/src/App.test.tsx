@@ -53,6 +53,15 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
     ctrb_numero: "000123-4",
     observacao: "Preservar",
     carga_mista: true,
+    creditos: [{
+      id: 45,
+      controle_id: 1425,
+      codigo_despesa: "0060",
+      nome_despesa: "Complemento de frete",
+      tipo_despesa: "Credito",
+      valor: "80",
+      descricao: "Complemento",
+    }],
   };
   vi.mocked(fetch).mockImplementation(async (path, options) => {
     if (path === "/api/manifests/1")
@@ -74,6 +83,8 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   expect(screen.getByLabelText("Hora").getAttribute("type")).toBe("text");
   await screen.findByDisplayValue("Motorista de teste");
   await waitFor(() => expect((screen.getByRole("combobox", {name:"Destino"}) as HTMLInputElement).value).toBe("Destino"));
+  expect(screen.getByText("Vale 1425 — Crédito")).toBeTruthy();
+  expect(screen.getByText("0060 · Complemento de frete")).toBeTruthy();
   fireEvent.click(screen.getByLabelText("Motorista"));
   fireEvent.click(await screen.findByRole("option", {name:"Motorista de teste"}));
   fireEvent.click(screen.getByRole("button", { name: /Salvar altera/i }));
@@ -107,17 +118,23 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   ).toBe("Preservar");
 }, 15000);
 
-it("não oferece edição para manifesto fechado", async () => {
+it("oferece consulta em modo somente leitura para manifesto fechado", async () => {
   const originalFetch = vi.mocked(fetch).getMockImplementation()!;
-  vi.mocked(fetch).mockImplementation(async (path, options) =>
-    path === "/api/manifests/1"
-      ? response({ ...manifest, fechamento_id: 9, num_fechamento: 9 })
-      : originalFetch(path, options),
-  );
+  const closedManifest = { ...manifest, fechamento_id: 9, num_fechamento: 9 };
+  vi.mocked(fetch).mockImplementation(async (path, options) => {
+    if (path === "/api/manifests?recent=true") return response([closedManifest]);
+    if (path === "/api/manifests/1") return response(closedManifest);
+    return originalFetch(path, options);
+  });
   await login();
   await screen.findByText("M123");
-  fireEvent.click(screen.getByRole("button", { name: "Editar manifesto M123" }));
-  await screen.findByText("Manifesto fechado não pode ser editado.");
+  fireEvent.click(screen.getByRole("button", { name: "Consultar manifesto M123" }));
+  await screen.findByRole("dialog", { name: "Consultar manifesto M123" });
+  expect(screen.getAllByText("Fechado · 00000009")).toHaveLength(2);
+  expect(screen.getByText(/Consulta somente para visualização/)).toBeTruthy();
+  expect(screen.getAllByLabelText("Número do manifesto").some((field) => field.matches(":disabled"))).toBe(true);
+  expect(screen.getAllByLabelText("Destino").some((field) => field.matches(":disabled"))).toBe(true);
+  expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
   expect(screen.queryByRole("dialog", { name: "Editar manifesto M123" })).toBeNull();
 });
 
@@ -152,7 +169,9 @@ beforeEach(() => {
         ]);
       if (path.endsWith("/destinations"))
         return response([{ id: 1, nome: "Destino" }]);
-      if (path.endsWith("/entries") || path.endsWith("/freight-expenses"))
+      if (path.endsWith("/freight-expenses"))
+        return response([{ id: 7, codigo: "0060", nome: "Complemento de frete", tipo: "Credito", ativo: true }]);
+      if (path.endsWith("/entries"))
         return response([]);
       if (init?.method === "POST") return response(manifest, 201);
       return response([manifest]);
@@ -269,11 +288,11 @@ it("envia cadastro com números e mantém CPF como texto", async () => {
     "Número do manifesto": "3182",
     "Data do carregamento": "210926",
     Hora: "1000",
-    "Frete 777": "1000",
+    "Frete 301": "1000",
   }))
-    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    fireEvent.change(screen.getAllByLabelText(label).filter((field) => !field.matches(":disabled")).at(-1)!, { target: { value } });
   for (const [label, name] of [["Placa","ABC1234"],["Destino","Destino"]]) {
-    fireEvent.focus(screen.getByLabelText(label));
+    fireEvent.focus(screen.getAllByLabelText(label).filter((field) => !field.matches(":disabled")).at(-1)!);
     fireEvent.click(await screen.findByRole("option",{name}));
   }
   await screen.findByRole("option", { name: "Motorista de teste", hidden: true });
@@ -316,7 +335,7 @@ it("preenche frete pela placa, respeita campo apagado e mantém frete manual", a
   await screen.findByRole("option", { name: "ABC1234", hidden: true });
   fireEvent.focus(screen.getByLabelText("Placa"));
   fireEvent.click(await screen.findByRole("option", {name:"ABC1234"}));
-  await screen.findByLabelText("Frete 777 calculado");
+  await screen.findByLabelText("Frete 301 calculado");
   const freightInput = () => screen.getByRole("spinbutton", { name: /Frete do ve.culo/ }) as HTMLInputElement;
   expect(freightInput().value).toBe("250");
   expect(freightInput().required).toBe(true);
@@ -361,4 +380,20 @@ it("fecha o menu por Escape e por clique fora", async () => {
   fireEvent.click(menu);
   fireEvent.pointerDown(document.body);
   expect(screen.queryByRole("navigation")).toBeNull();
+});
+
+
+it("adiciona mais de um crédito no cadastro do manifesto", async () => {
+  await login();
+  await screen.findByText("M123");
+  fireEvent.click(screen.getByRole("button", { name: "+ Novo manifesto" }));
+  const add = await screen.findByRole("button", { name: "+ Adicionar créditos" });
+  expect(screen.getByLabelText("Despesa do crédito 1")).toBeTruthy();
+  fireEvent.click(add);
+  expect(screen.getByLabelText("Despesa do crédito 1")).toBeTruthy();
+  expect(screen.getByLabelText("Valor do crédito 2")).toBeTruthy();
+  expect(screen.getByLabelText("Descrição do crédito 2")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remover crédito 1" }));
+  expect(screen.queryByLabelText("Valor do crédito 2")).toBeNull();
+  expect(screen.getByLabelText("Valor do crédito 1")).toBeTruthy();
 });

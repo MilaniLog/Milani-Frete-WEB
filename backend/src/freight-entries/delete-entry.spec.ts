@@ -14,6 +14,7 @@ describe('Excluir vale pelo formulário', () => {
       data_lancamento: new Date('2026-09-21'),
       pago: false,
       fechamento_id: null,
+      cancelado: false,
     };
     db = {
       frete_lancamentos: {
@@ -22,7 +23,10 @@ describe('Excluir vale pelo formulário', () => {
             ? entry
             : null,
         ),
-        delete: jest.fn().mockResolvedValue(entry),
+        update: jest.fn(async ({ data }) => Object.assign(entry, data)),
+      },
+      frete_faturas_vales: {
+        update: jest.fn(async ({ data }) => data),
       },
       frete_semanas: {
         findMany: jest
@@ -42,7 +46,7 @@ describe('Excluir vale pelo formulário', () => {
   });
   it('exclui avulso em transação e limita a unidade', async () => {
     await service.removeStandalone(4, user);
-    expect(db.frete_lancamentos.delete).toHaveBeenCalledWith({
+    expect(db.frete_lancamentos.update).toHaveBeenCalledWith({
       where: {
         id: 4,
         unit: 100,
@@ -50,6 +54,11 @@ describe('Excluir vale pelo formulário', () => {
         pago: false,
         fechamento_id: null,
       },
+      data: expect.objectContaining({
+        cancelado: true,
+        cancelado_por: 1,
+        cancelado_em: expect.any(Date),
+      }),
     });
     expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
@@ -62,7 +71,7 @@ describe('Excluir vale pelo formulário', () => {
       await expect(service.removeStandalone(4, user)).rejects.toMatchObject({
         status: 409,
       });
-      expect(db.frete_lancamentos.delete).not.toHaveBeenCalled();
+      expect(db.frete_lancamentos.update).not.toHaveBeenCalled();
     },
   );
   it('permite excluir registro aberto mesmo com fechamento anterior na placa', async () => {
@@ -70,7 +79,16 @@ describe('Excluir vale pelo formulário', () => {
     await expect(service.removeStandalone(4, user)).resolves.toMatchObject({
       entry: { id: 4 },
     });
-    expect(db.frete_lancamentos.delete).toHaveBeenCalled();
+    expect(db.frete_lancamentos.update).toHaveBeenCalled();
+  });
+  it('permite cancelar vale incluído em fechamento de vale e recalcula o total', async () => {
+    Object.assign(entry, { fatura_id: 7, numero_fatura: 12, valor: 50 });
+    db.frete_lancamentos.findMany = jest.fn().mockResolvedValue([]);
+    await expect(service.removeStandalone(4, user)).resolves.toBeDefined();
+    expect(db.frete_faturas_vales.update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: expect.objectContaining({ quantidade: 0, alterado_por: user.cod }),
+    });
   });
   it('não exclui de outra unidade', async () => {
     await expect(

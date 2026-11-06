@@ -16,13 +16,29 @@ export type Page =
   | "destinations"
   | "reprint-closures"
   | "financial-report"
+  | "vale-invoices"
   | "coupons-report"
   | "payments-report"
-  | "manifest-closure-report";
+  | "manifest-closure-report"
+  | "users";
 
 export function canAccessPage(session: Session, page: Page): boolean {
-  return !["weeks", "units"].includes(page) || session.user.isAdmin;
+  return !["weeks", "units", "users"].includes(page) || session.user.isAdmin;
 }
+
+const valePages: Page[] = ["entries", "financial-report", "vale-invoices"];
+const closurePages: Page[] = ["closures", "reprint-closures"];
+const couponPages: Page[] = ["invoices", "coupons-report"];
+const registrationPages = [
+  ["weeks", "Semanas"],
+  ["units", "Unidades"],
+  ["users", "Usuários"],
+  ["expenses", "Despesas"],
+  ["payers", "Empresas"],
+  ["drivers", "Motoristas"],
+  ["vehicles", "Veículos"],
+  ["destinations", "Destinos"],
+] as const;
 
 export default function Navigation({
   session,
@@ -38,16 +54,21 @@ export default function Navigation({
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [registrationsOpen, setRegistrationsOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
     function outside(event: PointerEvent) {
-      if (!container.current?.contains(event.target as Node)) setOpen(false);
+      if (!container.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setRegistrationsOpen(false);
+      }
     }
     function escape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setOpen(false);
+        setRegistrationsOpen(false);
         trigger.current?.focus();
       }
     }
@@ -60,6 +81,7 @@ export default function Navigation({
   }, [open]);
   function select(next: Page) {
     setOpen(false);
+    setRegistrationsOpen(false);
     navigate(next);
     trigger.current?.focus();
   }
@@ -72,6 +94,7 @@ export default function Navigation({
         onClick={(event) => {
           event.preventDefault();
           setOpen(false);
+          setRegistrationsOpen(false);
           navigate("home");
         }}
       >
@@ -97,7 +120,10 @@ export default function Navigation({
           ref={trigger}
           aria-expanded={open}
           aria-controls="main-navigation"
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            setOpen(!open);
+            if (open) setRegistrationsOpen(false);
+          }}
         >
           Menu <span aria-hidden="true">{open ? "▴" : "▾"}</span>
         </button>
@@ -115,20 +141,10 @@ export default function Navigation({
               [
                 ["manifests", "Manifestos"],
                 ["entries", "Vales"],
-                ["weeks", "Semanas"],
-                ["units", "Unidades"],
-                ["expenses", "Despesas"],
                 ["closures", "Fechamentos"],
                 ["invoices", "Notas e cupons"],
-                ["payers", "Empresas"],
-                ["drivers", "Motoristas"],
-                ["vehicles", "Veículos"],
-                ["destinations", "Destinos"],
-                ["reprint-closures", "Reimprimir fechamentos"],
-                ["financial-report", "Relatório de vales"],
-                ["coupons-report", "Relatório de cupons"],
                 ["payments-report", "Planilha de pagamentos"],
-                ["manifest-closure-report", "Relatório de CTRB"],
+                ["manifest-closure-report", "Números de fechamento"],
               ] as const
             )
               .filter(([id]) => canAccessPage(session, id))
@@ -136,13 +152,41 @@ export default function Navigation({
                 <button
                   key={id}
                   type="button"
-                  className={`nav-button ${page === id ? "is-active" : ""}`}
-                  aria-current={page === id ? "page" : undefined}
+                  className={`nav-button ${page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) ? "is-active" : ""}`}
+                  aria-current={page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) ? "page" : undefined}
                   onClick={() => select(id)}
                 >
                   {label}
                 </button>
               ))}
+            <div className="menu-submenu-container">
+              <button
+                type="button"
+                className={`nav-button submenu-trigger ${registrationPages.some(([id]) => id === page) ? "is-active" : ""}`}
+                aria-expanded={registrationsOpen}
+                aria-controls="registration-navigation"
+                onClick={() => setRegistrationsOpen(!registrationsOpen)}
+              >
+                Cadastros <span aria-hidden="true">◂</span>
+              </button>
+              {registrationsOpen && (
+                <div id="registration-navigation" className="menu-submenu">
+                  {registrationPages
+                    .filter(([id]) => canAccessPage(session, id))
+                    .map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`nav-button ${page === id ? "is-active" : ""}`}
+                        aria-current={page === id ? "page" : undefined}
+                        onClick={() => select(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
             <button
               type="button"
               className="nav-button menu-logout"

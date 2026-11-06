@@ -1,10 +1,14 @@
 import SortableTable from "./SortableTable";
+import { expenseName, expenseType } from "./expense-display";
+import QuickDateInput from "./QuickDateInput";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import type { EntryWeek } from "./FreightEntries";
+import { valeIdentifier } from "./vale-identifier";
 
 type Entry = {
   id: number;
+  controle_id?: number | null;
   numero: number;
   codigo_despesa: string;
   nome_despesa: string;
@@ -15,6 +19,9 @@ type Entry = {
   departamento: string | null;
   pago: boolean;
   fechamento_id: number | null;
+  numero_fechamento?: number | null;
+  fatura_id: number | null;
+  numero_fatura: number | null;
   emitido_em?: string | null;
 };
 type Expense = {
@@ -130,7 +137,7 @@ export default function ManifestEntries({
       setRemoving(null);
       setSuccess(
         method === "DELETE"
-          ? "Vale excluído. Valores recalculados."
+          ? "Vale cancelado. Valores recalculados."
           : "Vale salvo. Valores recalculados.",
       );
       onUpdated(result.manifesto);
@@ -210,8 +217,8 @@ export default function ManifestEntries({
                 <tbody>
                   {entries.map((e) => (
                     <tr key={e.id}>
-                      <td data-sort-primary={e.numero} data-sort-secondary={e.nome_despesa} data-sort-tertiary={e.descricao ?? ''}>
-                        {e.numero} · {e.nome_despesa}
+                      <td data-sort-primary={valeIdentifier(e)} data-sort-secondary={e.nome_despesa} data-sort-tertiary={e.descricao ?? ''}>
+                        {valeIdentifier(e)} · {expenseName(e.codigo_despesa, e.nome_despesa)}
                         <small>{e.descricao}</small>
                       </td>
                       <td>
@@ -220,30 +227,42 @@ export default function ManifestEntries({
                           .split("-")
                           .reverse()
                           .join("/")}
-                        <small>{e.tipo_despesa}</small>
+                        <small>{expenseType(e.codigo_despesa, e.tipo_despesa)}</small>
                       </td>
                       <td>{currency(e.valor)}</td>
                       <td>
-                        {e.pago || e.fechamento_id != null
-                          ? "Pago / fechado"
-                          : "Em aberto"}
+                        {e.fechamento_id != null
+                          ? e.numero_fechamento != null
+                            ? `Fechamento · ${String(e.numero_fechamento).padStart(8, "0")}`
+                            : "Fechado"
+                          : e.numero_fatura != null
+                          ? `Fech. vale · ${String(e.numero_fatura).padStart(6, "0")}`
+                          : e.pago
+                            ? "Pago"
+                            : "Em aberto"}
                       </td>
                       <td>
-                        {!locked && !e.pago && e.fechamento_id == null && (
+                        {!e.pago &&
+                          e.fechamento_id == null &&
+                          (!locked || e.fatura_id != null ||
+                            (e.tipo_despesa === "Debito" &&
+                              e.codigo_despesa.trim() !== "3333")) && (
                           <>
-                            <button
-                              type="button"
-                              className="text-button"
-                              disabled={busy || !!editing || !!removing}
-                              onClick={() => {
-                                setEditing(e);
-                                setLaunchDate(e.data_lancamento.slice(0, 10));
-                                setError("");
-                                setSuccess("");
-                              }}
-                            >
-                              Editar vale {e.numero}
-                            </button>
+                            {e.fatura_id == null && e.numero_fatura == null && (
+                              <button
+                                type="button"
+                                className="text-button"
+                                disabled={busy || !!editing || !!removing}
+                                onClick={() => {
+                                  setEditing(e);
+                                  setLaunchDate(e.data_lancamento.slice(0, 10));
+                                  setError("");
+                                  setSuccess("");
+                                }}
+                              >
+                                Editar vale {valeIdentifier(e)}
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="text-button"
@@ -254,7 +273,7 @@ export default function ManifestEntries({
                                 setSuccess("");
                               }}
                             >
-                              Excluir vale {e.numero}
+                              Excluir vale {valeIdentifier(e)}
                             </button>
                           </>
                         )}
@@ -297,7 +316,7 @@ export default function ManifestEntries({
       {removing && (
         <div ref={removeRef} className="alert">
           <p>
-            Excluir o vale {removing.numero}, de{" "}
+            Excluir o vale {valeIdentifier(removing)}, de{" "}
             {currency(removing.valor)}? O manifesto será recalculado. Esta ação
             não pode ser desfeita.
           </p>
@@ -307,7 +326,7 @@ export default function ManifestEntries({
             disabled={busy}
             onClick={() => void mutate("DELETE", removing.id)}
           >
-            Confirmar exclusão
+            Confirmar cancelamento
           </button>{" "}
           <button
             type="button"
@@ -328,7 +347,7 @@ export default function ManifestEntries({
         >
           <h3>
             {current
-              ? `Editar vale ${current.numero}`
+              ? `Editar vale ${valeIdentifier(current)}`
               : "Novo vale"}
           </h3>
           {current && !matching && (
@@ -391,12 +410,11 @@ export default function ManifestEntries({
             <div className="form-grid">
               <label>
                 Data do vale
-                <input
+                <QuickDateInput
                   name="data_lancamento"
-                  type="date"
                   required
                   value={launchDate}
-                  onChange={(e) => setLaunchDate(e.target.value)}
+                  onChange={setLaunchDate}
                 />
               </label>
               {context && (
@@ -421,7 +439,7 @@ export default function ManifestEntries({
                   </option>
                   {expenses.map((e) => (
                     <option key={e.id} value={e.id}>
-                      {e.codigo} · {e.nome} · {e.tipo}
+                      {e.codigo} · {expenseName(e.codigo, e.nome)} · {expenseType(e.codigo, e.tipo)}
                     </option>
                   ))}
                 </select>

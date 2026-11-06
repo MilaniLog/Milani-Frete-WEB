@@ -20,40 +20,64 @@ export type companiesModel = runtime.Types.Result.DefaultSelection<Prisma.$compa
 
 export type AggregateCompanies = {
   _count: CompaniesCountAggregateOutputType | null
+  _avg: CompaniesAvgAggregateOutputType | null
+  _sum: CompaniesSumAggregateOutputType | null
   _min: CompaniesMinAggregateOutputType | null
   _max: CompaniesMaxAggregateOutputType | null
+}
+
+export type CompaniesAvgAggregateOutputType = {
+  alterado_por: number | null
+}
+
+export type CompaniesSumAggregateOutputType = {
+  alterado_por: number | null
 }
 
 export type CompaniesMinAggregateOutputType = {
   cnpj: string | null
   fantasy_name: string | null
+  alterado_por: number | null
 }
 
 export type CompaniesMaxAggregateOutputType = {
   cnpj: string | null
   fantasy_name: string | null
+  alterado_por: number | null
 }
 
 export type CompaniesCountAggregateOutputType = {
   cnpj: number
   fantasy_name: number
+  alterado_por: number
   _all: number
 }
 
 
+export type CompaniesAvgAggregateInputType = {
+  alterado_por?: true
+}
+
+export type CompaniesSumAggregateInputType = {
+  alterado_por?: true
+}
+
 export type CompaniesMinAggregateInputType = {
   cnpj?: true
   fantasy_name?: true
+  alterado_por?: true
 }
 
 export type CompaniesMaxAggregateInputType = {
   cnpj?: true
   fantasy_name?: true
+  alterado_por?: true
 }
 
 export type CompaniesCountAggregateInputType = {
   cnpj?: true
   fantasy_name?: true
+  alterado_por?: true
   _all?: true
 }
 
@@ -95,6 +119,18 @@ export type CompaniesAggregateArgs<ExtArgs extends runtime.Types.Extensions.Inte
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: CompaniesAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: CompaniesSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: CompaniesMinAggregateInputType
@@ -125,6 +161,8 @@ export type companiesGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   _count?: CompaniesCountAggregateInputType | true
+  _avg?: CompaniesAvgAggregateInputType
+  _sum?: CompaniesSumAggregateInputType
   _min?: CompaniesMinAggregateInputType
   _max?: CompaniesMaxAggregateInputType
 }
@@ -132,7 +170,10 @@ export type companiesGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
 export type CompaniesGroupByOutputType = {
   cnpj: string
   fantasy_name: string
+  alterado_por: number | null
   _count: CompaniesCountAggregateOutputType | null
+  _avg: CompaniesAvgAggregateOutputType | null
+  _sum: CompaniesSumAggregateOutputType | null
   _min: CompaniesMinAggregateOutputType | null
   _max: CompaniesMaxAggregateOutputType | null
 }
@@ -158,28 +199,34 @@ export type companiesWhereInput = {
   NOT?: Prisma.companiesWhereInput | Prisma.companiesWhereInput[]
   cnpj?: Prisma.StringFilter<"companies"> | string
   fantasy_name?: Prisma.StringFilter<"companies"> | string
+  alterado_por?: Prisma.IntNullableFilter<"companies"> | number | null
 }
 
 export type companiesOrderByWithRelationInput = {
   cnpj?: Prisma.SortOrder
   fantasy_name?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _relevance?: Prisma.companiesOrderByRelevanceInput
 }
 
 export type companiesWhereUniqueInput = Prisma.AtLeast<{
   cnpj?: string
-  fantasy_name?: string
   AND?: Prisma.companiesWhereInput | Prisma.companiesWhereInput[]
   OR?: Prisma.companiesWhereInput[]
   NOT?: Prisma.companiesWhereInput | Prisma.companiesWhereInput[]
-}, "cnpj" | "fantasy_name">
+  fantasy_name?: Prisma.StringFilter<"companies"> | string
+  alterado_por?: Prisma.IntNullableFilter<"companies"> | number | null
+}, "cnpj">
 
 export type companiesOrderByWithAggregationInput = {
   cnpj?: Prisma.SortOrder
   fantasy_name?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.companiesCountOrderByAggregateInput
+  _avg?: Prisma.companiesAvgOrderByAggregateInput
   _max?: Prisma.companiesMaxOrderByAggregateInput
   _min?: Prisma.companiesMinOrderByAggregateInput
+  _sum?: Prisma.companiesSumOrderByAggregateInput
 }
 
 export type companiesScalarWhereWithAggregatesInput = {
@@ -188,41 +235,49 @@ export type companiesScalarWhereWithAggregatesInput = {
   NOT?: Prisma.companiesScalarWhereWithAggregatesInput | Prisma.companiesScalarWhereWithAggregatesInput[]
   cnpj?: Prisma.StringWithAggregatesFilter<"companies"> | string
   fantasy_name?: Prisma.StringWithAggregatesFilter<"companies"> | string
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"companies"> | number | null
 }
 
 export type companiesCreateInput = {
   cnpj: string
   fantasy_name: string
+  alterado_por?: number | null
 }
 
 export type companiesUncheckedCreateInput = {
   cnpj: string
   fantasy_name: string
+  alterado_por?: number | null
 }
 
 export type companiesUpdateInput = {
   cnpj?: Prisma.StringFieldUpdateOperationsInput | string
   fantasy_name?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type companiesUncheckedUpdateInput = {
   cnpj?: Prisma.StringFieldUpdateOperationsInput | string
   fantasy_name?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type companiesCreateManyInput = {
   cnpj: string
   fantasy_name: string
+  alterado_por?: number | null
 }
 
 export type companiesUpdateManyMutationInput = {
   cnpj?: Prisma.StringFieldUpdateOperationsInput | string
   fantasy_name?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type companiesUncheckedUpdateManyInput = {
   cnpj?: Prisma.StringFieldUpdateOperationsInput | string
   fantasy_name?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type companiesOrderByRelevanceInput = {
@@ -234,16 +289,27 @@ export type companiesOrderByRelevanceInput = {
 export type companiesCountOrderByAggregateInput = {
   cnpj?: Prisma.SortOrder
   fantasy_name?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+}
+
+export type companiesAvgOrderByAggregateInput = {
+  alterado_por?: Prisma.SortOrder
 }
 
 export type companiesMaxOrderByAggregateInput = {
   cnpj?: Prisma.SortOrder
   fantasy_name?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type companiesMinOrderByAggregateInput = {
   cnpj?: Prisma.SortOrder
   fantasy_name?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+}
+
+export type companiesSumOrderByAggregateInput = {
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -251,6 +317,7 @@ export type companiesMinOrderByAggregateInput = {
 export type companiesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   cnpj?: boolean
   fantasy_name?: boolean
+  alterado_por?: boolean
 }, ExtArgs["result"]["companies"]>
 
 
@@ -258,9 +325,10 @@ export type companiesSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type companiesSelectScalar = {
   cnpj?: boolean
   fantasy_name?: boolean
+  alterado_por?: boolean
 }
 
-export type companiesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"cnpj" | "fantasy_name", ExtArgs["result"]["companies"]>
+export type companiesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"cnpj" | "fantasy_name" | "alterado_por", ExtArgs["result"]["companies"]>
 
 export type $companiesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "companies"
@@ -268,6 +336,7 @@ export type $companiesPayload<ExtArgs extends runtime.Types.Extensions.InternalA
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     cnpj: string
     fantasy_name: string
+    alterado_por: number | null
   }, ExtArgs["result"]["companies"]>
   composites: {}
 }
@@ -639,6 +708,7 @@ export interface Prisma__companiesClient<T, Null = never, ExtArgs extends runtim
 export interface companiesFieldRefs {
   readonly cnpj: Prisma.FieldRef<"companies", 'String'>
   readonly fantasy_name: Prisma.FieldRef<"companies", 'String'>
+  readonly alterado_por: Prisma.FieldRef<"companies", 'Int'>
 }
     
 

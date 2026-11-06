@@ -77,6 +77,7 @@ export type Frete_carregamento_manifestosAvgAggregateOutputType = {
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
   cancelado_por: number | null
+  alterado_por: number | null
 }
 
 export type Frete_carregamento_manifestosSumAggregateOutputType = {
@@ -130,6 +131,7 @@ export type Frete_carregamento_manifestosSumAggregateOutputType = {
   valor_liquido: runtime.Decimal | null
   vale_pedagio: runtime.Decimal | null
   cancelado_por: number | null
+  alterado_por: number | null
 }
 
 export type Frete_carregamento_manifestosMinAggregateOutputType = {
@@ -205,6 +207,7 @@ export type Frete_carregamento_manifestosMinAggregateOutputType = {
   cancelado: boolean | null
   cancelado_em: Date | null
   cancelado_por: number | null
+  alterado_por: number | null
   updated_at: Date | null
 }
 
@@ -281,6 +284,7 @@ export type Frete_carregamento_manifestosMaxAggregateOutputType = {
   cancelado: boolean | null
   cancelado_em: Date | null
   cancelado_por: number | null
+  alterado_por: number | null
   updated_at: Date | null
 }
 
@@ -357,6 +361,7 @@ export type Frete_carregamento_manifestosCountAggregateOutputType = {
   cancelado: number
   cancelado_em: number
   cancelado_por: number
+  alterado_por: number
   updated_at: number
   _all: number
 }
@@ -413,6 +418,7 @@ export type Frete_carregamento_manifestosAvgAggregateInputType = {
   valor_liquido?: true
   vale_pedagio?: true
   cancelado_por?: true
+  alterado_por?: true
 }
 
 export type Frete_carregamento_manifestosSumAggregateInputType = {
@@ -466,6 +472,7 @@ export type Frete_carregamento_manifestosSumAggregateInputType = {
   valor_liquido?: true
   vale_pedagio?: true
   cancelado_por?: true
+  alterado_por?: true
 }
 
 export type Frete_carregamento_manifestosMinAggregateInputType = {
@@ -541,6 +548,7 @@ export type Frete_carregamento_manifestosMinAggregateInputType = {
   cancelado?: true
   cancelado_em?: true
   cancelado_por?: true
+  alterado_por?: true
   updated_at?: true
 }
 
@@ -617,6 +625,7 @@ export type Frete_carregamento_manifestosMaxAggregateInputType = {
   cancelado?: true
   cancelado_em?: true
   cancelado_por?: true
+  alterado_por?: true
   updated_at?: true
 }
 
@@ -693,6 +702,7 @@ export type Frete_carregamento_manifestosCountAggregateInputType = {
   cancelado?: true
   cancelado_em?: true
   cancelado_por?: true
+  alterado_por?: true
   updated_at?: true
   _all?: true
 }
@@ -856,6 +866,7 @@ export type Frete_carregamento_manifestosGroupByOutputType = {
   cancelado: boolean
   cancelado_em: Date | null
   cancelado_por: number | null
+  alterado_por: number | null
   updated_at: Date
   _count: Frete_carregamento_manifestosCountAggregateOutputType | null
   _avg: Frete_carregamento_manifestosAvgAggregateOutputType | null
@@ -955,6 +966,7 @@ export type frete_carregamento_manifestosWhereInput = {
   cancelado?: Prisma.BoolFilter<"frete_carregamento_manifestos"> | boolean
   cancelado_em?: Prisma.DateTimeNullableFilter<"frete_carregamento_manifestos"> | Date | string | null
   cancelado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
 }
 
@@ -1031,6 +1043,7 @@ export type frete_carregamento_manifestosOrderByWithRelationInput = {
   cancelado?: Prisma.SortOrder
   cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
   cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.frete_carregamento_manifestosOrderByRelevanceInput
 }
@@ -1111,6 +1124,7 @@ export type frete_carregamento_manifestosWhereUniqueInput = Prisma.AtLeast<{
   cancelado?: Prisma.BoolFilter<"frete_carregamento_manifestos"> | boolean
   cancelado_em?: Prisma.DateTimeNullableFilter<"frete_carregamento_manifestos"> | Date | string | null
   cancelado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeFilter<"frete_carregamento_manifestos"> | Date | string
 }, "id">
 
@@ -1187,6 +1201,7 @@ export type frete_carregamento_manifestosOrderByWithAggregationInput = {
   cancelado?: Prisma.SortOrder
   cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
   cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_carregamento_manifestosCountOrderByAggregateInput
   _avg?: Prisma.frete_carregamento_manifestosAvgOrderByAggregateInput
@@ -1271,6 +1286,7 @@ export type frete_carregamento_manifestosScalarWhereWithAggregatesInput = {
   cancelado?: Prisma.BoolWithAggregatesFilter<"frete_carregamento_manifestos"> | boolean
   cancelado_em?: Prisma.DateTimeNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | Date | string | null
   cancelado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | number | null
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_carregamento_manifestos"> | number | null
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_carregamento_manifestos"> | Date | string
 }
 
@@ -1346,6 +1362,7 @@ export type frete_carregamento_manifestosCreateInput = {
   cancelado?: boolean
   cancelado_em?: Date | string | null
   cancelado_por?: number | null
+  alterado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1422,6 +1439,7 @@ export type frete_carregamento_manifestosUncheckedCreateInput = {
   cancelado?: boolean
   cancelado_em?: Date | string | null
   cancelado_por?: number | null
+  alterado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1497,6 +1515,7 @@ export type frete_carregamento_manifestosUpdateInput = {
   cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1573,6 +1592,7 @@ export type frete_carregamento_manifestosUncheckedUpdateInput = {
   cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1649,6 +1669,7 @@ export type frete_carregamento_manifestosCreateManyInput = {
   cancelado?: boolean
   cancelado_em?: Date | string | null
   cancelado_por?: number | null
+  alterado_por?: number | null
   updated_at?: Date | string
 }
 
@@ -1724,6 +1745,7 @@ export type frete_carregamento_manifestosUpdateManyMutationInput = {
   cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1800,6 +1822,7 @@ export type frete_carregamento_manifestosUncheckedUpdateManyInput = {
   cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
   cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1882,6 +1905,7 @@ export type frete_carregamento_manifestosCountOrderByAggregateInput = {
   cancelado?: Prisma.SortOrder
   cancelado_em?: Prisma.SortOrder
   cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -1936,6 +1960,7 @@ export type frete_carregamento_manifestosAvgOrderByAggregateInput = {
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
   cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_carregamento_manifestosMaxOrderByAggregateInput = {
@@ -2011,6 +2036,7 @@ export type frete_carregamento_manifestosMaxOrderByAggregateInput = {
   cancelado?: Prisma.SortOrder
   cancelado_em?: Prisma.SortOrder
   cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -2087,6 +2113,7 @@ export type frete_carregamento_manifestosMinOrderByAggregateInput = {
   cancelado?: Prisma.SortOrder
   cancelado_em?: Prisma.SortOrder
   cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
@@ -2141,6 +2168,7 @@ export type frete_carregamento_manifestosSumOrderByAggregateInput = {
   valor_liquido?: Prisma.SortOrder
   vale_pedagio?: Prisma.SortOrder
   cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type NullableDecimalFieldUpdateOperationsInput = {
@@ -2230,6 +2258,7 @@ export type frete_carregamento_manifestosSelect<ExtArgs extends runtime.Types.Ex
   cancelado?: boolean
   cancelado_em?: boolean
   cancelado_por?: boolean
+  alterado_por?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["frete_carregamento_manifestos"]>
 
@@ -2308,10 +2337,11 @@ export type frete_carregamento_manifestosSelectScalar = {
   cancelado?: boolean
   cancelado_em?: boolean
   cancelado_por?: boolean
+  alterado_por?: boolean
   updated_at?: boolean
 }
 
-export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "manifesto_adicional_1" | "manifesto_adicional_2" | "manifesto_adicional_3" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "cancelado" | "cancelado_em" | "cancelado_por" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
+export type frete_carregamento_manifestosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "origem" | "semana" | "manifestos" | "manifesto_adicional_1" | "manifesto_adicional_2" | "manifesto_adicional_3" | "hora" | "placa" | "motorista" | "tipo_veiculo" | "perc_carreg" | "perc_final" | "destino" | "m3" | "kg" | "qtd_nf" | "cod_777_00" | "cod_888_00" | "cod_999_00" | "cod_777_15" | "cod_888_25" | "cod_999_100" | "frete_total" | "frete_calc" | "frete_veiculo" | "cods_desp" | "vlr_desp" | "descricao_despesa" | "frt_tl_vlc" | "carreg_perc" | "nao_777" | "nao_888" | "nao_999" | "nao_777_calc" | "nao_888_calc" | "nao_999_calc" | "subtotal" | "outros" | "diaria" | "tde" | "escada" | "paletização" | "sub_lc_ex" | "sub_frete" | "sub_total" | "final_perc" | "num_fechamento" | "fechamento_id" | "carga_mista" | "usuario" | "estadia" | "data_hora" | "percentual_antigo" | "descarga" | "observacao" | "romaneio" | "ciot" | "ctrb_numero" | "ctrb_total" | "ctrb_adiantamento" | "sest_senat" | "irrf" | "prev_social" | "inss" | "total_retencoes" | "valor_liquido" | "vale_pedagio" | "cancelado" | "cancelado_em" | "cancelado_por" | "alterado_por" | "updated_at", ExtArgs["result"]["frete_carregamento_manifestos"]>
 
 export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_carregamento_manifestos"
@@ -2389,6 +2419,7 @@ export type $frete_carregamento_manifestosPayload<ExtArgs extends runtime.Types.
     cancelado: boolean
     cancelado_em: Date | null
     cancelado_por: number | null
+    alterado_por: number | null
     updated_at: Date
   }, ExtArgs["result"]["frete_carregamento_manifestos"]>
   composites: {}
@@ -2831,6 +2862,7 @@ export interface frete_carregamento_manifestosFieldRefs {
   readonly cancelado: Prisma.FieldRef<"frete_carregamento_manifestos", 'Boolean'>
   readonly cancelado_em: Prisma.FieldRef<"frete_carregamento_manifestos", 'DateTime'>
   readonly cancelado_por: Prisma.FieldRef<"frete_carregamento_manifestos", 'Int'>
+  readonly alterado_por: Prisma.FieldRef<"frete_carregamento_manifestos", 'Int'>
   readonly updated_at: Prisma.FieldRef<"frete_carregamento_manifestos", 'DateTime'>
 }
     

@@ -11,7 +11,7 @@ it('salva o vínculo pelo CPF preservando zeros, sem alterar manifestos',async()
   const {db,service}=setup();
   const result=await service.vehicle(dto,user,dto.plate);
   expect(result.driver_cpf).toBe('00123456789');
-  expect(db.driver.findUnique).toHaveBeenCalledWith({where:{cpf:BigInt('123456789')},select:{cpf:true}});
+  expect(db.driver.findUnique).toHaveBeenCalledWith({where:{cpf:BigInt('123456789')},select:{cpf:true,canceled:true}});
 });
 it('rejeita motorista inexistente e permite remover o vínculo',async()=>{
   const {db,service}=setup();db.driver.findUnique.mockResolvedValue(null);

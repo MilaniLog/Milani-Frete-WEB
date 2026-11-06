@@ -66,6 +66,10 @@ export class RegistrationsController {
   ) {
     return this.service.driver(dto, req.user, cpf);
   }
+  @Delete('drivers/:cpf')
+  removeDriver(@Param('cpf') cpf: string, @Req() req: AuthenticatedRequest) {
+    return this.service.removeDriver(cpf, req.user);
+  }
   @Post('vehicles') createVehicle(
     @Body() dto: VehicleRegistrationDto,
     @Req() req: AuthenticatedRequest,

@@ -35,14 +35,14 @@ export class AuthService {
     const senhaJaTemHash = isPasswordHash(senhaBanco);
 
     if (!senhaCorreta) {
-      throw new UnauthorizedException('C?digo ou senha inv?lidos.');
+      throw new UnauthorizedException('Código ou senha inválidos.');
     }
 
     /*
-     * Migra??o autom?tica da senha antiga.
+     * Migração automática da senha antiga.
      *
-     * Se o usu?rio entrou corretamente usando uma senha que
-     * ainda estava em texto puro, transformamos em hash port?til.
+     * Se o usuário entrou corretamente usando uma senha que
+     * ainda estava em texto puro, transformamos em hash portátil.
      */
     if (!senhaJaTemHash) {
       const passwordHash = await hashPassword(password);
@@ -54,6 +54,7 @@ export class AuthService {
 
         data: {
           password: passwordHash,
+          alterado_por: user.cod,
         },
       });
     }

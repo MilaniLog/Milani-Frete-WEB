@@ -1,18 +1,19 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { AuthUser } from '../auth/auth-user.types';
 
 @Injectable()
 export class DestinationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(nome: string) {
+  async create(nome: string, user: AuthUser) {
     try {
       return await this.prisma.$transaction(
         async (tx) => {
           if (await tx.frete_destinos.findFirst({ where: { nome } }))
             throw new ConflictException('Destino já cadastrado.');
           return tx.frete_destinos.create({
-            data: { nome, ativo: true },
+            data: { nome, ativo: true, alterado_por: user.cod },
             select: { id: true, nome: true },
           });
         },

@@ -20,14 +20,25 @@ export type frete_semanasModel = runtime.Types.Result.DefaultSelection<Prisma.$f
 
 export type AggregateFrete_semanas = {
   _count: Frete_semanasCountAggregateOutputType | null
+  _avg: Frete_semanasAvgAggregateOutputType | null
+  _sum: Frete_semanasSumAggregateOutputType | null
   _min: Frete_semanasMinAggregateOutputType | null
   _max: Frete_semanasMaxAggregateOutputType | null
+}
+
+export type Frete_semanasAvgAggregateOutputType = {
+  alterado_por: number | null
+}
+
+export type Frete_semanasSumAggregateOutputType = {
+  alterado_por: number | null
 }
 
 export type Frete_semanasMinAggregateOutputType = {
   codigo: string | null
   data_inicio: Date | null
   data_fim: Date | null
+  alterado_por: number | null
   created_at: Date | null
 }
 
@@ -35,6 +46,7 @@ export type Frete_semanasMaxAggregateOutputType = {
   codigo: string | null
   data_inicio: Date | null
   data_fim: Date | null
+  alterado_por: number | null
   created_at: Date | null
 }
 
@@ -42,15 +54,25 @@ export type Frete_semanasCountAggregateOutputType = {
   codigo: number
   data_inicio: number
   data_fim: number
+  alterado_por: number
   created_at: number
   _all: number
 }
 
 
+export type Frete_semanasAvgAggregateInputType = {
+  alterado_por?: true
+}
+
+export type Frete_semanasSumAggregateInputType = {
+  alterado_por?: true
+}
+
 export type Frete_semanasMinAggregateInputType = {
   codigo?: true
   data_inicio?: true
   data_fim?: true
+  alterado_por?: true
   created_at?: true
 }
 
@@ -58,6 +80,7 @@ export type Frete_semanasMaxAggregateInputType = {
   codigo?: true
   data_inicio?: true
   data_fim?: true
+  alterado_por?: true
   created_at?: true
 }
 
@@ -65,6 +88,7 @@ export type Frete_semanasCountAggregateInputType = {
   codigo?: true
   data_inicio?: true
   data_fim?: true
+  alterado_por?: true
   created_at?: true
   _all?: true
 }
@@ -107,6 +131,18 @@ export type Frete_semanasAggregateArgs<ExtArgs extends runtime.Types.Extensions.
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: Frete_semanasAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: Frete_semanasSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: Frete_semanasMinAggregateInputType
@@ -137,6 +173,8 @@ export type frete_semanasGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   _count?: Frete_semanasCountAggregateInputType | true
+  _avg?: Frete_semanasAvgAggregateInputType
+  _sum?: Frete_semanasSumAggregateInputType
   _min?: Frete_semanasMinAggregateInputType
   _max?: Frete_semanasMaxAggregateInputType
 }
@@ -145,8 +183,11 @@ export type Frete_semanasGroupByOutputType = {
   codigo: string
   data_inicio: Date
   data_fim: Date
+  alterado_por: number | null
   created_at: Date
   _count: Frete_semanasCountAggregateOutputType | null
+  _avg: Frete_semanasAvgAggregateOutputType | null
+  _sum: Frete_semanasSumAggregateOutputType | null
   _min: Frete_semanasMinAggregateOutputType | null
   _max: Frete_semanasMaxAggregateOutputType | null
 }
@@ -173,6 +214,7 @@ export type frete_semanasWhereInput = {
   codigo?: Prisma.StringFilter<"frete_semanas"> | string
   data_inicio?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
   data_fim?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
+  alterado_por?: Prisma.IntNullableFilter<"frete_semanas"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
 }
 
@@ -180,6 +222,7 @@ export type frete_semanasOrderByWithRelationInput = {
   codigo?: Prisma.SortOrder
   data_inicio?: Prisma.SortOrder
   data_fim?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   _relevance?: Prisma.frete_semanasOrderByRelevanceInput
 }
@@ -191,6 +234,7 @@ export type frete_semanasWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.frete_semanasWhereInput | Prisma.frete_semanasWhereInput[]
   data_inicio?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
   data_fim?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
+  alterado_por?: Prisma.IntNullableFilter<"frete_semanas"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_semanas"> | Date | string
 }, "codigo">
 
@@ -198,10 +242,13 @@ export type frete_semanasOrderByWithAggregationInput = {
   codigo?: Prisma.SortOrder
   data_inicio?: Prisma.SortOrder
   data_fim?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   _count?: Prisma.frete_semanasCountOrderByAggregateInput
+  _avg?: Prisma.frete_semanasAvgOrderByAggregateInput
   _max?: Prisma.frete_semanasMaxOrderByAggregateInput
   _min?: Prisma.frete_semanasMinOrderByAggregateInput
+  _sum?: Prisma.frete_semanasSumOrderByAggregateInput
 }
 
 export type frete_semanasScalarWhereWithAggregatesInput = {
@@ -211,6 +258,7 @@ export type frete_semanasScalarWhereWithAggregatesInput = {
   codigo?: Prisma.StringWithAggregatesFilter<"frete_semanas"> | string
   data_inicio?: Prisma.DateTimeWithAggregatesFilter<"frete_semanas"> | Date | string
   data_fim?: Prisma.DateTimeWithAggregatesFilter<"frete_semanas"> | Date | string
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_semanas"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"frete_semanas"> | Date | string
 }
 
@@ -218,6 +266,7 @@ export type frete_semanasCreateInput = {
   codigo: string
   data_inicio: Date | string
   data_fim: Date | string
+  alterado_por?: number | null
   created_at?: Date | string
 }
 
@@ -225,6 +274,7 @@ export type frete_semanasUncheckedCreateInput = {
   codigo: string
   data_inicio: Date | string
   data_fim: Date | string
+  alterado_por?: number | null
   created_at?: Date | string
 }
 
@@ -232,6 +282,7 @@ export type frete_semanasUpdateInput = {
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   data_inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   data_fim?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -239,6 +290,7 @@ export type frete_semanasUncheckedUpdateInput = {
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   data_inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   data_fim?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -246,6 +298,7 @@ export type frete_semanasCreateManyInput = {
   codigo: string
   data_inicio: Date | string
   data_fim: Date | string
+  alterado_por?: number | null
   created_at?: Date | string
 }
 
@@ -253,6 +306,7 @@ export type frete_semanasUpdateManyMutationInput = {
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   data_inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   data_fim?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -260,6 +314,7 @@ export type frete_semanasUncheckedUpdateManyInput = {
   codigo?: Prisma.StringFieldUpdateOperationsInput | string
   data_inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   data_fim?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -273,13 +328,19 @@ export type frete_semanasCountOrderByAggregateInput = {
   codigo?: Prisma.SortOrder
   data_inicio?: Prisma.SortOrder
   data_fim?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
+}
+
+export type frete_semanasAvgOrderByAggregateInput = {
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_semanasMaxOrderByAggregateInput = {
   codigo?: Prisma.SortOrder
   data_inicio?: Prisma.SortOrder
   data_fim?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
 }
 
@@ -287,7 +348,12 @@ export type frete_semanasMinOrderByAggregateInput = {
   codigo?: Prisma.SortOrder
   data_inicio?: Prisma.SortOrder
   data_fim?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
+}
+
+export type frete_semanasSumOrderByAggregateInput = {
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -296,6 +362,7 @@ export type frete_semanasSelect<ExtArgs extends runtime.Types.Extensions.Interna
   codigo?: boolean
   data_inicio?: boolean
   data_fim?: boolean
+  alterado_por?: boolean
   created_at?: boolean
 }, ExtArgs["result"]["frete_semanas"]>
 
@@ -305,10 +372,11 @@ export type frete_semanasSelectScalar = {
   codigo?: boolean
   data_inicio?: boolean
   data_fim?: boolean
+  alterado_por?: boolean
   created_at?: boolean
 }
 
-export type frete_semanasOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"codigo" | "data_inicio" | "data_fim" | "created_at", ExtArgs["result"]["frete_semanas"]>
+export type frete_semanasOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"codigo" | "data_inicio" | "data_fim" | "alterado_por" | "created_at", ExtArgs["result"]["frete_semanas"]>
 
 export type $frete_semanasPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_semanas"
@@ -317,6 +385,7 @@ export type $frete_semanasPayload<ExtArgs extends runtime.Types.Extensions.Inter
     codigo: string
     data_inicio: Date
     data_fim: Date
+    alterado_por: number | null
     created_at: Date
   }, ExtArgs["result"]["frete_semanas"]>
   composites: {}
@@ -690,6 +759,7 @@ export interface frete_semanasFieldRefs {
   readonly codigo: Prisma.FieldRef<"frete_semanas", 'String'>
   readonly data_inicio: Prisma.FieldRef<"frete_semanas", 'DateTime'>
   readonly data_fim: Prisma.FieldRef<"frete_semanas", 'DateTime'>
+  readonly alterado_por: Prisma.FieldRef<"frete_semanas", 'Int'>
   readonly created_at: Prisma.FieldRef<"frete_semanas", 'DateTime'>
 }
     

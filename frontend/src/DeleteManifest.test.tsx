@@ -41,13 +41,13 @@ function mount() {
 }
 it("confirma a remoção do manifesto e dos vales antes de enviar DELETE", async () => {
   mount();
-  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar manifesto" }));
   await screen.findByText("2 vales abertos");
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
   ).toBe(false);
   fireEvent.click(
-    screen.getByRole("button", { name: "Confirmar exclusão do manifesto" }),
+    screen.getByRole("button", { name: "Confirmar cancelamento" }),
   );
   await vi.waitFor(() => expect(done).toHaveBeenCalledWith(2));
   expect(fetch).toHaveBeenCalledWith(
@@ -60,12 +60,12 @@ it("bloqueia confirmação quando há vale pago", async () => {
     response([{ pago: true, fechamento_id: null }]),
   );
   mount();
-  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar manifesto" }));
   await screen.findByText(
     "Este manifesto possui vales pagos ou fechados e não pode ser excluído.",
   );
   expect(
-    screen.queryByRole("button", { name: "Confirmar exclusão do manifesto" }),
+    screen.queryByRole("button", { name: "Confirmar cancelamento" }),
   ).toBeNull();
 });
 it("mantém registro ao cancelar e exige nova confirmação após conflito", async () => {
@@ -75,22 +75,22 @@ it("mantém registro ao cancelar e exige nova confirmação após conflito", asy
       : response([]),
   );
   mount();
-  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar manifesto" }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Manter manifesto" }),
   );
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
   ).toBe(false);
-  fireEvent.click(screen.getByRole("button", { name: "Excluir manifesto" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar manifesto" }));
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "Confirmar exclusão do manifesto",
+      name: "Confirmar cancelamento",
     }),
   );
   await screen.findByText("Período fechado.");
   expect(done).not.toHaveBeenCalled();
   expect(
-    screen.queryByRole("button", { name: "Confirmar exclusão do manifesto" }),
+    screen.queryByRole("button", { name: "Confirmar cancelamento" }),
   ).toBeNull();
 });

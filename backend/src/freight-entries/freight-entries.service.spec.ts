@@ -43,6 +43,7 @@ describe('Vales vinculados ao manifesto', () => {
         tipo: 'Debito',
         ativo: true,
         unit: 100,
+        alterado_por: 1,
       },
     });
   });
@@ -66,6 +67,7 @@ describe('Vales vinculados ao manifesto', () => {
       destino: 'Teste',
       fechamento_id: null,
       num_fechamento: null,
+      cancelado: false,
       frete_veiculo: 100,
       cod_777_00: 1000,
       cod_888_00: 0,
@@ -125,8 +127,19 @@ describe('Vales vinculados ao manifesto', () => {
         tipo: 'Credito',
         ativo: false,
       },
+      {
+        id: 6,
+        unit: 101,
+        codigo: '3333',
+        nome: 'Adiantamento CTRB',
+        tipo: 'Debito',
+        ativo: true,
+      },
     ];
     db = {
+      frete_vale_controles: {
+        create: jest.fn(async () => ({ id: 1000 + entries.length })),
+      },
       frete_carregamento_manifestos: {
         findFirst: jest.fn(async ({ where }) =>
           matches(manifest, where) ? manifest : null,
@@ -141,6 +154,9 @@ describe('Vales vinculados ao manifesto', () => {
           async ({ where }) =>
             expenses.find((expense) => matches(expense, where)) ?? null,
         ),
+      },
+      vehicle: {
+        findFirst: jest.fn(async () => ({ codVehicleType: 25 })),
       },
       frete_regras_calculo: {
         findMany: jest.fn(async () => [
@@ -163,6 +179,7 @@ describe('Vales vinculados ao manifesto', () => {
             id: entries.length + 1,
             pago: false,
             fechamento_id: null,
+            cancelado: false,
             ...data,
           };
           entries.push(entry);
@@ -177,6 +194,9 @@ describe('Vales vinculados ao manifesto', () => {
           const index = entries.findIndex((item) => matches(item, where));
           return entries.splice(index, 1)[0];
         }),
+      },
+      frete_faturas_vales: {
+        update: jest.fn(async ({ data }) => data),
       },
     };
     // Simulação da atomicidade: testes de integração com MySQL ficam separados.
@@ -207,6 +227,7 @@ describe('Vales vinculados ao manifesto', () => {
   it('inclui crédito, numera por unidade e recalcula ambos os modos com a origem salva', async () => {
     const result = await service.changeEntry(1, user, { kind: 'create', dto });
     expect(result.entry).toMatchObject({
+      controle_id: 1000,
       numero: 10,
       unit: 101,
       manifesto_id: 1,
@@ -257,7 +278,11 @@ describe('Vales vinculados ao manifesto', () => {
       id: 1,
     });
     expect(deleted.manifesto.frt_tl_vlc).toBe(100);
-    expect(entries).toHaveLength(0);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      cancelado: true,
+      cancelado_por: user.cod,
+    });
   });
 
   it.each([5])(
@@ -306,15 +331,70 @@ describe('Vales vinculados ao manifesto', () => {
     },
   );
 
-  it.each(['fechamento_id'])(
-    'bloqueia manifesto com %s',
-    async (field) => {
-      manifest[field] = 10;
-      await expect(
-        service.changeEntry(1, user, { kind: 'create', dto }),
-      ).rejects.toBeInstanceOf(ConflictException);
-    },
-  );
+  it('permite novo debito comum em manifesto fechado de motorista nao esporadico', async () => {
+    manifest.fechamento_id = 10;
+    const result = await service.changeEntry(1, user, {
+      kind: 'create',
+      dto: { ...dto, despesa_id: 2 },
+    });
+    expect(result.entry).toMatchObject({
+      manifesto_id: 1,
+      tipo_despesa: 'Debito',
+    });
+    expect(db.frete_carregamento_manifestos.update).not.toHaveBeenCalled();
+  });
+
+  it('permite novo vale em manifesto fechado de motorista esporadico', async () => {
+    manifest.fechamento_id = 10;
+    db.vehicle.findFirst.mockResolvedValue({ codVehicleType: 100 });
+    await expect(
+      service.changeEntry(1, user, {
+        kind: 'create',
+        dto: { ...dto, despesa_id: 2 },
+      }),
+    ).resolves.toMatchObject({ entry: { tipo_despesa: 'Debito' } });
+  });
+
+  it('permite credito novo em manifesto fechado para pagamento extra', async () => {
+    manifest.fechamento_id = 10;
+    await expect(
+      service.changeEntry(1, user, { kind: 'create', dto }),
+    ).resolves.toMatchObject({ entry: { tipo_despesa: 'Credito' } });
+  });
+
+  it('permite editar e excluir débito comum em aberto de manifesto fechado', async () => {
+    await service.changeEntry(1, user, {
+      kind: 'create',
+      dto: { ...dto, despesa_id: 2 },
+    });
+    manifest.fechamento_id = 10;
+    db.frete_carregamento_manifestos.update.mockClear();
+    await expect(
+      service.changeEntry(1, user, {
+        kind: 'update',
+        id: 1,
+        dto: { ...dto, despesa_id: 2 },
+      }),
+    ).resolves.toMatchObject({ entry: { tipo_despesa: 'Debito' } });
+    await expect(
+      service.changeEntry(1, user, { kind: 'delete', id: 1 }),
+    ).resolves.toMatchObject({ entry: { tipo_despesa: 'Debito' } });
+    expect(db.frete_carregamento_manifestos.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { despesa_id: 1, label: 'crédito' },
+    { despesa_id: 6, label: '3333' },
+  ])('mantém $label bloqueado quando o manifesto está fechado', async ({ despesa_id }) => {
+    await service.changeEntry(1, user, {
+      kind: 'create',
+      dto: { ...dto, despesa_id },
+    });
+    manifest.fechamento_id = 10;
+    await expect(
+      service.changeEntry(1, user, { kind: 'delete', id: 1 }),
+    ).resolves.toBeDefined();
+  });
 
   it('permite lancamento em manifesto numerado mas ainda aberto', async () => {
     manifest.num_fechamento = 26390001;
@@ -338,6 +418,25 @@ describe('Vales vinculados ao manifesto', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     },
   );
+
+  it('bloqueia edição, mas permite excluir vale incluído em fechamento de vale', async () => {
+    await service.changeEntry(1, user, { kind: 'create', dto });
+    entries[0].fatura_id = 10;
+    entries[0].numero_fatura = 20;
+
+    await expect(
+      service.changeEntry(1, user, { kind: 'update', id: 1, dto }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.changeEntry(1, user, { kind: 'delete', id: 1 }),
+    ).resolves.toBeDefined();
+
+    expect(entries[0].cancelado).toBe(true);
+    expect(db.frete_faturas_vales.update).toHaveBeenCalledWith({
+      where: { id: 10 },
+      data: expect.objectContaining({ quantidade: 0, alterado_por: user.cod }),
+    });
+  });
 
   it('não altera vale vinculado a outro manifesto', async () => {
     entries.push({ id: 10, unit: 101, manifesto_id: 2 });

@@ -108,13 +108,14 @@ export default function Registrations({
     }
     setVehicleDriver(match.cpf); setOwnerIsDriver(true);
   }
-  async function removeVehicle() {
-    if (!current?.plate || busy) return;
+  async function deactivateCurrent() {
+    const identifier = driver ? current?.cpf : current?.plate;
+    if (!identifier || busy) return;
     setBusy(true); setError(''); setSuccess('');
     try {
-      await api(`/registrations/vehicles/${encodeURIComponent(current.plate)}`,token,{method:'DELETE'});
+      await api(`/registrations/${driver ? 'drivers' : 'vehicles'}/${encodeURIComponent(identifier)}`,token,{method:'DELETE'});
       setEditing(null); setConfirmDelete(false);
-      setSuccess(`Veículo ${current.plate} excluído do cadastro ativo. Histórico preservado.`);
+      setSuccess(`${driver ? `Motorista ${current?.name}` : `Veículo ${current?.plate}`} desativado. Histórico preservado.`);
       await load();
     } catch(e) { fail(e); } finally { setBusy(false); }
   }
@@ -342,21 +343,23 @@ export default function Registrations({
                 CPF e CNPJ recebem pontuação automaticamente.
                 {!driver && " A empresa do veículo identifica a empresa de pagamento; não define percentual de rateio."}
               </p>
-              <button className="primary">Salvar cadastro</button>{" "}
-              {!driver && current && <div className="vehicle-delete">
-                {!confirmDelete ? <button type="button" className="secondary" disabled={busy} onClick={()=>setConfirmDelete(true)}>Excluir veículo</button> : <div role="alert">
-                  <p>Excluir o veículo {current.plate}? Ele sairá dos cadastros ativos e das opções para novos manifestos. O histórico será preservado.</p>
-                  <button type="button" className="secondary" disabled={busy} onClick={()=>setConfirmDelete(false)}>Cancelar exclusão</button>
-                  <button type="button" className="primary" disabled={busy} onClick={()=>void removeVehicle()}>Confirmar exclusão</button>
+              <div className="registration-form-actions">
+                <button className="primary">Salvar cadastro</button>
+                {current && <div className="vehicle-delete">
+                  {!confirmDelete ? <button type="button" className="secondary" disabled={busy} onClick={()=>setConfirmDelete(true)}>Desativar {driver ? "motorista" : "veículo"}</button> : <div role="alert" className="registration-deactivate-confirmation">
+                    <p>Desativar {driver ? `o motorista ${current.name}` : `o veículo ${current.plate}`}? O cadastro deixará de aparecer nas novas seleções, mas todo o histórico será preservado.</p>
+                    <button type="button" className="secondary" disabled={busy} onClick={()=>setConfirmDelete(false)}>Cancelar desativação</button>
+                    <button type="button" className="primary" disabled={busy} onClick={()=>void deactivateCurrent()}>Confirmar desativação</button>
+                  </div>}
                 </div>}
-              </div>}
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setEditing(null)}
-              >
-                Cancelar
-              </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setEditing(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
             </fieldset>
           </form>
         </section>

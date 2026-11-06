@@ -28,26 +28,37 @@ export type AggregateFrete_lancamentos = {
 
 export type Frete_lancamentosAvgAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   numero: number | null
   unit: number | null
   valor: runtime.Decimal | null
   manifesto_id: number | null
   fechamento_id: number | null
+  fatura_id: number | null
+  numero_fatura: number | null
   responsavel_cod: number | null
+  cancelado_por: number | null
+  alterado_por: number | null
 }
 
 export type Frete_lancamentosSumAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   numero: number | null
   unit: number | null
   valor: runtime.Decimal | null
   manifesto_id: number | null
   fechamento_id: number | null
+  fatura_id: number | null
+  numero_fatura: number | null
   responsavel_cod: number | null
+  cancelado_por: number | null
+  alterado_por: number | null
 }
 
 export type Frete_lancamentosMinAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   numero: number | null
   unit: number | null
   semana: string | null
@@ -65,15 +76,22 @@ export type Frete_lancamentosMinAggregateOutputType = {
   manifesto_id: number | null
   manifesto_numero: string | null
   fechamento_id: number | null
+  fatura_id: number | null
+  numero_fatura: number | null
   responsavel_cod: number | null
   departamento: string | null
   emitido_em: Date | null
+  cancelado: boolean | null
+  cancelado_em: Date | null
+  cancelado_por: number | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
 
 export type Frete_lancamentosMaxAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   numero: number | null
   unit: number | null
   semana: string | null
@@ -91,15 +109,22 @@ export type Frete_lancamentosMaxAggregateOutputType = {
   manifesto_id: number | null
   manifesto_numero: string | null
   fechamento_id: number | null
+  fatura_id: number | null
+  numero_fatura: number | null
   responsavel_cod: number | null
   departamento: string | null
   emitido_em: Date | null
+  cancelado: boolean | null
+  cancelado_em: Date | null
+  cancelado_por: number | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
 
 export type Frete_lancamentosCountAggregateOutputType = {
   id: number
+  controle_id: number
   numero: number
   unit: number
   semana: number
@@ -117,9 +142,15 @@ export type Frete_lancamentosCountAggregateOutputType = {
   manifesto_id: number
   manifesto_numero: number
   fechamento_id: number
+  fatura_id: number
+  numero_fatura: number
   responsavel_cod: number
   departamento: number
   emitido_em: number
+  cancelado: number
+  cancelado_em: number
+  cancelado_por: number
+  alterado_por: number
   created_at: number
   updated_at: number
   _all: number
@@ -128,26 +159,37 @@ export type Frete_lancamentosCountAggregateOutputType = {
 
 export type Frete_lancamentosAvgAggregateInputType = {
   id?: true
+  controle_id?: true
   numero?: true
   unit?: true
   valor?: true
   manifesto_id?: true
   fechamento_id?: true
+  fatura_id?: true
+  numero_fatura?: true
   responsavel_cod?: true
+  cancelado_por?: true
+  alterado_por?: true
 }
 
 export type Frete_lancamentosSumAggregateInputType = {
   id?: true
+  controle_id?: true
   numero?: true
   unit?: true
   valor?: true
   manifesto_id?: true
   fechamento_id?: true
+  fatura_id?: true
+  numero_fatura?: true
   responsavel_cod?: true
+  cancelado_por?: true
+  alterado_por?: true
 }
 
 export type Frete_lancamentosMinAggregateInputType = {
   id?: true
+  controle_id?: true
   numero?: true
   unit?: true
   semana?: true
@@ -165,15 +207,22 @@ export type Frete_lancamentosMinAggregateInputType = {
   manifesto_id?: true
   manifesto_numero?: true
   fechamento_id?: true
+  fatura_id?: true
+  numero_fatura?: true
   responsavel_cod?: true
   departamento?: true
   emitido_em?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
 
 export type Frete_lancamentosMaxAggregateInputType = {
   id?: true
+  controle_id?: true
   numero?: true
   unit?: true
   semana?: true
@@ -191,15 +240,22 @@ export type Frete_lancamentosMaxAggregateInputType = {
   manifesto_id?: true
   manifesto_numero?: true
   fechamento_id?: true
+  fatura_id?: true
+  numero_fatura?: true
   responsavel_cod?: true
   departamento?: true
   emitido_em?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
 
 export type Frete_lancamentosCountAggregateInputType = {
   id?: true
+  controle_id?: true
   numero?: true
   unit?: true
   semana?: true
@@ -217,9 +273,15 @@ export type Frete_lancamentosCountAggregateInputType = {
   manifesto_id?: true
   manifesto_numero?: true
   fechamento_id?: true
+  fatura_id?: true
+  numero_fatura?: true
   responsavel_cod?: true
   departamento?: true
   emitido_em?: true
+  cancelado?: true
+  cancelado_em?: true
+  cancelado_por?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -313,6 +375,7 @@ export type frete_lancamentosGroupByArgs<ExtArgs extends runtime.Types.Extension
 
 export type Frete_lancamentosGroupByOutputType = {
   id: number
+  controle_id: number
   numero: number
   unit: number
   semana: string | null
@@ -330,9 +393,15 @@ export type Frete_lancamentosGroupByOutputType = {
   manifesto_id: number | null
   manifesto_numero: string | null
   fechamento_id: number | null
+  fatura_id: number | null
+  numero_fatura: number | null
   responsavel_cod: number | null
   departamento: string | null
   emitido_em: Date | null
+  cancelado: boolean
+  cancelado_em: Date | null
+  cancelado_por: number | null
+  alterado_por: number | null
   created_at: Date
   updated_at: Date
   _count: Frete_lancamentosCountAggregateOutputType | null
@@ -362,6 +431,7 @@ export type frete_lancamentosWhereInput = {
   OR?: Prisma.frete_lancamentosWhereInput[]
   NOT?: Prisma.frete_lancamentosWhereInput | Prisma.frete_lancamentosWhereInput[]
   id?: Prisma.IntFilter<"frete_lancamentos"> | number
+  controle_id?: Prisma.IntFilter<"frete_lancamentos"> | number
   numero?: Prisma.IntFilter<"frete_lancamentos"> | number
   unit?: Prisma.IntFilter<"frete_lancamentos"> | number
   semana?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
@@ -379,15 +449,23 @@ export type frete_lancamentosWhereInput = {
   manifesto_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   manifesto_numero?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  fatura_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  numero_fatura?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   emitido_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
+  fatura?: Prisma.XOR<Prisma.Frete_faturas_valesNullableScalarRelationFilter, Prisma.frete_faturas_valesWhereInput> | null
 }
 
 export type frete_lancamentosOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   semana?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -405,16 +483,24 @@ export type frete_lancamentosOrderByWithRelationInput = {
   manifesto_id?: Prisma.SortOrderInput | Prisma.SortOrder
   manifesto_numero?: Prisma.SortOrderInput | Prisma.SortOrder
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  fatura_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrderInput | Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
   emitido_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
+  fatura?: Prisma.frete_faturas_valesOrderByWithRelationInput
   _relevance?: Prisma.frete_lancamentosOrderByRelevanceInput
 }
 
 export type frete_lancamentosWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  controle_id?: number
   unit_numero?: Prisma.frete_lancamentosUnitNumeroCompoundUniqueInput
   AND?: Prisma.frete_lancamentosWhereInput | Prisma.frete_lancamentosWhereInput[]
   OR?: Prisma.frete_lancamentosWhereInput[]
@@ -436,15 +522,23 @@ export type frete_lancamentosWhereUniqueInput = Prisma.AtLeast<{
   manifesto_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   manifesto_numero?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  fatura_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  numero_fatura?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
   emitido_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
-}, "id" | "unit_numero">
+  fatura?: Prisma.XOR<Prisma.Frete_faturas_valesNullableScalarRelationFilter, Prisma.frete_faturas_valesWhereInput> | null
+}, "id" | "controle_id" | "unit_numero">
 
 export type frete_lancamentosOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   semana?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -462,9 +556,15 @@ export type frete_lancamentosOrderByWithAggregationInput = {
   manifesto_id?: Prisma.SortOrderInput | Prisma.SortOrder
   manifesto_numero?: Prisma.SortOrderInput | Prisma.SortOrder
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  fatura_id?: Prisma.SortOrderInput | Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrderInput | Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
   emitido_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_lancamentosCountOrderByAggregateInput
@@ -479,6 +579,7 @@ export type frete_lancamentosScalarWhereWithAggregatesInput = {
   OR?: Prisma.frete_lancamentosScalarWhereWithAggregatesInput[]
   NOT?: Prisma.frete_lancamentosScalarWhereWithAggregatesInput | Prisma.frete_lancamentosScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"frete_lancamentos"> | number
+  controle_id?: Prisma.IntWithAggregatesFilter<"frete_lancamentos"> | number
   numero?: Prisma.IntWithAggregatesFilter<"frete_lancamentos"> | number
   unit?: Prisma.IntWithAggregatesFilter<"frete_lancamentos"> | number
   semana?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
@@ -496,14 +597,21 @@ export type frete_lancamentosScalarWhereWithAggregatesInput = {
   manifesto_id?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   manifesto_numero?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
   fechamento_id?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
+  fatura_id?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
+  numero_fatura?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   responsavel_cod?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   departamento?: Prisma.StringNullableWithAggregatesFilter<"frete_lancamentos"> | string | null
   emitido_em?: Prisma.DateTimeNullableWithAggregatesFilter<"frete_lancamentos"> | Date | string | null
+  cancelado?: Prisma.BoolWithAggregatesFilter<"frete_lancamentos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableWithAggregatesFilter<"frete_lancamentos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_lancamentos"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"frete_lancamentos"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_lancamentos"> | Date | string
 }
 
 export type frete_lancamentosCreateInput = {
+  controle_id: number
   numero: number
   unit: number
   semana?: string | null
@@ -521,15 +629,22 @@ export type frete_lancamentosCreateInput = {
   manifesto_id?: number | null
   manifesto_numero?: string | null
   fechamento_id?: number | null
+  numero_fatura?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
   emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
+  fatura?: Prisma.frete_faturas_valesCreateNestedOneWithoutLancamentosInput
 }
 
 export type frete_lancamentosUncheckedCreateInput = {
   id?: number
+  controle_id: number
   numero: number
   unit: number
   semana?: string | null
@@ -547,14 +662,21 @@ export type frete_lancamentosUncheckedCreateInput = {
   manifesto_id?: number | null
   manifesto_numero?: string | null
   fechamento_id?: number | null
+  fatura_id?: number | null
+  numero_fatura?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
   emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_lancamentosUpdateInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   numero?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -572,15 +694,22 @@ export type frete_lancamentosUpdateInput = {
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fatura?: Prisma.frete_faturas_valesUpdateOneWithoutLancamentosNestedInput
 }
 
 export type frete_lancamentosUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   numero?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -598,15 +727,22 @@ export type frete_lancamentosUncheckedUpdateInput = {
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  fatura_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_lancamentosCreateManyInput = {
   id?: number
+  controle_id: number
   numero: number
   unit: number
   semana?: string | null
@@ -624,14 +760,21 @@ export type frete_lancamentosCreateManyInput = {
   manifesto_id?: number | null
   manifesto_numero?: string | null
   fechamento_id?: number | null
+  fatura_id?: number | null
+  numero_fatura?: number | null
   responsavel_cod?: number | null
   departamento?: string | null
   emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_lancamentosUpdateManyMutationInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   numero?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -649,15 +792,21 @@ export type frete_lancamentosUpdateManyMutationInput = {
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_lancamentosUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   numero?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -675,9 +824,15 @@ export type frete_lancamentosUncheckedUpdateManyInput = {
   manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  fatura_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -695,6 +850,7 @@ export type frete_lancamentosUnitNumeroCompoundUniqueInput = {
 
 export type frete_lancamentosCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   semana?: Prisma.SortOrder
@@ -712,25 +868,37 @@ export type frete_lancamentosCountOrderByAggregateInput = {
   manifesto_id?: Prisma.SortOrder
   manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
+  fatura_id?: Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
   emitido_em?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_lancamentosAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   valor?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
+  fatura_id?: Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_lancamentosMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   semana?: Prisma.SortOrder
@@ -748,15 +916,22 @@ export type frete_lancamentosMaxOrderByAggregateInput = {
   manifesto_id?: Prisma.SortOrder
   manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
+  fatura_id?: Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
   emitido_em?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_lancamentosMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   semana?: Prisma.SortOrder
@@ -774,27 +949,343 @@ export type frete_lancamentosMinOrderByAggregateInput = {
   manifesto_id?: Prisma.SortOrder
   manifesto_numero?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
+  fatura_id?: Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
   emitido_em?: Prisma.SortOrder
+  cancelado?: Prisma.SortOrder
+  cancelado_em?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_lancamentosSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   numero?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   valor?: Prisma.SortOrder
   manifesto_id?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
+  fatura_id?: Prisma.SortOrder
+  numero_fatura?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
+  cancelado_por?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+}
+
+export type Frete_lancamentosListRelationFilter = {
+  every?: Prisma.frete_lancamentosWhereInput
+  some?: Prisma.frete_lancamentosWhereInput
+  none?: Prisma.frete_lancamentosWhereInput
+}
+
+export type frete_lancamentosOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
+export type frete_lancamentosCreateNestedManyWithoutFaturaInput = {
+  create?: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput> | Prisma.frete_lancamentosCreateWithoutFaturaInput[] | Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput[]
+  connectOrCreate?: Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput | Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput[]
+  createMany?: Prisma.frete_lancamentosCreateManyFaturaInputEnvelope
+  connect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+}
+
+export type frete_lancamentosUncheckedCreateNestedManyWithoutFaturaInput = {
+  create?: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput> | Prisma.frete_lancamentosCreateWithoutFaturaInput[] | Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput[]
+  connectOrCreate?: Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput | Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput[]
+  createMany?: Prisma.frete_lancamentosCreateManyFaturaInputEnvelope
+  connect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+}
+
+export type frete_lancamentosUpdateManyWithoutFaturaNestedInput = {
+  create?: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput> | Prisma.frete_lancamentosCreateWithoutFaturaInput[] | Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput[]
+  connectOrCreate?: Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput | Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput[]
+  upsert?: Prisma.frete_lancamentosUpsertWithWhereUniqueWithoutFaturaInput | Prisma.frete_lancamentosUpsertWithWhereUniqueWithoutFaturaInput[]
+  createMany?: Prisma.frete_lancamentosCreateManyFaturaInputEnvelope
+  set?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  disconnect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  delete?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  connect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  update?: Prisma.frete_lancamentosUpdateWithWhereUniqueWithoutFaturaInput | Prisma.frete_lancamentosUpdateWithWhereUniqueWithoutFaturaInput[]
+  updateMany?: Prisma.frete_lancamentosUpdateManyWithWhereWithoutFaturaInput | Prisma.frete_lancamentosUpdateManyWithWhereWithoutFaturaInput[]
+  deleteMany?: Prisma.frete_lancamentosScalarWhereInput | Prisma.frete_lancamentosScalarWhereInput[]
+}
+
+export type frete_lancamentosUncheckedUpdateManyWithoutFaturaNestedInput = {
+  create?: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput> | Prisma.frete_lancamentosCreateWithoutFaturaInput[] | Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput[]
+  connectOrCreate?: Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput | Prisma.frete_lancamentosCreateOrConnectWithoutFaturaInput[]
+  upsert?: Prisma.frete_lancamentosUpsertWithWhereUniqueWithoutFaturaInput | Prisma.frete_lancamentosUpsertWithWhereUniqueWithoutFaturaInput[]
+  createMany?: Prisma.frete_lancamentosCreateManyFaturaInputEnvelope
+  set?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  disconnect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  delete?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  connect?: Prisma.frete_lancamentosWhereUniqueInput | Prisma.frete_lancamentosWhereUniqueInput[]
+  update?: Prisma.frete_lancamentosUpdateWithWhereUniqueWithoutFaturaInput | Prisma.frete_lancamentosUpdateWithWhereUniqueWithoutFaturaInput[]
+  updateMany?: Prisma.frete_lancamentosUpdateManyWithWhereWithoutFaturaInput | Prisma.frete_lancamentosUpdateManyWithWhereWithoutFaturaInput[]
+  deleteMany?: Prisma.frete_lancamentosScalarWhereInput | Prisma.frete_lancamentosScalarWhereInput[]
+}
+
+export type frete_lancamentosCreateWithoutFaturaInput = {
+  controle_id: number
+  numero: number
+  unit: number
+  semana?: string | null
+  placa?: string | null
+  motorista?: string | null
+  tipo_veiculo?: string | null
+  destino?: string | null
+  codigo_despesa: string
+  nome_despesa: string
+  tipo_despesa: string
+  data_lancamento: Date | string
+  valor?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: string | null
+  pago?: boolean
+  manifesto_id?: number | null
+  manifesto_numero?: string | null
+  fechamento_id?: number | null
+  numero_fatura?: number | null
+  responsavel_cod?: number | null
+  departamento?: string | null
+  emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
+  created_at?: Date | string
+  updated_at?: Date | string
+}
+
+export type frete_lancamentosUncheckedCreateWithoutFaturaInput = {
+  id?: number
+  controle_id: number
+  numero: number
+  unit: number
+  semana?: string | null
+  placa?: string | null
+  motorista?: string | null
+  tipo_veiculo?: string | null
+  destino?: string | null
+  codigo_despesa: string
+  nome_despesa: string
+  tipo_despesa: string
+  data_lancamento: Date | string
+  valor?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: string | null
+  pago?: boolean
+  manifesto_id?: number | null
+  manifesto_numero?: string | null
+  fechamento_id?: number | null
+  numero_fatura?: number | null
+  responsavel_cod?: number | null
+  departamento?: string | null
+  emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
+  created_at?: Date | string
+  updated_at?: Date | string
+}
+
+export type frete_lancamentosCreateOrConnectWithoutFaturaInput = {
+  where: Prisma.frete_lancamentosWhereUniqueInput
+  create: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput>
+}
+
+export type frete_lancamentosCreateManyFaturaInputEnvelope = {
+  data: Prisma.frete_lancamentosCreateManyFaturaInput | Prisma.frete_lancamentosCreateManyFaturaInput[]
+  skipDuplicates?: boolean
+}
+
+export type frete_lancamentosUpsertWithWhereUniqueWithoutFaturaInput = {
+  where: Prisma.frete_lancamentosWhereUniqueInput
+  update: Prisma.XOR<Prisma.frete_lancamentosUpdateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedUpdateWithoutFaturaInput>
+  create: Prisma.XOR<Prisma.frete_lancamentosCreateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedCreateWithoutFaturaInput>
+}
+
+export type frete_lancamentosUpdateWithWhereUniqueWithoutFaturaInput = {
+  where: Prisma.frete_lancamentosWhereUniqueInput
+  data: Prisma.XOR<Prisma.frete_lancamentosUpdateWithoutFaturaInput, Prisma.frete_lancamentosUncheckedUpdateWithoutFaturaInput>
+}
+
+export type frete_lancamentosUpdateManyWithWhereWithoutFaturaInput = {
+  where: Prisma.frete_lancamentosScalarWhereInput
+  data: Prisma.XOR<Prisma.frete_lancamentosUpdateManyMutationInput, Prisma.frete_lancamentosUncheckedUpdateManyWithoutFaturaInput>
+}
+
+export type frete_lancamentosScalarWhereInput = {
+  AND?: Prisma.frete_lancamentosScalarWhereInput | Prisma.frete_lancamentosScalarWhereInput[]
+  OR?: Prisma.frete_lancamentosScalarWhereInput[]
+  NOT?: Prisma.frete_lancamentosScalarWhereInput | Prisma.frete_lancamentosScalarWhereInput[]
+  id?: Prisma.IntFilter<"frete_lancamentos"> | number
+  controle_id?: Prisma.IntFilter<"frete_lancamentos"> | number
+  numero?: Prisma.IntFilter<"frete_lancamentos"> | number
+  unit?: Prisma.IntFilter<"frete_lancamentos"> | number
+  semana?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  placa?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  motorista?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  tipo_veiculo?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  destino?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  codigo_despesa?: Prisma.StringFilter<"frete_lancamentos"> | string
+  nome_despesa?: Prisma.StringFilter<"frete_lancamentos"> | string
+  tipo_despesa?: Prisma.StringFilter<"frete_lancamentos"> | string
+  data_lancamento?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
+  valor?: Prisma.DecimalFilter<"frete_lancamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  pago?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
+  manifesto_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  manifesto_numero?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  fechamento_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  fatura_id?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  numero_fatura?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  responsavel_cod?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  departamento?: Prisma.StringNullableFilter<"frete_lancamentos"> | string | null
+  emitido_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado?: Prisma.BoolFilter<"frete_lancamentos"> | boolean
+  cancelado_em?: Prisma.DateTimeNullableFilter<"frete_lancamentos"> | Date | string | null
+  cancelado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_lancamentos"> | number | null
+  created_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
+  updated_at?: Prisma.DateTimeFilter<"frete_lancamentos"> | Date | string
+}
+
+export type frete_lancamentosCreateManyFaturaInput = {
+  id?: number
+  controle_id: number
+  numero: number
+  unit: number
+  semana?: string | null
+  placa?: string | null
+  motorista?: string | null
+  tipo_veiculo?: string | null
+  destino?: string | null
+  codigo_despesa: string
+  nome_despesa: string
+  tipo_despesa: string
+  data_lancamento: Date | string
+  valor?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: string | null
+  pago?: boolean
+  manifesto_id?: number | null
+  manifesto_numero?: string | null
+  fechamento_id?: number | null
+  numero_fatura?: number | null
+  responsavel_cod?: number | null
+  departamento?: string | null
+  emitido_em?: Date | string | null
+  cancelado?: boolean
+  cancelado_em?: Date | string | null
+  cancelado_por?: number | null
+  alterado_por?: number | null
+  created_at?: Date | string
+  updated_at?: Date | string
+}
+
+export type frete_lancamentosUpdateWithoutFaturaInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
+  numero?: Prisma.IntFieldUpdateOperationsInput | number
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
+  semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  placa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  motorista?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tipo_veiculo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  destino?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  codigo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  nome_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  tipo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  data_lancamento?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  valor?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type frete_lancamentosUncheckedUpdateWithoutFaturaInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
+  numero?: Prisma.IntFieldUpdateOperationsInput | number
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
+  semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  placa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  motorista?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tipo_veiculo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  destino?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  codigo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  nome_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  tipo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  data_lancamento?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  valor?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type frete_lancamentosUncheckedUpdateManyWithoutFaturaInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
+  numero?: Prisma.IntFieldUpdateOperationsInput | number
+  unit?: Prisma.IntFieldUpdateOperationsInput | number
+  semana?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  placa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  motorista?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tipo_veiculo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  destino?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  codigo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  nome_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  tipo_despesa?: Prisma.StringFieldUpdateOperationsInput | string
+  data_lancamento?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  valor?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  descricao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pago?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  manifesto_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  manifesto_numero?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  numero_fatura?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  responsavel_cod?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emitido_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  cancelado_em?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
 
 export type frete_lancamentosSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  controle_id?: boolean
   numero?: boolean
   unit?: boolean
   semana?: boolean
@@ -812,17 +1303,25 @@ export type frete_lancamentosSelect<ExtArgs extends runtime.Types.Extensions.Int
   manifesto_id?: boolean
   manifesto_numero?: boolean
   fechamento_id?: boolean
+  fatura_id?: boolean
+  numero_fatura?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
   emitido_em?: boolean
+  cancelado?: boolean
+  cancelado_em?: boolean
+  cancelado_por?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
+  fatura?: boolean | Prisma.frete_lancamentos$faturaArgs<ExtArgs>
 }, ExtArgs["result"]["frete_lancamentos"]>
 
 
 
 export type frete_lancamentosSelectScalar = {
   id?: boolean
+  controle_id?: boolean
   numero?: boolean
   unit?: boolean
   semana?: boolean
@@ -840,20 +1339,32 @@ export type frete_lancamentosSelectScalar = {
   manifesto_id?: boolean
   manifesto_numero?: boolean
   fechamento_id?: boolean
+  fatura_id?: boolean
+  numero_fatura?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
   emitido_em?: boolean
+  cancelado?: boolean
+  cancelado_em?: boolean
+  cancelado_por?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type frete_lancamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "numero" | "unit" | "semana" | "placa" | "motorista" | "tipo_veiculo" | "destino" | "codigo_despesa" | "nome_despesa" | "tipo_despesa" | "data_lancamento" | "valor" | "descricao" | "pago" | "manifesto_id" | "manifesto_numero" | "fechamento_id" | "responsavel_cod" | "departamento" | "emitido_em" | "created_at" | "updated_at", ExtArgs["result"]["frete_lancamentos"]>
+export type frete_lancamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "controle_id" | "numero" | "unit" | "semana" | "placa" | "motorista" | "tipo_veiculo" | "destino" | "codigo_despesa" | "nome_despesa" | "tipo_despesa" | "data_lancamento" | "valor" | "descricao" | "pago" | "manifesto_id" | "manifesto_numero" | "fechamento_id" | "fatura_id" | "numero_fatura" | "responsavel_cod" | "departamento" | "emitido_em" | "cancelado" | "cancelado_em" | "cancelado_por" | "alterado_por" | "created_at" | "updated_at", ExtArgs["result"]["frete_lancamentos"]>
+export type frete_lancamentosInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  fatura?: boolean | Prisma.frete_lancamentos$faturaArgs<ExtArgs>
+}
 
 export type $frete_lancamentosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_lancamentos"
-  objects: {}
+  objects: {
+    fatura: Prisma.$frete_faturas_valesPayload<ExtArgs> | null
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    controle_id: number
     numero: number
     unit: number
     semana: string | null
@@ -871,9 +1382,15 @@ export type $frete_lancamentosPayload<ExtArgs extends runtime.Types.Extensions.I
     manifesto_id: number | null
     manifesto_numero: string | null
     fechamento_id: number | null
+    fatura_id: number | null
+    numero_fatura: number | null
     responsavel_cod: number | null
     departamento: string | null
     emitido_em: Date | null
+    cancelado: boolean
+    cancelado_em: Date | null
+    cancelado_por: number | null
+    alterado_por: number | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["frete_lancamentos"]>
@@ -1216,6 +1733,7 @@ readonly fields: frete_lancamentosFieldRefs;
  */
 export interface Prisma__frete_lancamentosClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  fatura<T extends Prisma.frete_lancamentos$faturaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.frete_lancamentos$faturaArgs<ExtArgs>>): Prisma.Prisma__frete_faturas_valesClient<runtime.Types.Result.GetResult<Prisma.$frete_faturas_valesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1246,6 +1764,7 @@ export interface Prisma__frete_lancamentosClient<T, Null = never, ExtArgs extend
  */
 export interface frete_lancamentosFieldRefs {
   readonly id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
+  readonly controle_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly numero: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly unit: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly semana: Prisma.FieldRef<"frete_lancamentos", 'String'>
@@ -1263,9 +1782,15 @@ export interface frete_lancamentosFieldRefs {
   readonly manifesto_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly manifesto_numero: Prisma.FieldRef<"frete_lancamentos", 'String'>
   readonly fechamento_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
+  readonly fatura_id: Prisma.FieldRef<"frete_lancamentos", 'Int'>
+  readonly numero_fatura: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly responsavel_cod: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly departamento: Prisma.FieldRef<"frete_lancamentos", 'String'>
   readonly emitido_em: Prisma.FieldRef<"frete_lancamentos", 'DateTime'>
+  readonly cancelado: Prisma.FieldRef<"frete_lancamentos", 'Boolean'>
+  readonly cancelado_em: Prisma.FieldRef<"frete_lancamentos", 'DateTime'>
+  readonly cancelado_por: Prisma.FieldRef<"frete_lancamentos", 'Int'>
+  readonly alterado_por: Prisma.FieldRef<"frete_lancamentos", 'Int'>
   readonly created_at: Prisma.FieldRef<"frete_lancamentos", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"frete_lancamentos", 'DateTime'>
 }
@@ -1285,6 +1810,10 @@ export type frete_lancamentosFindUniqueArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * Filter, which frete_lancamentos to fetch.
    */
   where: Prisma.frete_lancamentosWhereUniqueInput
@@ -1303,6 +1832,10 @@ export type frete_lancamentosFindUniqueOrThrowArgs<ExtArgs extends runtime.Types
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * Filter, which frete_lancamentos to fetch.
    */
   where: Prisma.frete_lancamentosWhereUniqueInput
@@ -1320,6 +1853,10 @@ export type frete_lancamentosFindFirstArgs<ExtArgs extends runtime.Types.Extensi
    * Omit specific fields from the frete_lancamentos
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
   /**
    * Filter, which frete_lancamentos to fetch.
    */
@@ -1369,6 +1906,10 @@ export type frete_lancamentosFindFirstOrThrowArgs<ExtArgs extends runtime.Types.
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * Filter, which frete_lancamentos to fetch.
    */
   where?: Prisma.frete_lancamentosWhereInput
@@ -1416,6 +1957,10 @@ export type frete_lancamentosFindManyArgs<ExtArgs extends runtime.Types.Extensio
    * Omit specific fields from the frete_lancamentos
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
   /**
    * Filter, which frete_lancamentos to fetch.
    */
@@ -1465,6 +2010,10 @@ export type frete_lancamentosCreateArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * The data needed to create a frete_lancamentos.
    */
   data: Prisma.XOR<Prisma.frete_lancamentosCreateInput, Prisma.frete_lancamentosUncheckedCreateInput>
@@ -1493,6 +2042,10 @@ export type frete_lancamentosUpdateArgs<ExtArgs extends runtime.Types.Extensions
    * Omit specific fields from the frete_lancamentos
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
   /**
    * The data needed to update a frete_lancamentos.
    */
@@ -1534,6 +2087,10 @@ export type frete_lancamentosUpsertArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * The filter to search for the frete_lancamentos to update in case it exists.
    */
   where: Prisma.frete_lancamentosWhereUniqueInput
@@ -1560,6 +2117,10 @@ export type frete_lancamentosDeleteArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
+  /**
    * Filter which frete_lancamentos to delete.
    */
   where: Prisma.frete_lancamentosWhereUniqueInput
@@ -1580,6 +2141,25 @@ export type frete_lancamentosDeleteManyArgs<ExtArgs extends runtime.Types.Extens
 }
 
 /**
+ * frete_lancamentos.fatura
+ */
+export type frete_lancamentos$faturaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the frete_faturas_vales
+   */
+  select?: Prisma.frete_faturas_valesSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the frete_faturas_vales
+   */
+  omit?: Prisma.frete_faturas_valesOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_faturas_valesInclude<ExtArgs> | null
+  where?: Prisma.frete_faturas_valesWhereInput
+}
+
+/**
  * frete_lancamentos without action
  */
 export type frete_lancamentosDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1591,4 +2171,8 @@ export type frete_lancamentosDefaultArgs<ExtArgs extends runtime.Types.Extension
    * Omit specific fields from the frete_lancamentos
    */
   omit?: Prisma.frete_lancamentosOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.frete_lancamentosInclude<ExtArgs> | null
 }

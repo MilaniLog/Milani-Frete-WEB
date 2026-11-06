@@ -35,7 +35,7 @@ describe('Prévia do formulário VBA', () => {
     const result = await service.preview({ placa: 'ABC1234', manifesto_id: 8, frete_veiculo: 0, cod_777_00: 1000, despesas_empresa: 999 } as any, user);
     expect(result.frete_veiculo).toBe(0);
     expect(result.freightVehicle).toBe(50);
-    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { manifesto_id: 8, unit: 100 } }));
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { manifesto_id: 8, unit: 100, cancelado: false } }));
   });
   it('preserva frete original ao editar e não expõe manifesto de outra unidade', async () => {
     const { db, service } = setup();

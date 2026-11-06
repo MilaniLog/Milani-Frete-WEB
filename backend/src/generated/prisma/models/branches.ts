@@ -28,56 +28,66 @@ export type AggregateBranches = {
 
 export type BranchesAvgAggregateOutputType = {
   unit: number | null
+  alterado_por: number | null
 }
 
 export type BranchesSumAggregateOutputType = {
   unit: number | null
+  alterado_por: number | null
 }
 
 export type BranchesMinAggregateOutputType = {
   unit: number | null
   branch: string | null
   dominio: string | null
+  alterado_por: number | null
 }
 
 export type BranchesMaxAggregateOutputType = {
   unit: number | null
   branch: string | null
   dominio: string | null
+  alterado_por: number | null
 }
 
 export type BranchesCountAggregateOutputType = {
   unit: number
   branch: number
   dominio: number
+  alterado_por: number
   _all: number
 }
 
 
 export type BranchesAvgAggregateInputType = {
   unit?: true
+  alterado_por?: true
 }
 
 export type BranchesSumAggregateInputType = {
   unit?: true
+  alterado_por?: true
 }
 
 export type BranchesMinAggregateInputType = {
   unit?: true
   branch?: true
   dominio?: true
+  alterado_por?: true
 }
 
 export type BranchesMaxAggregateInputType = {
   unit?: true
   branch?: true
   dominio?: true
+  alterado_por?: true
 }
 
 export type BranchesCountAggregateInputType = {
   unit?: true
   branch?: true
   dominio?: true
+  alterado_por?: true
   _all?: true
 }
 
@@ -171,6 +181,7 @@ export type BranchesGroupByOutputType = {
   unit: number
   branch: string
   dominio: string | null
+  alterado_por: number | null
   _count: BranchesCountAggregateOutputType | null
   _avg: BranchesAvgAggregateOutputType | null
   _sum: BranchesSumAggregateOutputType | null
@@ -200,12 +211,14 @@ export type branchesWhereInput = {
   unit?: Prisma.IntFilter<"branches"> | number
   branch?: Prisma.StringFilter<"branches"> | string
   dominio?: Prisma.StringNullableFilter<"branches"> | string | null
+  alterado_por?: Prisma.IntNullableFilter<"branches"> | number | null
 }
 
 export type branchesOrderByWithRelationInput = {
   unit?: Prisma.SortOrder
   branch?: Prisma.SortOrder
   dominio?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _relevance?: Prisma.branchesOrderByRelevanceInput
 }
 
@@ -216,12 +229,14 @@ export type branchesWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.branchesWhereInput | Prisma.branchesWhereInput[]
   branch?: Prisma.StringFilter<"branches"> | string
   dominio?: Prisma.StringNullableFilter<"branches"> | string | null
+  alterado_por?: Prisma.IntNullableFilter<"branches"> | number | null
 }, "unit">
 
 export type branchesOrderByWithAggregationInput = {
   unit?: Prisma.SortOrder
   branch?: Prisma.SortOrder
   dominio?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.branchesCountOrderByAggregateInput
   _avg?: Prisma.branchesAvgOrderByAggregateInput
   _max?: Prisma.branchesMaxOrderByAggregateInput
@@ -236,48 +251,56 @@ export type branchesScalarWhereWithAggregatesInput = {
   unit?: Prisma.IntWithAggregatesFilter<"branches"> | number
   branch?: Prisma.StringWithAggregatesFilter<"branches"> | string
   dominio?: Prisma.StringNullableWithAggregatesFilter<"branches"> | string | null
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"branches"> | number | null
 }
 
 export type branchesCreateInput = {
   unit: number
   branch: string
   dominio?: string | null
+  alterado_por?: number | null
 }
 
 export type branchesUncheckedCreateInput = {
   unit: number
   branch: string
   dominio?: string | null
+  alterado_por?: number | null
 }
 
 export type branchesUpdateInput = {
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   branch?: Prisma.StringFieldUpdateOperationsInput | string
   dominio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type branchesUncheckedUpdateInput = {
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   branch?: Prisma.StringFieldUpdateOperationsInput | string
   dominio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type branchesCreateManyInput = {
   unit: number
   branch: string
   dominio?: string | null
+  alterado_por?: number | null
 }
 
 export type branchesUpdateManyMutationInput = {
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   branch?: Prisma.StringFieldUpdateOperationsInput | string
   dominio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type branchesUncheckedUpdateManyInput = {
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   branch?: Prisma.StringFieldUpdateOperationsInput | string
   dominio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type branchesOrderByRelevanceInput = {
@@ -290,26 +313,31 @@ export type branchesCountOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   branch?: Prisma.SortOrder
   dominio?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type branchesAvgOrderByAggregateInput = {
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type branchesMaxOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   branch?: Prisma.SortOrder
   dominio?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type branchesMinOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   branch?: Prisma.SortOrder
   dominio?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type branchesSumOrderByAggregateInput = {
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -318,6 +346,7 @@ export type branchesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   unit?: boolean
   branch?: boolean
   dominio?: boolean
+  alterado_por?: boolean
 }, ExtArgs["result"]["branches"]>
 
 
@@ -326,9 +355,10 @@ export type branchesSelectScalar = {
   unit?: boolean
   branch?: boolean
   dominio?: boolean
+  alterado_por?: boolean
 }
 
-export type branchesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"unit" | "branch" | "dominio", ExtArgs["result"]["branches"]>
+export type branchesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"unit" | "branch" | "dominio" | "alterado_por", ExtArgs["result"]["branches"]>
 
 export type $branchesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "branches"
@@ -337,6 +367,7 @@ export type $branchesPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     unit: number
     branch: string
     dominio: string | null
+    alterado_por: number | null
   }, ExtArgs["result"]["branches"]>
   composites: {}
 }
@@ -709,6 +740,7 @@ export interface branchesFieldRefs {
   readonly unit: Prisma.FieldRef<"branches", 'Int'>
   readonly branch: Prisma.FieldRef<"branches", 'String'>
   readonly dominio: Prisma.FieldRef<"branches", 'String'>
+  readonly alterado_por: Prisma.FieldRef<"branches", 'Int'>
 }
     
 

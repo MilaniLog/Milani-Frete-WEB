@@ -69,10 +69,10 @@ export class FreightInvoicesService {
         if (!type) throw new NotFoundException('Tipo de nota não encontrado.');
         return tx.frete_tipos_nota.update({
           where: { id },
-          data: dto,
+          data: { ...dto, alterado_por: user.cod },
         });
       }
-      return tx.frete_tipos_nota.create({ data: { ...dto, unit: user.unit } });
+      return tx.frete_tipos_nota.create({ data: { ...dto, unit: user.unit, alterado_por: user.cod } });
     });
   }
 
@@ -210,6 +210,7 @@ export class FreightInvoicesService {
       nome_tipo: type.nome,
       tipo: type.tipo,
       responsavel_cod: user.cod,
+      alterado_por: user.cod,
       departamento: dto.departamento?.trim() || null,
     };
     return id === undefined
@@ -332,16 +333,26 @@ export class FreightInvoicesService {
         descricao: dto.descricao?.trim() || null,
         departamento: dto.departamento?.trim() || null,
         responsavel_cod: user.cod,
+        alterado_por: user.cod,
       };
-      coupon =
-        change.kind === 'create'
-          ? await tx.frete_cupons.create({
-              data: { ...data, unit: note.unit, nota_id: id },
-            })
-          : await tx.frete_cupons.update({
+      if (change.kind === 'create') {
+        const control = await tx.frete_vale_controles.create({
+          data: { tipo: 'CUPOM' },
+        });
+        coupon = await tx.frete_cupons.create({
+          data: {
+            ...data,
+            controle_id: control.id,
+            unit: note.unit,
+            nota_id: id,
+          },
+        });
+      } else {
+        coupon = await tx.frete_cupons.update({
               where: { id: change.couponId, unit: note.unit, nota_id: id },
               data,
             });
+      }
     }
     const saldo = new Decimal(note.valor).minus(
       await this.totalCoupons(tx, id, note.unit),
@@ -352,7 +363,7 @@ export class FreightInvoicesService {
       );
     const updated = await tx.frete_notas.update({
       where: { id },
-      data: { saldo },
+      data: { saldo, alterado_por: user.cod },
     });
     return { coupon, nota: updated };
   }

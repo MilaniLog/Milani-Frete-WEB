@@ -3,6 +3,7 @@ import { api, ApiError } from "./api";
 import { normalizeWeek } from "./field-formats";
 import { downloadReport } from "./report-download";
 import SearchableSelect from "./SearchableSelect";
+import QuickDateInput from "./QuickDateInput";
 import SortableTable from "./SortableTable";
 
 type Week = { codigo: string; data_inicio: string; data_fim: string };
@@ -120,7 +121,7 @@ export default function ManifestClosureReport({
       await downloadReport(
         `/freight-reports/manifests/print?${query}`,
         token,
-        "relatorio-ctrb.html",
+        "numeros-de-fechamento.html",
       );
     } catch (value) {
       fail(value);
@@ -147,7 +148,7 @@ export default function ManifestClosureReport({
       <section className="panel reference-form">
         <form className="report-vba-form" onSubmit={generate}>
           <fieldset disabled={busy}>
-            <h2>Relatório de CTRB</h2>
+            <h2>Números de fechamento</h2>
             <div className="report-vba-row">
               <label>
                 Domínio
@@ -204,8 +205,8 @@ export default function ManifestClosureReport({
               </span>
             </div>
             <div className="report-vba-dates">
-              <label>Início<input type="date" value={form.inicio} onChange={(event) => change("inicio", event.target.value)} /></label>
-              <label>Fim<input type="date" value={form.fim} onChange={(event) => change("fim", event.target.value)} /></label>
+              <label>Início<QuickDateInput value={form.inicio} onChange={(value) => change("inicio", value)} /></label>
+              <label>Fim<QuickDateInput value={form.fim} onChange={(value) => change("fim", value)} /></label>
             </div>
             <div className="actions">
               <button className="primary">{busy ? "Gerando…" : "Gerar relatório"}</button>
@@ -228,7 +229,7 @@ export default function ManifestClosureReport({
               <tbody>
                 {report.rows.map((row, index) => (
                   <tr key={index}>{row.map((value, cell) => (
-                    <td key={cell}>{value ?? "Não registrado"}</td>
+                    <td key={cell}>{value ?? ""}</td>
                   ))}</tr>
                 ))}
               </tbody>

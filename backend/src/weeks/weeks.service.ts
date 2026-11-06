@@ -66,6 +66,7 @@ export class WeeksService {
                 }),
                 tx.frete_lancamentos.findFirst({
                   where: {
+                    cancelado: false,
                     OR: [
                       { semana: existingCode },
                       {
@@ -127,6 +128,7 @@ export class WeeksService {
               codigo: dto.codigo,
               data_inicio: start,
               data_fim: end,
+              alterado_por: user.cod,
             };
             return existingCode === undefined
               ? tx.frete_semanas.create({ data })

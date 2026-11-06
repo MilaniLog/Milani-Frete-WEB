@@ -48,6 +48,9 @@ describe('Notas e cupons financeiros', () => {
       data_fim: new Date('2026-09-27T00:00:00Z'),
     };
     db = {
+      frete_vale_controles: {
+        create: jest.fn(async () => ({ id: 1000 + coupons.length })),
+      },
       frete_notas: {
         findFirst: jest.fn(async ({ where }) =>
           note && matches(note, where) ? note : null,
@@ -142,6 +145,7 @@ describe('Notas e cupons financeiros', () => {
 
   it('primeiro cupom reduz saldo, edição recalcula diferença e exclusão devolve valor', async () => {
     let result = await service.changeCoupon(1, user, { kind: 'create', dto });
+    expect(result.coupon.controle_id).toBe(1000);
     expect(Number(result.nota.saldo)).toBe(70);
     result = await service.changeCoupon(1, user, {
       kind: 'update',

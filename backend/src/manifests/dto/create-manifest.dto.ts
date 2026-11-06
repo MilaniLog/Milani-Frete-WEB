@@ -2,18 +2,46 @@ import { Transform, Type } from 'class-transformer';
 
 import {
   IsBoolean,
+  IsArray,
   IsDateString,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
+  ArrayMaxSize,
   Matches,
   MaxLength,
+  Max,
   Min,
 } from 'class-validator';
 
+export class ManifestCreditDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  despesa_id: number;
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(9999999999999.99)
+  valor: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  descricao?: string;
+}
+
 export class CreateManifestDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ManifestCreditDto)
+  creditos?: ManifestCreditDto[];
   // =========================================================
   // DADOS PRINCIPAIS
   // =========================================================

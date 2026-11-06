@@ -30,12 +30,14 @@ export type User_permissionsAvgAggregateOutputType = {
   cod_user: number | null
   id: number | null
   unit: number | null
+  alterado_por: number | null
 }
 
 export type User_permissionsSumAggregateOutputType = {
   cod_user: number | null
   id: number | null
   unit: number | null
+  alterado_por: number | null
 }
 
 export type User_permissionsMinAggregateOutputType = {
@@ -47,6 +49,7 @@ export type User_permissionsMinAggregateOutputType = {
   ticket_service: boolean | null
   freight_service: boolean | null
   freight_closure: boolean | null
+  alterado_por: number | null
 }
 
 export type User_permissionsMaxAggregateOutputType = {
@@ -58,6 +61,7 @@ export type User_permissionsMaxAggregateOutputType = {
   ticket_service: boolean | null
   freight_service: boolean | null
   freight_closure: boolean | null
+  alterado_por: number | null
 }
 
 export type User_permissionsCountAggregateOutputType = {
@@ -69,6 +73,7 @@ export type User_permissionsCountAggregateOutputType = {
   ticket_service: number
   freight_service: number
   freight_closure: number
+  alterado_por: number
   _all: number
 }
 
@@ -77,12 +82,14 @@ export type User_permissionsAvgAggregateInputType = {
   cod_user?: true
   id?: true
   unit?: true
+  alterado_por?: true
 }
 
 export type User_permissionsSumAggregateInputType = {
   cod_user?: true
   id?: true
   unit?: true
+  alterado_por?: true
 }
 
 export type User_permissionsMinAggregateInputType = {
@@ -94,6 +101,7 @@ export type User_permissionsMinAggregateInputType = {
   ticket_service?: true
   freight_service?: true
   freight_closure?: true
+  alterado_por?: true
 }
 
 export type User_permissionsMaxAggregateInputType = {
@@ -105,6 +113,7 @@ export type User_permissionsMaxAggregateInputType = {
   ticket_service?: true
   freight_service?: true
   freight_closure?: true
+  alterado_por?: true
 }
 
 export type User_permissionsCountAggregateInputType = {
@@ -116,6 +125,7 @@ export type User_permissionsCountAggregateInputType = {
   ticket_service?: true
   freight_service?: true
   freight_closure?: true
+  alterado_por?: true
   _all?: true
 }
 
@@ -214,6 +224,7 @@ export type User_permissionsGroupByOutputType = {
   ticket_service: boolean
   freight_service: boolean
   freight_closure: boolean
+  alterado_por: number | null
   _count: User_permissionsCountAggregateOutputType | null
   _avg: User_permissionsAvgAggregateOutputType | null
   _sum: User_permissionsSumAggregateOutputType | null
@@ -248,6 +259,7 @@ export type user_permissionsWhereInput = {
   ticket_service?: Prisma.BoolFilter<"user_permissions"> | boolean
   freight_service?: Prisma.BoolFilter<"user_permissions"> | boolean
   freight_closure?: Prisma.BoolFilter<"user_permissions"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"user_permissions"> | number | null
 }
 
 export type user_permissionsOrderByWithRelationInput = {
@@ -259,6 +271,7 @@ export type user_permissionsOrderByWithRelationInput = {
   ticket_service?: Prisma.SortOrder
   freight_service?: Prisma.SortOrder
   freight_closure?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type user_permissionsWhereUniqueInput = Prisma.AtLeast<{
@@ -273,6 +286,7 @@ export type user_permissionsWhereUniqueInput = Prisma.AtLeast<{
   ticket_service?: Prisma.BoolFilter<"user_permissions"> | boolean
   freight_service?: Prisma.BoolFilter<"user_permissions"> | boolean
   freight_closure?: Prisma.BoolFilter<"user_permissions"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"user_permissions"> | number | null
 }, "id">
 
 export type user_permissionsOrderByWithAggregationInput = {
@@ -284,6 +298,7 @@ export type user_permissionsOrderByWithAggregationInput = {
   ticket_service?: Prisma.SortOrder
   freight_service?: Prisma.SortOrder
   freight_closure?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.user_permissionsCountOrderByAggregateInput
   _avg?: Prisma.user_permissionsAvgOrderByAggregateInput
   _max?: Prisma.user_permissionsMaxOrderByAggregateInput
@@ -303,6 +318,7 @@ export type user_permissionsScalarWhereWithAggregatesInput = {
   ticket_service?: Prisma.BoolWithAggregatesFilter<"user_permissions"> | boolean
   freight_service?: Prisma.BoolWithAggregatesFilter<"user_permissions"> | boolean
   freight_closure?: Prisma.BoolWithAggregatesFilter<"user_permissions"> | boolean
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"user_permissions"> | number | null
 }
 
 export type user_permissionsCreateInput = {
@@ -313,6 +329,7 @@ export type user_permissionsCreateInput = {
   ticket_service?: boolean
   freight_service?: boolean
   freight_closure?: boolean
+  alterado_por?: number | null
 }
 
 export type user_permissionsUncheckedCreateInput = {
@@ -324,6 +341,7 @@ export type user_permissionsUncheckedCreateInput = {
   ticket_service?: boolean
   freight_service?: boolean
   freight_closure?: boolean
+  alterado_por?: number | null
 }
 
 export type user_permissionsUpdateInput = {
@@ -334,6 +352,7 @@ export type user_permissionsUpdateInput = {
   ticket_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_closure?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type user_permissionsUncheckedUpdateInput = {
@@ -345,6 +364,7 @@ export type user_permissionsUncheckedUpdateInput = {
   ticket_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_closure?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type user_permissionsCreateManyInput = {
@@ -356,6 +376,7 @@ export type user_permissionsCreateManyInput = {
   ticket_service?: boolean
   freight_service?: boolean
   freight_closure?: boolean
+  alterado_por?: number | null
 }
 
 export type user_permissionsUpdateManyMutationInput = {
@@ -366,6 +387,7 @@ export type user_permissionsUpdateManyMutationInput = {
   ticket_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_closure?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type user_permissionsUncheckedUpdateManyInput = {
@@ -377,6 +399,7 @@ export type user_permissionsUncheckedUpdateManyInput = {
   ticket_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_service?: Prisma.BoolFieldUpdateOperationsInput | boolean
   freight_closure?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type user_permissionsCountOrderByAggregateInput = {
@@ -388,12 +411,14 @@ export type user_permissionsCountOrderByAggregateInput = {
   ticket_service?: Prisma.SortOrder
   freight_service?: Prisma.SortOrder
   freight_closure?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type user_permissionsAvgOrderByAggregateInput = {
   cod_user?: Prisma.SortOrder
   id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type user_permissionsMaxOrderByAggregateInput = {
@@ -405,6 +430,7 @@ export type user_permissionsMaxOrderByAggregateInput = {
   ticket_service?: Prisma.SortOrder
   freight_service?: Prisma.SortOrder
   freight_closure?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type user_permissionsMinOrderByAggregateInput = {
@@ -416,12 +442,14 @@ export type user_permissionsMinOrderByAggregateInput = {
   ticket_service?: Prisma.SortOrder
   freight_service?: Prisma.SortOrder
   freight_closure?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type user_permissionsSumOrderByAggregateInput = {
   cod_user?: Prisma.SortOrder
   id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -435,6 +463,7 @@ export type user_permissionsSelect<ExtArgs extends runtime.Types.Extensions.Inte
   ticket_service?: boolean
   freight_service?: boolean
   freight_closure?: boolean
+  alterado_por?: boolean
 }, ExtArgs["result"]["user_permissions"]>
 
 
@@ -448,9 +477,10 @@ export type user_permissionsSelectScalar = {
   ticket_service?: boolean
   freight_service?: boolean
   freight_closure?: boolean
+  alterado_por?: boolean
 }
 
-export type user_permissionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"cod_user" | "is_admin" | "id" | "unit" | "stock_service" | "ticket_service" | "freight_service" | "freight_closure", ExtArgs["result"]["user_permissions"]>
+export type user_permissionsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"cod_user" | "is_admin" | "id" | "unit" | "stock_service" | "ticket_service" | "freight_service" | "freight_closure" | "alterado_por", ExtArgs["result"]["user_permissions"]>
 
 export type $user_permissionsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "user_permissions"
@@ -464,6 +494,7 @@ export type $user_permissionsPayload<ExtArgs extends runtime.Types.Extensions.In
     ticket_service: boolean
     freight_service: boolean
     freight_closure: boolean
+    alterado_por: number | null
   }, ExtArgs["result"]["user_permissions"]>
   composites: {}
 }
@@ -841,6 +872,7 @@ export interface user_permissionsFieldRefs {
   readonly ticket_service: Prisma.FieldRef<"user_permissions", 'Boolean'>
   readonly freight_service: Prisma.FieldRef<"user_permissions", 'Boolean'>
   readonly freight_closure: Prisma.FieldRef<"user_permissions", 'Boolean'>
+  readonly alterado_por: Prisma.FieldRef<"user_permissions", 'Int'>
 }
     
 

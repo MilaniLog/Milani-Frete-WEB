@@ -2,6 +2,7 @@ import { normalizePlate, normalizeWeek } from "./field-formats";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import SearchableSelect from "./SearchableSelect";
+import QuickDateInput from "./QuickDateInput";
 export type ClosureFilters = {
   unit: string;
   dominio: string;
@@ -197,23 +198,21 @@ export default function ClosureForm({
           <div className="closure-date-range">
             <label>
               Início
-              <input
-                type="date"
+              <QuickDateInput
                 value={filters.inicio}
-                onChange={(e) => {
+                onChange={(value) => {
                   setWeek("");
-                  change("inicio", e.target.value);
+                  change("inicio", value);
                 }}
               />
             </label>
             <label>
               Fim
-              <input
-                type="date"
+              <QuickDateInput
                 value={filters.fim}
-                onChange={(e) => {
+                onChange={(value) => {
                   setWeek("");
-                  change("fim", e.target.value);
+                  change("fim", value);
                 }}
               />
             </label>
@@ -284,7 +283,7 @@ export default function ClosureForm({
               [
                 ["ordenar_data", "Ordenar manifestos por data e número"],
                 ["ordenar_tipo", "Ordenar por tipo de veículo"],
-                ["finalizados", "Incluir finalizados"],
+                ["finalizados", "Mostrar fechamento"],
                 ["mista", "Carga mista"],
                 ["separar_pagamentos", "Separar pagamentos"],
               ] as const

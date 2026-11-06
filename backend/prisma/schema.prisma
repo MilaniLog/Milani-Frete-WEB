@@ -14,6 +14,7 @@ model frete_tipos_nota {
   nome String @db.VarChar(120)
   tipo String @db.VarChar(20)
   ativo Boolean @default(true)
+  alterado_por Int?
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
   @@unique([unit, codigo])
@@ -33,6 +34,7 @@ model frete_notas {
   tipo String @db.VarChar(20)
   responsavel_cod Int
   departamento String? @db.VarChar(30)
+  alterado_por Int?
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
   cupons frete_cupons[]
@@ -42,6 +44,7 @@ model frete_notas {
 
 model frete_cupons {
   id Int @id @default(autoincrement())
+  controle_id Int @unique
   unit Int
   nota_id Int
   nota frete_notas @relation(fields: [nota_id, unit], references: [id, unit], onDelete: Restrict)
@@ -56,6 +59,7 @@ model frete_cupons {
   fechamento_id Int?
   responsavel_cod Int
   departamento String? @db.VarChar(30)
+  alterado_por Int?
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
   @@index([unit, semana, placa])
@@ -164,6 +168,7 @@ model frete_carregamento_manifestos {
   cancelado     Boolean   @default(false)
   cancelado_em  DateTime? @db.DateTime(0)
   cancelado_por Int?
+  alterado_por Int?
 
   updated_at DateTime @default(now()) @updatedAt
 
@@ -186,6 +191,7 @@ model employees {
   unit     Int
   isAdmin  Boolean @default(false)
   freight_profile String @default("OPERACAO") @db.VarChar(20)
+  alterado_por Int?
 
   @@index([unit], map: "unit")
 }
@@ -199,6 +205,7 @@ model user_permissions {
   ticket_service  Boolean @default(false)
   freight_service Boolean @default(false)
   freight_closure Boolean @default(false)
+  alterado_por Int?
 
   @@index([cod_user], map: "cod_user")
   @@index([unit], map: "unit")
@@ -217,6 +224,7 @@ model vehicle {
   canceled             Boolean  @default(false)
   unit                 Int      @default(0)
   user                 Int
+  alterado_por         Int?
   created_at           DateTime @default(now())
   updated_at           DateTime @default(now()) @updatedAt
 }
@@ -228,6 +236,7 @@ model vehicleType {
   max_weight     Decimal  @default(0) @db.Decimal(14, 3)
   freight_value  Decimal  @default(0) @db.Decimal(15, 2)
   user           Int
+  alterado_por   Int?
   created_at     DateTime @default(now())
   updated_at     DateTime @default(now()) @updatedAt
 }
@@ -239,6 +248,8 @@ model driver {
   name       String   @db.VarChar(50)
   unit       Int      @default(0)
   user       Int
+  alterado_por Int?
+  canceled   Boolean  @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
 }
@@ -253,13 +264,17 @@ model frete_empresas {
 // Existing legacy owner table, distinct from the PlanCompanies catalog.
 model companies {
   cnpj String @id @db.VarChar(14)
-  fantasy_name String @unique @db.VarChar(50)
+  fantasy_name String @db.VarChar(50)
+  alterado_por Int?
+
+  @@index([fantasy_name], map: "idx_companies_fantasy_name")
 }
 
 model frete_destinos {
   id         Int      @id @default(autoincrement())
   nome       String   @unique @db.VarChar(150)
   ativo      Boolean  @default(true)
+  alterado_por Int?
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
 
@@ -285,6 +300,7 @@ model frete_despesas {
   nome       String   @db.VarChar(120)
   tipo       String   @db.VarChar(20)
   ativo      Boolean  @default(true)
+  alterado_por Int?
   created_at DateTime @default(now()) @db.DateTime(0)
   updated_at DateTime @default(now()) @db.DateTime(0)
 
@@ -294,6 +310,7 @@ model frete_despesas {
 
 model frete_lancamentos {
   id                            Int                            @id @default(autoincrement())
+  controle_id                   Int                            @unique
   numero                        Int
   unit                          Int
   semana                        String?                        @db.Char(4)
@@ -311,26 +328,61 @@ model frete_lancamentos {
   manifesto_id                  Int?
   manifesto_numero             String?                        @db.VarChar(20)
   fechamento_id                 Int?
+  fatura_id                     Int?
+  numero_fatura                 Int?
+  fatura                        frete_faturas_vales?           @relation(fields: [fatura_id], references: [id], onDelete: Restrict)
   responsavel_cod               Int?
   departamento                  String?                        @db.VarChar(30)
   emitido_em                    DateTime?                      @db.DateTime(0)
+  cancelado                     Boolean                        @default(false)
+  cancelado_em                  DateTime?                      @db.DateTime(0)
+  cancelado_por                 Int?
+  alterado_por                  Int?
   created_at                    DateTime                       @default(now()) @db.DateTime(0)
   updated_at                    DateTime                       @default(now()) @db.DateTime(0)
 
   @@unique([unit, numero], map: "uk_frete_lancamento_numero")
   @@index([fechamento_id], map: "idx_frete_lancamento_fechamento")
+  @@index([fatura_id], map: "idx_frete_lancamento_fatura")
+  @@index([numero_fatura], map: "idx_frete_lancamento_numero_fatura")
   @@index([manifesto_id], map: "idx_frete_lancamento_manifesto")
   @@index([unit, manifesto_numero], map: "idx_frete_lancamento_manifesto_numero")
   @@index([placa], map: "idx_frete_lancamento_placa")
   @@index([responsavel_cod], map: "idx_frete_lancamento_responsavel")
   @@index([semana], map: "idx_frete_lancamento_semana")
   @@index([tipo_despesa], map: "idx_frete_lancamento_tipo")
+  @@index([cancelado], map: "idx_frete_lancamento_cancelado")
+}
+
+model frete_vale_controles {
+  id         Int      @id @default(autoincrement())
+  tipo       String   @db.VarChar(20)
+  created_at DateTime @default(now()) @db.DateTime(0)
+}
+
+model frete_faturas_vales {
+  id             Int                 @id @default(autoincrement())
+  numero         Int                 @unique
+  unit           Int
+  periodo_inicio DateTime            @db.Date
+  periodo_fim    DateTime            @db.Date
+  quantidade     Int
+  valor_total    Decimal             @default(0.00) @db.Decimal(15, 2)
+  responsavel_cod Int
+  alterado_por  Int?
+  status         String              @default("FECHADA") @db.VarChar(20)
+  created_at     DateTime            @default(now()) @db.DateTime(0)
+  lancamentos    frete_lancamentos[]
+
+  @@index([unit, periodo_inicio, periodo_fim], map: "idx_frete_fatura_periodo")
+  @@index([responsavel_cod], map: "idx_frete_fatura_responsavel")
 }
 
 model frete_semanas {
   codigo      String   @id @db.Char(4)
   data_inicio DateTime @db.Date
   data_fim    DateTime @db.Date
+  alterado_por Int?
   created_at  DateTime @default(now()) @db.DateTime(0)
 
   @@index([data_inicio, data_fim], map: "idx_frete_semana_periodo")
@@ -340,6 +392,7 @@ model branches {
   unit    Int     @id
   branch  String  @db.VarChar(20)
   dominio String? @db.VarChar(4)
+  alterado_por Int?
 }
 
 model frete_fechamentos {
@@ -355,4 +408,5 @@ model frete_fechamentos {
   total_ctrb                    Decimal                         @default(0.00) @db.Decimal(15, 2)
   total_liquido                 Decimal                         @default(0.00) @db.Decimal(15, 2)
   status                        String                          @default("ABERTO") @db.VarChar(20)
+  alterado_por                  Int?
 }

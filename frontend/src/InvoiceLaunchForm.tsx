@@ -1,6 +1,8 @@
 import { normalizePlate, normalizeWeek } from "./field-formats";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
+import QuickDateInput from "./QuickDateInput";
+import { valeIdentifier } from "./vale-identifier";
 type Note = {
   id: number;
   numero: string;
@@ -13,6 +15,7 @@ type Note = {
 };
 type Coupon = {
   id: number;
+  controle_id?: number | null;
   nota_id: number;
   placa: string;
   semana: string;
@@ -245,7 +248,7 @@ export default function InvoiceLaunchForm({
       setNumber("");
       setForm((f) => ({ ...f, cupom_valor: "", descricao: "" }));
       setSuccess(
-        `Vale ${result.coupon.id} salvo. Saldo da nota: ${money(result.nota.saldo)}.`,
+        `Vale ${valeIdentifier(result.coupon)} salvo. Saldo da nota: ${money(result.nota.saldo)}.`,
       );
       saved();
     } catch (e) {
@@ -347,13 +350,12 @@ export default function InvoiceLaunchForm({
             )}
             <label>
               Inclusão
-              <input
+              <QuickDateInput
                 aria-label="Data de inclusão"
-                type="date"
                 value={form.emitido_em}
                 required
                 readOnly={!!note || editing}
-                onChange={(e) => change("emitido_em", e.target.value)}
+                onChange={(value) => change("emitido_em", value)}
               />
             </label>
           </div>
@@ -385,13 +387,12 @@ export default function InvoiceLaunchForm({
             </label>
             <label>
               Data
-              <input
+              <QuickDateInput
                 aria-label="Data da nota"
-                type="date"
                 required
                 value={form.data_nota}
                 readOnly={!!note || editing}
-                onChange={(e) => change("data_nota", e.target.value)}
+                onChange={(value) => change("data_nota", value)}
               />
             </label>
             <label>
@@ -578,7 +579,7 @@ export default function InvoiceLaunchForm({
           <p>
             {deleting === "note"
               ? `Excluir a nota ${note?.numero} e todos os seus cupons abertos?`
-              : `Excluir o vale ${coupon?.id} e devolver seu valor ao saldo da nota?`}
+              : `Excluir o vale ${coupon ? valeIdentifier(coupon) : ""} e devolver seu valor ao saldo da nota?`}
           </p>
           <button
             disabled={busy}

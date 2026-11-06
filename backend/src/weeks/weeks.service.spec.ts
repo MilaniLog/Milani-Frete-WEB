@@ -51,7 +51,7 @@ describe('Semanas e períodos', () => {
   });
 
   it('cadastra sete dias inclusivos em UTC', async () => {
-    expect(await service.save(dto, admin)).toEqual(week);
+    expect(await service.save(dto, admin)).toEqual({ ...week, alterado_por: admin.cod });
   });
   it('rejeita segunda a domingo mesmo com sete dias', async () => {
     await expect(

@@ -32,6 +32,7 @@ export type VehicleTypeAvgAggregateOutputType = {
   max_weight: runtime.Decimal | null
   freight_value: runtime.Decimal | null
   user: number | null
+  alterado_por: number | null
 }
 
 export type VehicleTypeSumAggregateOutputType = {
@@ -40,6 +41,7 @@ export type VehicleTypeSumAggregateOutputType = {
   max_weight: runtime.Decimal | null
   freight_value: runtime.Decimal | null
   user: number | null
+  alterado_por: number | null
 }
 
 export type VehicleTypeMinAggregateOutputType = {
@@ -49,6 +51,7 @@ export type VehicleTypeMinAggregateOutputType = {
   max_weight: runtime.Decimal | null
   freight_value: runtime.Decimal | null
   user: number | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -60,6 +63,7 @@ export type VehicleTypeMaxAggregateOutputType = {
   max_weight: runtime.Decimal | null
   freight_value: runtime.Decimal | null
   user: number | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -71,6 +75,7 @@ export type VehicleTypeCountAggregateOutputType = {
   max_weight: number
   freight_value: number
   user: number
+  alterado_por: number
   created_at: number
   updated_at: number
   _all: number
@@ -83,6 +88,7 @@ export type VehicleTypeAvgAggregateInputType = {
   max_weight?: true
   freight_value?: true
   user?: true
+  alterado_por?: true
 }
 
 export type VehicleTypeSumAggregateInputType = {
@@ -91,6 +97,7 @@ export type VehicleTypeSumAggregateInputType = {
   max_weight?: true
   freight_value?: true
   user?: true
+  alterado_por?: true
 }
 
 export type VehicleTypeMinAggregateInputType = {
@@ -100,6 +107,7 @@ export type VehicleTypeMinAggregateInputType = {
   max_weight?: true
   freight_value?: true
   user?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -111,6 +119,7 @@ export type VehicleTypeMaxAggregateInputType = {
   max_weight?: true
   freight_value?: true
   user?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -122,6 +131,7 @@ export type VehicleTypeCountAggregateInputType = {
   max_weight?: true
   freight_value?: true
   user?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -220,6 +230,7 @@ export type VehicleTypeGroupByOutputType = {
   max_weight: runtime.Decimal
   freight_value: runtime.Decimal
   user: number
+  alterado_por: number | null
   created_at: Date
   updated_at: Date
   _count: VehicleTypeCountAggregateOutputType | null
@@ -254,6 +265,7 @@ export type vehicleTypeWhereInput = {
   max_weight?: Prisma.DecimalFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFilter<"vehicleType"> | number
+  alterado_por?: Prisma.IntNullableFilter<"vehicleType"> | number | null
   created_at?: Prisma.DateTimeFilter<"vehicleType"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"vehicleType"> | Date | string
 }
@@ -265,6 +277,7 @@ export type vehicleTypeOrderByWithRelationInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.vehicleTypeOrderByRelevanceInput
@@ -280,6 +293,7 @@ export type vehicleTypeWhereUniqueInput = Prisma.AtLeast<{
   max_weight?: Prisma.DecimalFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFilter<"vehicleType"> | number
+  alterado_por?: Prisma.IntNullableFilter<"vehicleType"> | number | null
   created_at?: Prisma.DateTimeFilter<"vehicleType"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"vehicleType"> | Date | string
 }, "codVehicleType">
@@ -291,6 +305,7 @@ export type vehicleTypeOrderByWithAggregationInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.vehicleTypeCountOrderByAggregateInput
@@ -310,6 +325,7 @@ export type vehicleTypeScalarWhereWithAggregatesInput = {
   max_weight?: Prisma.DecimalWithAggregatesFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalWithAggregatesFilter<"vehicleType"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntWithAggregatesFilter<"vehicleType"> | number
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"vehicleType"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"vehicleType"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"vehicleType"> | Date | string
 }
@@ -321,6 +337,7 @@ export type vehicleTypeCreateInput = {
   max_weight?: runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: runtime.Decimal | runtime.DecimalJsLike | number | string
   user: number
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -332,6 +349,7 @@ export type vehicleTypeUncheckedCreateInput = {
   max_weight?: runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: runtime.Decimal | runtime.DecimalJsLike | number | string
   user: number
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -343,6 +361,7 @@ export type vehicleTypeUpdateInput = {
   max_weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -354,6 +373,7 @@ export type vehicleTypeUncheckedUpdateInput = {
   max_weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -365,6 +385,7 @@ export type vehicleTypeCreateManyInput = {
   max_weight?: runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: runtime.Decimal | runtime.DecimalJsLike | number | string
   user: number
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -376,6 +397,7 @@ export type vehicleTypeUpdateManyMutationInput = {
   max_weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -387,6 +409,7 @@ export type vehicleTypeUncheckedUpdateManyInput = {
   max_weight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   freight_value?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -404,6 +427,7 @@ export type vehicleTypeCountOrderByAggregateInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -414,6 +438,7 @@ export type vehicleTypeAvgOrderByAggregateInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type vehicleTypeMaxOrderByAggregateInput = {
@@ -423,6 +448,7 @@ export type vehicleTypeMaxOrderByAggregateInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -434,6 +460,7 @@ export type vehicleTypeMinOrderByAggregateInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -444,6 +471,7 @@ export type vehicleTypeSumOrderByAggregateInput = {
   max_weight?: Prisma.SortOrder
   freight_value?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -455,6 +483,7 @@ export type vehicleTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   max_weight?: boolean
   freight_value?: boolean
   user?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["vehicleType"]>
@@ -468,11 +497,12 @@ export type vehicleTypeSelectScalar = {
   max_weight?: boolean
   freight_value?: boolean
   user?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type vehicleTypeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"codVehicleType" | "typeName" | "max_m3" | "max_weight" | "freight_value" | "user" | "created_at" | "updated_at", ExtArgs["result"]["vehicleType"]>
+export type vehicleTypeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"codVehicleType" | "typeName" | "max_m3" | "max_weight" | "freight_value" | "user" | "alterado_por" | "created_at" | "updated_at", ExtArgs["result"]["vehicleType"]>
 
 export type $vehicleTypePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "vehicleType"
@@ -484,6 +514,7 @@ export type $vehicleTypePayload<ExtArgs extends runtime.Types.Extensions.Interna
     max_weight: runtime.Decimal
     freight_value: runtime.Decimal
     user: number
+    alterado_por: number | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["vehicleType"]>
@@ -861,6 +892,7 @@ export interface vehicleTypeFieldRefs {
   readonly max_weight: Prisma.FieldRef<"vehicleType", 'Decimal'>
   readonly freight_value: Prisma.FieldRef<"vehicleType", 'Decimal'>
   readonly user: Prisma.FieldRef<"vehicleType", 'Int'>
+  readonly alterado_por: Prisma.FieldRef<"vehicleType", 'Int'>
   readonly created_at: Prisma.FieldRef<"vehicleType", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"vehicleType", 'DateTime'>
 }

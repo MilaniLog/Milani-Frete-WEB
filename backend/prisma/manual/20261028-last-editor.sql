@@ -1,0 +1,26 @@
+ALTER TABLE frete_tipos_nota ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_notas ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_cupons ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_carregamento_manifestos ADD COLUMN alterado_por INT NULL;
+ALTER TABLE employees ADD COLUMN alterado_por INT NULL;
+ALTER TABLE user_permissions ADD COLUMN alterado_por INT NULL;
+ALTER TABLE vehicle ADD COLUMN alterado_por INT NULL;
+ALTER TABLE vehicleType ADD COLUMN alterado_por INT NULL;
+ALTER TABLE driver ADD COLUMN alterado_por INT NULL;
+ALTER TABLE companies ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_destinos ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_despesas ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_lancamentos ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_faturas_vales ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_semanas ADD COLUMN alterado_por INT NULL;
+ALTER TABLE branches ADD COLUMN alterado_por INT NULL;
+ALTER TABLE frete_fechamentos ADD COLUMN alterado_por INT NULL;
+
+UPDATE frete_notas SET alterado_por = responsavel_cod WHERE alterado_por IS NULL;
+UPDATE frete_cupons SET alterado_por = responsavel_cod WHERE alterado_por IS NULL;
+UPDATE frete_carregamento_manifestos SET alterado_por = CAST(usuario AS UNSIGNED) WHERE alterado_por IS NULL AND usuario REGEXP '^[0-9]+$';
+UPDATE vehicle SET alterado_por = user WHERE alterado_por IS NULL;
+UPDATE vehicleType SET alterado_por = user WHERE alterado_por IS NULL;
+UPDATE driver SET alterado_por = user WHERE alterado_por IS NULL;
+UPDATE frete_lancamentos SET alterado_por = responsavel_cod WHERE alterado_por IS NULL;
+UPDATE frete_faturas_vales SET alterado_por = responsavel_cod WHERE alterado_por IS NULL;

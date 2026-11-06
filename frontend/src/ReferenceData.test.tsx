@@ -91,7 +91,7 @@ it("mantém formulário da semana em conflito e não permite mudar o código", a
   await screen.findByText("Semana já utilizada.");
   expect(
     (screen.getByLabelText("Data inicial") as HTMLInputElement).value,
-  ).toBe("2026-09-20");
+  ).toBe("20/09/2026");
 });
 it("permite desativar despesa com booleano e mantém nome e tipo", async () => {
   vi.mocked(fetch).mockImplementation(async (_, options) =>
@@ -147,7 +147,7 @@ it("consulta a semana pelo código como no VBA e salva no registro existente", a
   fireEvent.blur(screen.getByLabelText("Código"));
   expect(
     (screen.getByLabelText("Data inicial") as HTMLInputElement).value,
-  ).toBe("2026-09-20");
+  ).toBe("20/09/2026");
   expect((screen.getByLabelText("Código") as HTMLInputElement).readOnly).toBe(
     true,
   );

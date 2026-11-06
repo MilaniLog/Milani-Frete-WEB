@@ -99,7 +99,7 @@ it("abre veículo com proprietário, tipo e empresa, sem rateio", async () => {
   expect(screen.getByLabelText("CPF/CNPJ do proprietário")).toBeTruthy();
   expect(screen.queryByText(/10%/)).toBeNull();
 });
-it('exige confirmação para excluir veículo e atualiza a lista para usuário comum', async () => {
+it('exige confirmação para desativar veículo e atualiza a lista para usuário comum', async () => {
   let deleted = false;
   vi.stubGlobal('fetch', vi.fn(async (url: string, options?: RequestInit) => {
     if (options?.method === 'DELETE') deleted = true;
@@ -109,15 +109,31 @@ it('exige confirmação para excluir veículo e atualiza a lista para usuário c
   }));
   render(<Registrations kind="vehicles" token="token" isAdmin={false} userUnit={100} expired={vi.fn()} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Editar ABC1D23' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Excluir veículo' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Desativar veículo' }));
   expect(deleted).toBe(false);
-  fireEvent.click(screen.getByRole('button', { name: 'Cancelar exclusão' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar desativação' }));
   expect(deleted).toBe(false);
-  fireEvent.click(screen.getByRole('button', { name: 'Excluir veículo' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Confirmar exclusão' }));
-  await screen.findByText('Veículo ABC1D23 excluído do cadastro ativo. Histórico preservado.');
+  fireEvent.click(screen.getByRole('button', { name: 'Desativar veículo' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar desativação' }));
+  await screen.findByText('Veículo ABC1D23 desativado. Histórico preservado.');
   await screen.findByText('Nenhum cadastro encontrado.');
   expect(vi.mocked(fetch).mock.calls.find(([, o]) => o?.method === 'DELETE')?.[0]).toContain('/registrations/vehicles/ABC1D23');
+});
+it('desativa motorista sem apagar seu histórico', async () => {
+  let deleted = false;
+  vi.stubGlobal('fetch', vi.fn(async (url: string, options?: RequestInit) => {
+    if (options?.method === 'DELETE') deleted = true;
+    return new Response(JSON.stringify(url.endsWith('/drivers') && !deleted
+      ? [{ cpf: '52998224725', name: 'João Silva' }]
+      : []), { status: 200 });
+  }));
+  render(<Registrations kind="drivers" token="token" isAdmin userUnit={100} expired={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Editar João Silva' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Desativar motorista' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirmar desativação' }));
+  await screen.findByText('Motorista João Silva desativado. Histórico preservado.');
+  expect(vi.mocked(fetch).mock.calls.find(([, o]) => o?.method === 'DELETE')?.[0])
+    .toContain('/registrations/drivers/52998224725');
 });
 it('envia o motorista escolhido junto ao cadastro do veículo', async()=>{
   mount('vehicles',false);

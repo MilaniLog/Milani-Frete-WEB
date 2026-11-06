@@ -52,7 +52,7 @@ export class ConferenceService {
           throw new NotFoundException(
             'Fechamento não encontrado nesta unidade.',
           );
-        const all = dto.finalizados === 'true' || !!closure;
+        const showClosed = dto.finalizados === 'true';
         const vehicles = await tx.vehicle.findMany({
           select: {plate:true,codVehicleType:true,empresa_sigla:true,first_payer:true},
           where: {
@@ -67,10 +67,21 @@ export class ConferenceService {
           },
         });
         const plates = vehicles.map((v) => v.plate);
+        const manifestScope = await this.scopeWhere(
+          tx,
+          user,
+          closure ? { unit: closure.unit } : dto,
+        );
+        const unitInScope = (unit: number) => {
+          const scoped = manifestScope.unit;
+          if (scoped == null) return true;
+          if (typeof scoped === 'number') return unit === scoped;
+          return scoped.in.includes(unit);
+        };
         let manifests = await tx.frete_carregamento_manifestos.findMany({
           where: {
             cancelado: false,
-            ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
+            ...manifestScope,
             placa: { in: plates },
             semana: dates,
             ...(dto.usuario ? { usuario: dto.usuario } : {}),
@@ -81,8 +92,8 @@ export class ConferenceService {
                     { num_fechamento: closure.numero },
                   ],
                 }
-              : all
-                ? {}
+              : showClosed
+                ? { fechamento_id: { not: null } }
                 : { fechamento_id: null }),
           },
           orderBy:
@@ -107,15 +118,34 @@ export class ConferenceService {
             manifest.manifesto_adicional_3,
           ])
           .filter((number): number is string => Boolean(number));
-        const entries = await tx.frete_lancamentos.findMany({
+        const weekManifestReferences = closure || showClosed
+          ? manifests
+          : await tx.frete_carregamento_manifestos.findMany({
+              where: {
+                cancelado: false,
+                ...manifestScope,
+                placa: { in: plates },
+                semana: dates,
+              },
+            });
+        const priorityManifestIds = weekManifestReferences.map((manifest) => manifest.id);
+        const priorityManifestNumbers = weekManifestReferences
+          .flatMap((manifest) => [
+            manifest.manifestos,
+            manifest.manifesto_adicional_1,
+            manifest.manifesto_adicional_2,
+            manifest.manifesto_adicional_3,
+          ])
+          .filter((number): number is string => Boolean(number));
+        let entries = await tx.frete_lancamentos.findMany({
           where: {
-            ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
             placa: { in: plates },
+            cancelado: false,
             ...(dto.usuario ? { responsavel_cod: Number(dto.usuario) } : {}),
             ...(closure
               ? { fechamento_id: closure.id }
-              : all
-                ? {}
+              : showClosed
+                ? { fechamento_id: { not: null } }
                 : { fechamento_id: null, pago: false }),
             OR: [
               // Todo débito comum em aberto continua disponível nas semanas
@@ -128,47 +158,163 @@ export class ConferenceService {
               {
                 codigo_despesa: '3333',
                 OR: [
-                  { manifesto_id: { in: ids } },
+                  { manifesto_id: { in: priorityManifestIds } },
                   {
                     manifesto_id: null,
-                    manifesto_numero: { in: manifestNumbers },
+                    manifesto_numero: { in: priorityManifestNumbers },
                   },
                 ],
               },
               {
                 tipo_despesa: { in: ['Credito', 'Adiantamento'] },
-                data_lancamento: dates,
-                manifesto_id: { in: ids },
+                OR: [
+                  // Crédito vinculado acompanha a semana do manifesto, mesmo
+                  // quando foi lançado ou corrigido posteriormente.
+                  { manifesto_id: { in: priorityManifestIds } },
+                  {
+                    manifesto_id: null,
+                    manifesto_numero: { in: priorityManifestNumbers },
+                  },
+                  // Créditos avulsos e pagamentos extras continuam seguindo
+                  // a data informada no próprio lançamento.
+                  {
+                    manifesto_id: null,
+                    manifesto_numero: null,
+                    data_lancamento: dates,
+                  },
+                ],
               },
-              ...(dto.mista === 'true'
-                ? []
-                : [
-                    {
-                      manifesto_id: null,
-                      data_lancamento: dates,
-                      tipo_despesa: { in: ['Credito', 'Adiantamento'] },
-                    },
-                  ]),
             ],
           },
           orderBy: { numero: 'asc' },
+        });
+        const externalManifestIds = [
+          ...new Set(
+            entries
+              .filter(
+                (entry) =>
+                  entry.manifesto_id != null &&
+                  !priorityManifestIds.includes(entry.manifesto_id),
+              )
+              .map((entry) => entry.manifesto_id as number),
+          ),
+        ];
+        const externalManifestNumbers = [
+          ...new Set(
+            entries
+              .filter(
+                (entry) =>
+                  entry.manifesto_id == null &&
+                  entry.manifesto_numero &&
+                  !priorityManifestNumbers.includes(entry.manifesto_numero),
+              )
+              .map((entry) => entry.manifesto_numero as string),
+          ),
+        ];
+        const linkedManifestUnits = new Map<number, number>(
+          weekManifestReferences.map((manifest) => [manifest.id, manifest.unit]),
+        );
+        const linkedNumberUnits = new Map<string, number>();
+        const linkedNumbers = new Map(
+          weekManifestReferences.map((manifest) => [manifest.id, manifest.manifestos]),
+        );
+        for (const manifest of weekManifestReferences) {
+          for (const number of [
+            manifest.manifestos,
+            manifest.manifesto_adicional_1,
+            manifest.manifesto_adicional_2,
+            manifest.manifesto_adicional_3,
+          ]) {
+            if (number) linkedNumberUnits.set(number, manifest.unit);
+          }
+        }
+        if (externalManifestIds.length || externalManifestNumbers.length) {
+          const linkedManifests = await tx.frete_carregamento_manifestos.findMany({
+            where: {
+              cancelado: false,
+              OR: [
+                ...(externalManifestIds.length
+                  ? [{ id: { in: externalManifestIds } }]
+                  : []),
+                ...(externalManifestNumbers.length
+                  ? [
+                      { manifestos: { in: externalManifestNumbers } },
+                      { manifesto_adicional_1: { in: externalManifestNumbers } },
+                      { manifesto_adicional_2: { in: externalManifestNumbers } },
+                      { manifesto_adicional_3: { in: externalManifestNumbers } },
+                    ]
+                  : []),
+              ],
+            },
+            select: {
+              id: true,
+              unit: true,
+              manifestos: true,
+              manifesto_adicional_1: true,
+              manifesto_adicional_2: true,
+              manifesto_adicional_3: true,
+            },
+          });
+          for (const manifest of linkedManifests) {
+            linkedNumbers.set(manifest.id, manifest.manifestos);
+            linkedManifestUnits.set(manifest.id, manifest.unit);
+            for (const number of [
+              manifest.manifestos,
+              manifest.manifesto_adicional_1,
+              manifest.manifesto_adicional_2,
+              manifest.manifesto_adicional_3,
+            ]) {
+              if (number) linkedNumberUnits.set(number, manifest.unit);
+            }
+          }
+        }
+        entries = entries.map((entry) =>
+          entry.manifesto_numero || entry.manifesto_id == null
+            ? entry
+            : {
+                ...entry,
+                manifesto_numero:
+                  linkedNumbers.get(entry.manifesto_id) ?? null,
+              },
+        );
+        entries = entries.filter((entry) => {
+          if (
+            entry.tipo_despesa === 'Debito' &&
+            String(entry.codigo_despesa ?? '').trim() !== '3333'
+          )
+            return true;
+          if (entry.manifesto_id != null) {
+            if (ids.includes(entry.manifesto_id)) return true;
+            const linkedUnit = linkedManifestUnits.get(entry.manifesto_id);
+            return linkedUnit != null && unitInScope(linkedUnit);
+          }
+          if (entry.manifesto_numero) {
+            if (manifestNumbers.includes(entry.manifesto_numero)) return true;
+            const linkedUnit = linkedNumberUnits.get(entry.manifesto_numero);
+            return linkedUnit != null && unitInScope(linkedUnit);
+          }
+          return (
+            manifests.some((manifest) => manifest.placa === entry.placa) ||
+            (entry.unit != null && unitInScope(entry.unit))
+          );
         });
         const coupons =
           dto.mista === 'true'
             ? []
             : await tx.frete_cupons.findMany({
                 where: {
-                  ...await this.scopeWhere(tx, user, closure ? { unit: closure.unit } : dto),
                   placa: { in: plates },
-                  data_cobranca: dates,
                   ...(dto.usuario
                     ? { responsavel_cod: Number(dto.usuario) }
                     : {}),
                   ...(closure
                     ? { fechamento_id: closure.id }
-                    : all
-                      ? {}
+                    : showClosed
+                      ? { fechamento_id: { not: null }, data_cobranca: dates }
                       : { fechamento_id: null, pago: false }),
+                },
+                include: {
+                  nota: { select: { codigo_tipo: true, nome_tipo: true } },
                 },
                 orderBy: { id: 'asc' },
               });
@@ -184,7 +330,10 @@ export class ConferenceService {
             e = entries.filter((x) => x.placa === v.plate),
             c = coupons.filter((x) => x.placa === v.plate);
           if (
-            (!m.length && !e.length && !c.length) ||
+            (!m.length &&
+              !e.some((x) =>
+                ['Credito', 'Adiantamento'].includes(x.tipo_despesa),
+              )) ||
             (dto.despesa && !e.some((x) => x.codigo_despesa === dto.despesa))
           )
             return [];
@@ -228,6 +377,11 @@ export class ConferenceService {
               entries: e,
               coupons: c,
               tipo_veiculo: v.codVehicleType,
+              tipoVeiculo:
+                m.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+                e.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+                c.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+                null,
               empresa: v.empresa_sigla ?? v.first_payer,
               totals: {
                 fretes: money(fretes),

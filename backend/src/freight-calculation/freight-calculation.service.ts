@@ -64,7 +64,7 @@ export class FreightCalculationService {
     ]);
 
     // CalcFreight777/888/999: Round(valor * percentual, 2).
-    // Decimal evita que erros bin?rios mudem o desempate para o par.
+    // Decimal evita que erros binários mudem o desempate para o par.
     const percentage = (rate: typeof rule777.percentual) => (value: number) =>
       new Decimal(value)
         .mul(rate.toString())
@@ -76,7 +76,7 @@ export class FreightCalculationService {
       percentage(rule999.percentual),
     ]);
 
-    // Preserva o contrato existente; o segundo modo ? um campo adicional.
+    // Preserva o contrato existente; o segundo modo é um campo adicional.
     return { ...icms, percentageCalculation };
   }
 

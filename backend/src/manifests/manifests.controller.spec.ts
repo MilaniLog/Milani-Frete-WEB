@@ -36,6 +36,7 @@ describe('ManifestsController: isolamento por unidade', () => {
             records.find((record) => matches(record, where)) ?? null,
         ),
       },
+      frete_lancamentos: { findMany: jest.fn(async () => []) },
     };
     const service = new ManifestsService(
       prisma as unknown as PrismaService,
@@ -50,16 +51,16 @@ describe('ManifestsController: isolamento por unidade', () => {
   });
 
   it('retorna um manifesto da própria unidade', async () => {
-    await expect(controller.findOne(1, request)).resolves.toEqual(records[0]);
+    await expect(controller.findOne(1, request)).resolves.toEqual({ ...records[0], creditos: [] });
   });
 
   it('permite consultar por ID um manifesto encontrado em outra unidade', async () => {
-    await expect(controller.findOne(2, request)).resolves.toEqual(records[1]);
+    await expect(controller.findOne(2, request)).resolves.toEqual({ ...records[1], creditos: [] });
   });
 
   it('permite ao administrador consultar todas as unidades', async () => {
     request.user.isAdmin = true;
     await expect(controller.findAll(request)).resolves.toEqual(records);
-    await expect(controller.findOne(2, request)).resolves.toEqual(records[1]);
+    await expect(controller.findOne(2, request)).resolves.toEqual({ ...records[1], creditos: [] });
   });
 });

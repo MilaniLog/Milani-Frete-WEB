@@ -28,16 +28,19 @@ export type AggregateFrete_destinos = {
 
 export type Frete_destinosAvgAggregateOutputType = {
   id: number | null
+  alterado_por: number | null
 }
 
 export type Frete_destinosSumAggregateOutputType = {
   id: number | null
+  alterado_por: number | null
 }
 
 export type Frete_destinosMinAggregateOutputType = {
   id: number | null
   nome: string | null
   ativo: boolean | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -46,6 +49,7 @@ export type Frete_destinosMaxAggregateOutputType = {
   id: number | null
   nome: string | null
   ativo: boolean | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -54,6 +58,7 @@ export type Frete_destinosCountAggregateOutputType = {
   id: number
   nome: number
   ativo: number
+  alterado_por: number
   created_at: number
   updated_at: number
   _all: number
@@ -62,16 +67,19 @@ export type Frete_destinosCountAggregateOutputType = {
 
 export type Frete_destinosAvgAggregateInputType = {
   id?: true
+  alterado_por?: true
 }
 
 export type Frete_destinosSumAggregateInputType = {
   id?: true
+  alterado_por?: true
 }
 
 export type Frete_destinosMinAggregateInputType = {
   id?: true
   nome?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -80,6 +88,7 @@ export type Frete_destinosMaxAggregateInputType = {
   id?: true
   nome?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -88,6 +97,7 @@ export type Frete_destinosCountAggregateInputType = {
   id?: true
   nome?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -183,6 +193,7 @@ export type Frete_destinosGroupByOutputType = {
   id: number
   nome: string
   ativo: boolean
+  alterado_por: number | null
   created_at: Date
   updated_at: Date
   _count: Frete_destinosCountAggregateOutputType | null
@@ -214,6 +225,7 @@ export type frete_destinosWhereInput = {
   id?: Prisma.IntFilter<"frete_destinos"> | number
   nome?: Prisma.StringFilter<"frete_destinos"> | string
   ativo?: Prisma.BoolFilter<"frete_destinos"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"frete_destinos"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_destinos"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_destinos"> | Date | string
 }
@@ -222,6 +234,7 @@ export type frete_destinosOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.frete_destinosOrderByRelevanceInput
@@ -234,6 +247,7 @@ export type frete_destinosWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.frete_destinosWhereInput[]
   NOT?: Prisma.frete_destinosWhereInput | Prisma.frete_destinosWhereInput[]
   ativo?: Prisma.BoolFilter<"frete_destinos"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"frete_destinos"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_destinos"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_destinos"> | Date | string
 }, "id" | "nome">
@@ -242,6 +256,7 @@ export type frete_destinosOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_destinosCountOrderByAggregateInput
@@ -258,6 +273,7 @@ export type frete_destinosScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"frete_destinos"> | number
   nome?: Prisma.StringWithAggregatesFilter<"frete_destinos"> | string
   ativo?: Prisma.BoolWithAggregatesFilter<"frete_destinos"> | boolean
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_destinos"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"frete_destinos"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_destinos"> | Date | string
 }
@@ -265,6 +281,7 @@ export type frete_destinosScalarWhereWithAggregatesInput = {
 export type frete_destinosCreateInput = {
   nome: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -273,6 +290,7 @@ export type frete_destinosUncheckedCreateInput = {
   id?: number
   nome: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -280,6 +298,7 @@ export type frete_destinosUncheckedCreateInput = {
 export type frete_destinosUpdateInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -288,6 +307,7 @@ export type frete_destinosUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -296,6 +316,7 @@ export type frete_destinosCreateManyInput = {
   id?: number
   nome: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -303,6 +324,7 @@ export type frete_destinosCreateManyInput = {
 export type frete_destinosUpdateManyMutationInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -311,6 +333,7 @@ export type frete_destinosUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -325,18 +348,21 @@ export type frete_destinosCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_destinosAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_destinosMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -345,12 +371,14 @@ export type frete_destinosMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_destinosSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -359,6 +387,7 @@ export type frete_destinosSelect<ExtArgs extends runtime.Types.Extensions.Intern
   id?: boolean
   nome?: boolean
   ativo?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["frete_destinos"]>
@@ -369,11 +398,12 @@ export type frete_destinosSelectScalar = {
   id?: boolean
   nome?: boolean
   ativo?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type frete_destinosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nome" | "ativo" | "created_at" | "updated_at", ExtArgs["result"]["frete_destinos"]>
+export type frete_destinosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nome" | "ativo" | "alterado_por" | "created_at" | "updated_at", ExtArgs["result"]["frete_destinos"]>
 
 export type $frete_destinosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_destinos"
@@ -382,6 +412,7 @@ export type $frete_destinosPayload<ExtArgs extends runtime.Types.Extensions.Inte
     id: number
     nome: string
     ativo: boolean
+    alterado_por: number | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["frete_destinos"]>
@@ -756,6 +787,7 @@ export interface frete_destinosFieldRefs {
   readonly id: Prisma.FieldRef<"frete_destinos", 'Int'>
   readonly nome: Prisma.FieldRef<"frete_destinos", 'String'>
   readonly ativo: Prisma.FieldRef<"frete_destinos", 'Boolean'>
+  readonly alterado_por: Prisma.FieldRef<"frete_destinos", 'Int'>
   readonly created_at: Prisma.FieldRef<"frete_destinos", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"frete_destinos", 'DateTime'>
 }

@@ -35,6 +35,30 @@ export class FreightEntriesService {
       : { unit: user.unit };
   }
 
+  private async refreshValeInvoice(
+    tx: Prisma.TransactionClient,
+    invoiceId: number | null,
+    user: AuthUser,
+  ) {
+    if (invoiceId == null) return;
+    const entries = await tx.frete_lancamentos.findMany({
+      where: { fatura_id: invoiceId, cancelado: false },
+      select: { valor: true },
+    });
+    const total = entries.reduce(
+      (sum, entry) => sum.plus(entry.valor),
+      new Decimal(0),
+    );
+    await tx.frete_faturas_vales.update({
+      where: { id: invoiceId },
+      data: {
+        quantidade: entries.length,
+        valor_total: total,
+        alterado_por: user.cod,
+      },
+    });
+  }
+
   private async operationalUnits(user: AuthUser) {
     if (hasGlobalFreightAccess(user)) return undefined;
     if (!this.prisma.user_permissions?.findMany) return [user.unit];
@@ -68,6 +92,34 @@ export class FreightEntriesService {
     return prefix && /^\d{3}$/.test(prefix) ? Number(prefix) : undefined;
   }
 
+  private async withClosureNumbers<
+    T extends { fechamento_id: number | null },
+  >(entries: T[]) {
+    const ids = [
+      ...new Set(
+        entries.flatMap((entry) =>
+          entry.fechamento_id == null ? [] : [entry.fechamento_id],
+        ),
+      ),
+    ];
+    if (!ids.length || !this.prisma.frete_fechamentos?.findMany)
+      return entries.map((entry) => ({ ...entry, numero_fechamento: null }));
+    const closures = await this.prisma.frete_fechamentos.findMany({
+      where: { id: { in: ids }, status: { not: 'CANCELADO' } },
+      select: { id: true, numero: true },
+    });
+    const numbers = new Map(
+      closures.map((closure) => [closure.id, closure.numero]),
+    );
+    return entries.map((entry) => ({
+      ...entry,
+      numero_fechamento:
+        entry.fechamento_id == null
+          ? null
+          : (numbers.get(entry.fechamento_id) ?? null),
+    }));
+  }
+
   listExpenses(_user: AuthUser) {
     return this.prisma.$queryRaw<
       {
@@ -87,7 +139,7 @@ export class FreightEntriesService {
 
   async findById(id: number, user: AuthUser) {
     const entry = await this.prisma.frete_lancamentos.findFirst({
-      where: { id, ...this.unitWhere(user) },
+      where: { controle_id: id, cancelado: false, ...this.unitWhere(user) },
     });
     if (!entry)
       throw new NotFoundException('Vale não encontrado nesta unidade.');
@@ -95,12 +147,13 @@ export class FreightEntriesService {
       entry.manifesto_id != null
         ? await this.getManifest(this.prisma, entry.manifesto_id, user)
         : null;
-    return { entry, manifesto };
+    const [entryWithClosure] = await this.withClosureNumbers([entry]);
+    return { entry: entryWithClosure, manifesto };
   }
 
   async removeStandalone(id: number, user: AuthUser) {
     const existing = await this.prisma.frete_lancamentos.findFirst({
-      where: { id, ...this.unitWhere(user) },
+      where: { id, cancelado: false, ...this.unitWhere(user) },
     });
     if (!existing)
       throw new NotFoundException('Vale não encontrado nesta unidade.');
@@ -114,7 +167,7 @@ export class FreightEntriesService {
         return await this.prisma.$transaction(
           async (tx) => {
             const entry = await tx.frete_lancamentos.findFirst({
-              where: { id, ...this.unitWhere(user), manifesto_id: null },
+              where: { id, cancelado: false, ...this.unitWhere(user), manifesto_id: null },
             });
             if (!entry)
               throw new NotFoundException(
@@ -122,7 +175,7 @@ export class FreightEntriesService {
               );
             if (entry.pago || entry.fechamento_id != null)
               throw new ConflictException(
-                'Vale pago ou fechado não pode ser excluído.',
+                'Vale pago ou incluído em fechamento de vale não pode ser excluído.',
               );
             if (!entry.placa)
               throw new ConflictException(
@@ -133,7 +186,7 @@ export class FreightEntriesService {
               entry.data_lancamento,
               entry.semana ?? undefined,
             );
-            await tx.frete_lancamentos.delete({
+            await tx.frete_lancamentos.update({
               where: {
                 id,
                 unit: entry.unit,
@@ -141,7 +194,15 @@ export class FreightEntriesService {
                 pago: false,
                 fechamento_id: null,
               },
+              data: {
+                cancelado: true,
+                cancelado_em: new Date(),
+                cancelado_por: user.cod,
+                alterado_por: user.cod,
+                updated_at: new Date(),
+              },
             });
+            await this.refreshValeInvoice(tx, entry.fatura_id, user);
             return { entry, manifesto: null };
           },
           { isolationLevel: 'Serializable' },
@@ -161,7 +222,7 @@ export class FreightEntriesService {
       throw new BadRequestException('Selecione uma semana válida.');
     if (id !== undefined) {
       const existing = await this.prisma.frete_lancamentos.findFirst({
-        where: { id, ...this.unitWhere(user) },
+        where: { id, cancelado: false, ...this.unitWhere(user) },
       });
       if (!existing)
         throw new NotFoundException('Vale não encontrado nesta unidade.');
@@ -194,16 +255,21 @@ export class FreightEntriesService {
               id === undefined
                 ? null
                 : await tx.frete_lancamentos.findFirst({
-                    where: { id, ...this.unitWhere(user), manifesto_id: null },
+                    where: { id, cancelado: false, ...this.unitWhere(user), manifesto_id: null },
                   });
             if (id !== undefined && !existing)
               throw new NotFoundException(
                 'Vale não encontrado nesta unidade.',
               );
             if (existing) {
-              if (existing.pago || existing.fechamento_id != null)
+              if (
+                existing.pago ||
+                existing.fechamento_id != null ||
+                existing.fatura_id != null ||
+                existing.numero_fatura != null
+              )
                 throw new ConflictException(
-                  'Vale pago ou fechado não pode ser alterado.',
+                  'Vale pago ou incluído em fechamento de vale não pode ser alterado.',
                 );
               await periodForDate(
                 tx,
@@ -276,9 +342,15 @@ export class FreightEntriesService {
               descricao: dto.descricao?.trim() || null,
               departamento: dto.departamento?.trim() || null,
               responsavel_cod: user.cod,
+              alterado_por: user.cod,
               manifesto_numero: dto.manifesto_numero ?? null,
               updated_at: new Date(),
             };
+            const control = existing
+              ? null
+              : await tx.frete_vale_controles.create({
+                  data: { tipo: 'LANCAMENTO' },
+                });
             const entry = existing
               ? await tx.frete_lancamentos.update({
                   where: {
@@ -291,6 +363,7 @@ export class FreightEntriesService {
               : await tx.frete_lancamentos.create({
                   data: {
                     ...data,
+                    controle_id: control!.id,
                     unit: targetUnit,
                     numero: (last!._max.numero ?? 0) + 1,
                     manifesto_id: null,
@@ -329,12 +402,12 @@ export class FreightEntriesService {
           // Vales existentes preservam seu código, nome e tipo históricos.
           return tx.frete_despesas.update({
             where: { id },
-            data: { ...dto, updated_at: new Date() },
+            data: { ...dto, alterado_por: user.cod, updated_at: new Date() },
           });
         }
         // Expense definitions are global; unit 100 is the canonical persisted
         // owner used by the existing catalog and satisfies the branches FK.
-        return tx.frete_despesas.create({ data: { ...dto, unit: 100 } });
+        return tx.frete_despesas.create({ data: { ...dto, unit: 100, alterado_por: user.cod } });
       });
     } catch (error) {
       if (error.code === 'P2002')
@@ -361,16 +434,18 @@ export class FreightEntriesService {
   async listEntries(manifestId: number, user: AuthUser, weekCode?: string) {
     const manifest = await this.getManifest(this.prisma, manifestId, user);
     const week = weekCode ? await getWeek(this.prisma, weekCode) : undefined;
-    return this.prisma.frete_lancamentos.findMany({
+    const entries = await this.prisma.frete_lancamentos.findMany({
       where: {
         manifesto_id: manifestId,
         unit: manifest.unit,
+        cancelado: false,
         ...(week
           ? { data_lancamento: { gte: week.data_inicio, lte: week.data_fim } }
           : {}),
       },
       orderBy: { numero: 'asc' },
     });
+    return this.withClosureNumbers(entries);
   }
 
   async changeEntry(manifestId: number, user: AuthUser, change: Change) {
@@ -388,49 +463,59 @@ export class FreightEntriesService {
               throw new BadRequestException(
                 'A placa não corresponde ao manifesto.',
               );
-            if (
-              manifest.fechamento_id != null
-            ) {
-              throw new ConflictException(
-                'Manifesto fechado não permite alterar vales.',
-              );
-            }
+            const closedManifest = manifest.fechamento_id != null;
             await periodForDate(
               tx,
               manifest.semana,
             );
+            let existingEntry: Awaited<ReturnType<typeof tx.frete_lancamentos.findFirst>> = null;
             if (change.kind !== 'create') {
-              const entry = await tx.frete_lancamentos.findFirst({
+              existingEntry = await tx.frete_lancamentos.findFirst({
                 where: {
                   id: change.id,
                   manifesto_id: manifestId,
                   unit: manifest.unit,
+                  cancelado: false,
                 },
               });
-              if (!entry)
+              if (!existingEntry)
                 throw new NotFoundException(
                   'Vale não encontrado neste manifesto.',
                 );
-              if (entry.pago || entry.fechamento_id != null)
+              if (
+                existingEntry.pago ||
+                existingEntry.fechamento_id != null ||
+                (change.kind !== 'delete' &&
+                  (existingEntry.fatura_id != null ||
+                    existingEntry.numero_fatura != null))
+              )
                 throw new ConflictException(
-                  'Vale pago ou fechado não pode ser alterado.',
+                  'Vale pago ou incluído em fechamento de vale não pode ser alterado.',
                 );
               await periodForDate(
                 tx,
-                entry.data_lancamento,
-                entry.semana ?? undefined,
+                existingEntry.data_lancamento,
+                existingEntry.semana ?? undefined,
               );
             }
 
             let entry;
             if (change.kind === 'delete') {
-              entry = await tx.frete_lancamentos.delete({
+              entry = await tx.frete_lancamentos.update({
                 where: {
                   id: change.id,
                   unit: manifest.unit,
                   manifesto_id: manifestId,
                 },
+                data: {
+                  cancelado: true,
+                  cancelado_em: new Date(),
+                  cancelado_por: user.cod,
+                  alterado_por: user.cod,
+                  updated_at: new Date(),
+                },
               });
+              await this.refreshValeInvoice(tx, existingEntry.fatura_id, user);
             } else {
               const expense = await tx.frete_despesas.findFirst({
                 where: {
@@ -463,6 +548,7 @@ export class FreightEntriesService {
                 semana: week.codigo,
                 departamento: change.dto.departamento?.trim() || null,
                 responsavel_cod: user.cod,
+                alterado_por: user.cod,
                 updated_at: new Date(),
               };
               if (change.kind === 'create') {
@@ -470,9 +556,13 @@ export class FreightEntriesService {
                   where: { unit: manifest.unit },
                   _max: { numero: true },
                 });
+                const control = await tx.frete_vale_controles.create({
+                  data: { tipo: 'LANCAMENTO' },
+                });
                 entry = await tx.frete_lancamentos.create({
                   data: {
                     ...data,
+                    controle_id: control.id,
                     numero: (last._max.numero ?? 0) + 1,
                     unit: manifest.unit,
                     manifesto_id: manifestId,
@@ -494,7 +584,9 @@ export class FreightEntriesService {
                 });
               }
             }
-            const updated = await this.recalculate(tx, manifest, user);
+            const updated = closedManifest
+              ? manifest
+              : await this.recalculate(tx, manifest, user);
             return { entry, manifesto: updated };
           },
           { isolationLevel: 'Serializable' },
@@ -529,7 +621,7 @@ export class FreightEntriesService {
     user: AuthUser,
   ) {
     const entries = await tx.frete_lancamentos.findMany({
-      where: { manifesto_id: manifest.id, unit: manifest.unit },
+      where: { manifesto_id: manifest.id, unit: manifest.unit, cancelado: false },
     });
     const credit = companyExpenses(entries);
     const result = await this.calculation.calculate(
@@ -584,6 +676,7 @@ export class FreightEntriesService {
         subtotal,
         sub_lc_ex: extras,
         sub_total: new Decimal(result.totalFretes).plus(extras).minus(subtotal),
+        alterado_por: user.cod,
       },
     });
   }

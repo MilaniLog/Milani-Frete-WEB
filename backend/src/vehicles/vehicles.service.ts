@@ -29,6 +29,7 @@ export class VehiclesService {
       first_payer: dto.first_payer.trim() || null,
       second_payer: dto.second_payer.trim() || null,
       second_payer_percent: new Decimal(dto.second_payer_percent),
+      alterado_por: user.cod,
     };
     // Apply the same consistency rules used by settlement previews.
     allocatePayment(new Decimal(0), data, []);

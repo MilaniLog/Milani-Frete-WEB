@@ -5,7 +5,7 @@ import { VehicleRegistrationDto } from '../registrations/registration.dto';
 jest.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
 it('preserva zeros iniciais na lista e na consulta individual', async () => {
   const row = { cpf: BigInt('123456789'), name: 'Motorista' };
-  const service = new DriversService({ driver: { findMany: async () => [row], findUnique: async () => row } } as any);
+  const service = new DriversService({ driver: { findMany: async () => [row], findFirst: async () => row } } as any);
   expect((await service.findAll())[0].cpf).toBe('00123456789');
   expect((await service.findByCpf('00123456789')).cpf).toBe('00123456789');
 });

@@ -58,7 +58,7 @@ export class ReportsService {
     if (!hasGlobalFreightAccess(user)) return `Unidade ${user.unit}`;
     if (q?.local) return `Unidade ${q.local}`;
     if (q?.unit != null) return `Unidade ${q.unit}`;
-    if (q?.dominio) return `DomÃ­nio ${q.dominio}`;
+    if (q?.dominio) return `Domínio ${q.dominio}`;
     return 'Todas as unidades';
   }
 
@@ -120,7 +120,7 @@ export class ReportsService {
         ).values(),
       ];
       return {
-        title: 'Relatório de CTRB',
+        title: 'Números de fechamento',
         printLayout: 'compact-pairs' as const,
         notes: [
           `Período: ${date(start)} a ${date(end)}`,
@@ -189,6 +189,13 @@ export class ReportsService {
             : await tx.frete_lancamentos.findMany({
                 where: {
                   ...scope,
+                  cancelado: false,
+                  ...(q.movimento === 'credito'
+                    ? { tipo_despesa: 'Credito' }
+                    : q.movimento === 'debito'
+                      ? { tipo_despesa: { in: ['Debito', 'Adiantamento'] } }
+                      : {}),
+                  ...(q.tipo ? { codigo_despesa: q.tipo } : {}),
                   ...(range
                     ? {
                         [inclusion ? 'created_at' : 'data_lancamento']: range,
@@ -203,6 +210,8 @@ export class ReportsService {
             : await tx.frete_cupons.findMany({
                 where: {
                   ...scope,
+                  ...(q.movimento === 'credito' ? { id: -1 } : {}),
+                  ...(q.tipo ? { nota: { codigo_tipo: q.tipo } } : {}),
                   ...(range
                     ? {
                         [inclusion ? 'created_at' : 'data_cobranca']: range,
@@ -251,25 +260,27 @@ export class ReportsService {
         const records = [
           ...entries.map((e) => ({
             origin: 'Vale',
-            num: e.id,
+            num: e.controle_id ?? e.id,
             date: inclusion ? e.created_at : e.data_lancamento,
             plate: e.placa,
             driver: e.motorista,
             document:
               e.manifesto_id == null
                 ? (e.manifesto_numero ?? 'Avulso')
-                : (numbers.get(e.manifesto_id) ?? 'Não registrado'),
+                : (numbers.get(e.manifesto_id) ?? ''),
             code: e.codigo_despesa,
-            name: e.nome_despesa,
+            name: e.codigo_despesa.trim() === '3333' ? 'CTRB' : e.nome_despesa,
             description: e.descricao,
-            type: e.tipo_despesa,
+            type: e.codigo_despesa.trim() === '3333' ? 'CTRB' : e.tipo_despesa,
             value: e.valor,
             department: e.departamento,
+            userCode: e.responsavel_cod,
+            invoiceNumber: e.numero_fatura,
             paid: e.pago || e.fechamento_id != null,
           })),
           ...coupons.map((c) => ({
             origin: 'Cupom',
-            num: c.id,
+            num: c.controle_id ?? c.id,
             date: inclusion ? c.created_at : c.data_cobranca,
             plate: c.placa,
             driver: c.motorista,
@@ -280,14 +291,19 @@ export class ReportsService {
             type: 'Debito',
             value: c.valor,
             department: c.departamento,
+            userCode: c.responsavel_cod,
+            invoiceNumber: null,
             paid: c.pago || c.fechamento_id != null,
           })),
         ];
-        records.sort(
-          (a, b) =>
-            a.code.localeCompare(b.code) ||
-            a.date.getTime() - b.date.getTime() ||
-            a.num - b.num,
+        records.sort((a, b) =>
+          q.lancamentos !== 'false' && q.cupons === 'false'
+            ? a.plate.localeCompare(b.plate) ||
+              a.date.getTime() - b.date.getTime() ||
+              a.num - b.num
+            : a.code.localeCompare(b.code) ||
+              a.date.getTime() - b.date.getTime() ||
+              a.num - b.num,
         );
         const totals = new Map<string, Decimal>();
         let credits = new Decimal(0),
@@ -314,17 +330,56 @@ export class ReportsService {
             r.type,
             money(signed),
             r.department,
+            r.userCode,
+            r.invoiceNumber == null
+              ? null
+              : String(r.invoiceNumber).padStart(6, '0'),
             r.paid ? 'Pago / fechado' : 'Em aberto',
           ];
         });
+        const reportPlates = [...new Set(records.map((record) => record.plate).filter(Boolean))];
+        const reportVehicles = reportPlates.length
+          ? await tx.vehicle.findMany({
+              where: { plate: { in: reportPlates } },
+              select: { plate: true, codVehicleType: true },
+            })
+          : [];
+        const reportVehicleTypes = reportVehicles.length
+          ? await tx.vehicleType.findMany({
+              where: {
+                codVehicleType: {
+                  in: [...new Set(reportVehicles.map((vehicle) => vehicle.codVehicleType))],
+                },
+              },
+              select: { codVehicleType: true, typeName: true },
+            })
+          : [];
+        const typeByCode = new Map(
+          reportVehicleTypes.map((type) => [type.codVehicleType, type.typeName]),
+        );
+        const vehicleTypeByPlate = new Map(
+          reportVehicles.map((vehicle) => [
+            vehicle.plate,
+            typeByCode.get(vehicle.codVehicleType) ?? null,
+          ]),
+        );
         return {
           financialKind: q.lancamentos === 'false' ? 'coupons' : q.cupons === 'false' ? 'entries' : 'combined',
+          plateDetails: Object.fromEntries(
+            reportPlates.map((plate) => [
+              plate,
+              {
+                driver: records.find((record) => record.plate === plate && record.driver)?.driver ?? null,
+                vehicleType: vehicleTypeByPlate.get(plate) ?? null,
+              },
+            ]),
+          ),
           title: q.lancamentos === 'false' ? 'Conferência de cupons' : q.cupons === 'false' ? 'Conferência de vales' : 'Conferência de vales e cupons',
           notes: [
             p
               ? `${this.unitLabel(user, q)} · ${date(p.start)} a ${date(p.end)}${q.semana ? ` · Semana ${q.semana}` : ''}`
               : `${this.unitLabel(user, q)} · Todos os vales da placa ${q.placa}`,
-            `Data: ${inclusion ? 'inclusão no site' : 'despesa/cobrança'} · Situação: ${q.situacao ?? 'abertos'}${q.placa ? ` · Placa ${q.placa}` : ''}${q.departamento ? ` · Departamento ${q.departamento}` : ''}${q.usuario ? ` · Usuário ${q.usuario}` : ''}`,
+            `Data: ${inclusion ? 'inclusão no site' : 'despesa/cobrança'} · Situação: ${q.situacao ?? 'abertos'} · Movimento: ${q.movimento ?? 'todos'}${q.tipo ? ` · Tipo ${q.tipo}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.departamento ? ` · Departamento ${q.departamento}` : ''}${q.usuario ? ` · Usuário ${q.usuario}` : ''}`,
           ],
           columns: [
             'Origem',
@@ -343,6 +398,8 @@ export class ReportsService {
             'D/C',
             'Valor',
             'Departamento',
+            'Usuário',
+            'Nº Fech. Vale',
             'Situação',
           ],
           rows,
@@ -354,7 +411,7 @@ export class ReportsService {
             })),
             { label: 'Créditos', value: money(credits) },
             { label: q.lancamentos === 'false' ? 'Cupons' : q.cupons === 'false' ? 'Débitos' : 'Débitos e cupons', value: money(debits) },
-            { label: 'Adiantamentos (informativo)', value: money(advances) },
+            { label: 'CTRB (informativo)', value: money(advances) },
             {
               label: q.lancamentos === 'false' ? 'Total de cupons (débito)' : q.cupons === 'false' ? 'Créditos menos débitos' : 'Créditos menos débitos e cupons',
               value: money(credits.minus(debits)),
@@ -375,12 +432,27 @@ export class ReportsService {
       q.numero && !q.semana && !q.inicio && !q.fim
         ? null
         : await this.period(tx, q);
+    const categoryPlates =
+      q.categoria && q.categoria !== 'Todos'
+        ? await tx.vehicle.findMany({
+            where: {
+              ...(q.placa ? { plate: q.placa } : {}),
+              codVehicleType:
+                q.categoria === 'Agregado' ? { lt: 100 } : { gte: 100 },
+            },
+            select: { plate: true },
+          })
+        : null;
     const closures = await tx.frete_fechamentos.findMany({
       where: {
         ...(await this.scopeWhere(tx, user, q)),
         ...(onlyClosed ? { status: 'FECHADO' } : {}),
         ...(q.numero ? { numero: Number(q.numero) } : {}),
-        ...(q.placa ? { placa: q.placa } : {}),
+        ...(categoryPlates
+          ? { placa: { in: categoryPlates.map((vehicle) => vehicle.plate) } }
+          : q.placa
+            ? { placa: q.placa }
+            : {}),
         ...(q.semana
           ? { semana: q.semana }
           : p
@@ -396,19 +468,41 @@ export class ReportsService {
       report: ReturnType<typeof savedReport>;
     }[];
     for (const closure of closures) {
-      const h = closure.historico as any;
+      const history = closure.historico as any;
+      const historicalData =
+        history?.finalizacao?.dados ?? history?.cancelamento?.dados;
       const where = { unit: closure.unit, fechamento_id: closure.id };
-      const detail =
-        h?.finalizacao?.dados || h?.cancelamento?.dados
-          ? { closure, manifests: [], entries: [], coupons: [] }
-          : {
-              closure,
-              manifests: await tx.frete_carregamento_manifestos.findMany({
-                where,
-              }),
-              entries: await tx.frete_lancamentos.findMany({ where }),
-              coupons: await tx.frete_cupons.findMany({ where }),
-            };
+      const detail = historicalData
+        ? {
+            closure,
+            manifests: [],
+            entries: await tx.frete_lancamentos.findMany({
+              where: {
+                id: {
+                  in: Array.isArray(historicalData.entries)
+                    ? historicalData.entries.map((row: any) => row.id)
+                    : [],
+                },
+              },
+            }),
+            coupons: await tx.frete_cupons.findMany({
+              where: {
+                id: {
+                  in: Array.isArray(historicalData.coupons)
+                    ? historicalData.coupons.map((row: any) => row.id)
+                    : [],
+                },
+              },
+            }),
+          }
+        : {
+            closure,
+            manifests: await tx.frete_carregamento_manifestos.findMany({ where }),
+            entries: await tx.frete_lancamentos.findMany({
+              where: { ...where, cancelado: false },
+            }),
+            coupons: await tx.frete_cupons.findMany({ where }),
+          };
       reports.push({ closure, report: savedReport(detail) });
     }
     return { reports, period: p };
@@ -447,7 +541,6 @@ export class ReportsService {
               owner: true,
               owner_name: true,
               empresa_sigla: true,
-              first_payer: true,
             },
           }),
           tx.branches.findMany({
@@ -459,7 +552,7 @@ export class ReportsService {
         ]);
         const byPlate = new Map(vehicles.map((v) => [v.plate, v]));
         const branchByUnit = new Map(branches.map((branch) => [branch.unit, branch]));
-        const rows: Cell[][] = [];
+        const detailRows: Cell[][] = [];
         let legacy = 0,
           currentOwner = 0;
         for (const { closure, report: r } of data.reports) {
@@ -467,10 +560,6 @@ export class ReportsService {
             branch = branchByUnit.get(closure.unit),
             h = closure.historico as any,
             owner = h?.finalizacao?.dados?.beneficiario;
-          const company = r.payment?.primeira
-            ? (r.payment.primeira.empresa ?? null)
-            : (v?.empresa_sigla ?? v?.first_payer ?? null);
-          if (q.empresa && company !== q.empresa) continue;
           if (r.origem !== 'FINALIZACAO') legacy++;
           if (!owner) currentOwner++;
           const gross = new Decimal(
@@ -488,6 +577,14 @@ export class ReportsService {
                   new Decimal(0),
                 )
               : new Decimal(closure.total_ctrb);
+          const ctrb3333 = r.entries
+            .filter(
+              (entry) => String(entry.codigo_despesa ?? '').trim() === '3333',
+            )
+            .reduce(
+              (total, entry) => total.plus(String(entry.valor ?? 0)),
+              new Decimal(0),
+            );
           const ctrbNet =
             r.origem === 'FINALIZACAO' &&
             eligible.every((m) => m.valor_liquido != null)
@@ -498,7 +595,11 @@ export class ReportsService {
                   ),
                 )
               : null;
-          rows.push([
+          const company =
+            r.payment?.primeira?.empresa?.trim() ||
+            v?.empresa_sigla?.trim() ||
+            'SEM EMPRESA';
+          detailRows.push([
             company,
             owner ? (owner.documento ?? null) : (v?.owner ?? null),
             owner ? (owner.nome ?? null) : (v?.owner_name ?? null),
@@ -507,6 +608,7 @@ export class ReportsService {
             closure.placa,
             money(gross),
             money(ctrb),
+            money(ctrb3333),
             money(gross.minus(ctrb)),
             money(gross.minus(net)),
             money(net.minus(ctrb)),
@@ -516,15 +618,17 @@ export class ReportsService {
             ctrbNet,
           ]);
         }
-        rows.sort(
+        detailRows.sort(
           (a, b) =>
-            String(a[0] ?? '').localeCompare(String(b[0] ?? '')) ||
+            String(a[0]).localeCompare(String(b[0]), 'pt-BR', {
+              sensitivity: 'base',
+            }) ||
             String(a[5]).localeCompare(String(b[5])) ||
             Number(a[4]) - Number(b[4]),
         );
-        const numeric = [6, 7, 8, 9, 10, 14],
+        const numeric = [6, 7, 8, 9, 10, 11, 15],
           columns = [
-            'EMPR',
+            'EMPRESA',
             'CPF/CNPJ PROP',
             'NOME PROP',
             'SEM',
@@ -532,6 +636,7 @@ export class ReportsService {
             'PLACA',
             'TTL FRETE',
             'CTRB BRT',
+            'CTRB PAGO',
             'LIQ S/ CTRB',
             'VALES',
             'LIQ PAGAR',
@@ -540,20 +645,78 @@ export class ReportsService {
             'UNIDADE',
             'CTRB LIQ',
           ];
-        const totals = numeric.map((i) => ({
-          label: `Total ${columns[i]}${rows.some((r) => r[i] == null) ? ' (somente valores registrados)' : ''}`,
-          value: money(
-            rows.reduce((a, r) => a.plus(String(r[i] ?? 0)), new Decimal(0)),
-          ),
-        }));
+        const rows: Cell[][] = [];
+        const subtotalRows: number[] = [];
+        for (const company of [...new Set(detailRows.map((row) => String(row[0])))]) {
+          const companyRows = detailRows.filter((row) => row[0] === company);
+          rows.push(...companyRows);
+          const subtotal: Cell[] = Array(columns.length).fill(null);
+          subtotal[0] = company;
+          subtotal[2] = `SUBTOTAL ${company}`;
+          for (const index of numeric) {
+            subtotal[index] = money(
+              companyRows.reduce(
+                (sum, row) => sum.plus(String(row[index] ?? 0)),
+                new Decimal(0),
+              ),
+            );
+          }
+          subtotalRows.push(rows.length);
+          rows.push(subtotal);
+        }
+        const total = (index: number) =>
+          detailRows.reduce(
+            (sum, row) => sum.plus(String(row[index] ?? 0)),
+            new Decimal(0),
+          );
+        const totalTtlFrete = total(6);
+        const totalCtrbBruto = total(7);
+        const totalCtrbPago = total(8);
+        const totalLiquidoSemCtrb = total(9);
+        const totalVales = total(10);
+        const totalLiquidoPagar = total(11);
+        const totalCtrbLiquido = total(15);
+        const totalCtrbPagar = totalCtrbLiquido.minus(totalCtrbPago);
+        const totalPagar = totalLiquidoPagar.plus(totalCtrbPagar);
+        const totalSections = [
+          {
+            title: 'Totais do frete',
+            totals: [
+              { label: 'Total TTL frete', value: money(totalTtlFrete) },
+              { label: 'Total líquido sem CTRB', value: money(totalLiquidoSemCtrb) },
+              { label: 'Total vales', value: money(totalVales) },
+              { label: 'Total líquido a pagar', value: money(totalLiquidoPagar) },
+            ],
+          },
+          {
+            title: 'Totais do CTRB',
+            totals: [
+              { label: 'Total CTRB bruto', value: money(totalCtrbBruto) },
+              { label: 'Total CTRB líquido', value: money(totalCtrbLiquido) },
+              { label: 'Total CTRB pago', value: money(totalCtrbPago) },
+              { label: 'Total CTRB a pagar', value: money(totalCtrbPagar) },
+            ],
+          },
+          {
+            title: 'Total final',
+            totals: [
+              { label: 'Total líquido a pagar', value: money(totalLiquidoPagar) },
+              { label: 'Total CTRB a pagar', value: money(totalCtrbPagar) },
+              { label: 'Total a pagar', value: money(totalPagar) },
+            ],
+          },
+        ];
+        const totals = totalSections.flatMap((section) => section.totals);
         return {
           title: 'Planilha de pagamentos',
           columns,
           rows,
           numeric,
+          subtotalRows,
           totals,
+          totalSections,
           notes: [
-            `${this.unitLabel(user, q)}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.empresa ? ` · Empresa ${q.empresa}` : ''}`,
+            `${this.unitLabel(user, q)}${q.semana ? ` · Semana ${q.semana}` : ''}${data.period ? ` · ${date(data.period.start)} a ${date(data.period.end)}` : ''}${q.placa ? ` · Placa ${q.placa}` : ''}${q.dominio ? ` · Domínio ${q.dominio}` : ''}`,
             'Somente fechamentos finalizados. LIQ PAGAR = líquido do fechamento − CTRB bruto, conforme a planilha VBA. Nenhum pagamento é executado; não há rateio percentual.',
             ...(legacy
               ? [

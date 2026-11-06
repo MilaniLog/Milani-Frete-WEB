@@ -66,6 +66,8 @@ export const ModelName = {
   frete_regras_calculo: 'frete_regras_calculo',
   frete_despesas: 'frete_despesas',
   frete_lancamentos: 'frete_lancamentos',
+  frete_vale_controles: 'frete_vale_controles',
+  frete_faturas_vales: 'frete_faturas_vales',
   frete_semanas: 'frete_semanas',
   branches: 'branches',
   frete_fechamentos: 'frete_fechamentos'
@@ -94,6 +96,7 @@ export const Frete_tipos_notaScalarFieldEnum = {
   nome: 'nome',
   tipo: 'tipo',
   ativo: 'ativo',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -115,6 +118,7 @@ export const Frete_notasScalarFieldEnum = {
   tipo: 'tipo',
   responsavel_cod: 'responsavel_cod',
   departamento: 'departamento',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -124,6 +128,7 @@ export type Frete_notasScalarFieldEnum = (typeof Frete_notasScalarFieldEnum)[key
 
 export const Frete_cuponsScalarFieldEnum = {
   id: 'id',
+  controle_id: 'controle_id',
   unit: 'unit',
   nota_id: 'nota_id',
   placa: 'placa',
@@ -137,6 +142,7 @@ export const Frete_cuponsScalarFieldEnum = {
   fechamento_id: 'fechamento_id',
   responsavel_cod: 'responsavel_cod',
   departamento: 'departamento',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -217,6 +223,7 @@ export const Frete_carregamento_manifestosScalarFieldEnum = {
   cancelado: 'cancelado',
   cancelado_em: 'cancelado_em',
   cancelado_por: 'cancelado_por',
+  alterado_por: 'alterado_por',
   updated_at: 'updated_at'
 } as const
 
@@ -230,7 +237,8 @@ export const EmployeesScalarFieldEnum = {
   password: 'password',
   unit: 'unit',
   isAdmin: 'isAdmin',
-  freight_profile: 'freight_profile'
+  freight_profile: 'freight_profile',
+  alterado_por: 'alterado_por'
 } as const
 
 export type EmployeesScalarFieldEnum = (typeof EmployeesScalarFieldEnum)[keyof typeof EmployeesScalarFieldEnum]
@@ -244,7 +252,8 @@ export const User_permissionsScalarFieldEnum = {
   stock_service: 'stock_service',
   ticket_service: 'ticket_service',
   freight_service: 'freight_service',
-  freight_closure: 'freight_closure'
+  freight_closure: 'freight_closure',
+  alterado_por: 'alterado_por'
 } as const
 
 export type User_permissionsScalarFieldEnum = (typeof User_permissionsScalarFieldEnum)[keyof typeof User_permissionsScalarFieldEnum]
@@ -263,6 +272,7 @@ export const VehicleScalarFieldEnum = {
   canceled: 'canceled',
   unit: 'unit',
   user: 'user',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -277,6 +287,7 @@ export const VehicleTypeScalarFieldEnum = {
   max_weight: 'max_weight',
   freight_value: 'freight_value',
   user: 'user',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -290,6 +301,8 @@ export const DriverScalarFieldEnum = {
   name: 'name',
   unit: 'unit',
   user: 'user',
+  alterado_por: 'alterado_por',
+  canceled: 'canceled',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -309,7 +322,8 @@ export type Frete_empresasScalarFieldEnum = (typeof Frete_empresasScalarFieldEnu
 
 export const CompaniesScalarFieldEnum = {
   cnpj: 'cnpj',
-  fantasy_name: 'fantasy_name'
+  fantasy_name: 'fantasy_name',
+  alterado_por: 'alterado_por'
 } as const
 
 export type CompaniesScalarFieldEnum = (typeof CompaniesScalarFieldEnum)[keyof typeof CompaniesScalarFieldEnum]
@@ -319,6 +333,7 @@ export const Frete_destinosScalarFieldEnum = {
   id: 'id',
   nome: 'nome',
   ativo: 'ativo',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -347,6 +362,7 @@ export const Frete_despesasScalarFieldEnum = {
   nome: 'nome',
   tipo: 'tipo',
   ativo: 'ativo',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -356,6 +372,7 @@ export type Frete_despesasScalarFieldEnum = (typeof Frete_despesasScalarFieldEnu
 
 export const Frete_lancamentosScalarFieldEnum = {
   id: 'id',
+  controle_id: 'controle_id',
   numero: 'numero',
   unit: 'unit',
   semana: 'semana',
@@ -373,9 +390,15 @@ export const Frete_lancamentosScalarFieldEnum = {
   manifesto_id: 'manifesto_id',
   manifesto_numero: 'manifesto_numero',
   fechamento_id: 'fechamento_id',
+  fatura_id: 'fatura_id',
+  numero_fatura: 'numero_fatura',
   responsavel_cod: 'responsavel_cod',
   departamento: 'departamento',
   emitido_em: 'emitido_em',
+  cancelado: 'cancelado',
+  cancelado_em: 'cancelado_em',
+  cancelado_por: 'cancelado_por',
+  alterado_por: 'alterado_por',
   created_at: 'created_at',
   updated_at: 'updated_at'
 } as const
@@ -383,10 +406,37 @@ export const Frete_lancamentosScalarFieldEnum = {
 export type Frete_lancamentosScalarFieldEnum = (typeof Frete_lancamentosScalarFieldEnum)[keyof typeof Frete_lancamentosScalarFieldEnum]
 
 
+export const Frete_vale_controlesScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  created_at: 'created_at'
+} as const
+
+export type Frete_vale_controlesScalarFieldEnum = (typeof Frete_vale_controlesScalarFieldEnum)[keyof typeof Frete_vale_controlesScalarFieldEnum]
+
+
+export const Frete_faturas_valesScalarFieldEnum = {
+  id: 'id',
+  numero: 'numero',
+  unit: 'unit',
+  periodo_inicio: 'periodo_inicio',
+  periodo_fim: 'periodo_fim',
+  quantidade: 'quantidade',
+  valor_total: 'valor_total',
+  responsavel_cod: 'responsavel_cod',
+  alterado_por: 'alterado_por',
+  status: 'status',
+  created_at: 'created_at'
+} as const
+
+export type Frete_faturas_valesScalarFieldEnum = (typeof Frete_faturas_valesScalarFieldEnum)[keyof typeof Frete_faturas_valesScalarFieldEnum]
+
+
 export const Frete_semanasScalarFieldEnum = {
   codigo: 'codigo',
   data_inicio: 'data_inicio',
   data_fim: 'data_fim',
+  alterado_por: 'alterado_por',
   created_at: 'created_at'
 } as const
 
@@ -396,7 +446,8 @@ export type Frete_semanasScalarFieldEnum = (typeof Frete_semanasScalarFieldEnum)
 export const BranchesScalarFieldEnum = {
   unit: 'unit',
   branch: 'branch',
-  dominio: 'dominio'
+  dominio: 'dominio',
+  alterado_por: 'alterado_por'
 } as const
 
 export type BranchesScalarFieldEnum = (typeof BranchesScalarFieldEnum)[keyof typeof BranchesScalarFieldEnum]
@@ -414,7 +465,8 @@ export const Frete_fechamentosScalarFieldEnum = {
   total_bruto: 'total_bruto',
   total_ctrb: 'total_ctrb',
   total_liquido: 'total_liquido',
-  status: 'status'
+  status: 'status',
+  alterado_por: 'alterado_por'
 } as const
 
 export type Frete_fechamentosScalarFieldEnum = (typeof Frete_fechamentosScalarFieldEnum)[keyof typeof Frete_fechamentosScalarFieldEnum]
@@ -436,6 +488,14 @@ export const NullableJsonNullValueInput = {
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
 export const frete_tipos_notaOrderByRelevanceFieldEnum = {
   codigo: 'codigo',
   nome: 'nome',
@@ -443,14 +503,6 @@ export const frete_tipos_notaOrderByRelevanceFieldEnum = {
 } as const
 
 export type frete_tipos_notaOrderByRelevanceFieldEnum = (typeof frete_tipos_notaOrderByRelevanceFieldEnum)[keyof typeof frete_tipos_notaOrderByRelevanceFieldEnum]
-
-
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 export const frete_notasOrderByRelevanceFieldEnum = {
@@ -592,6 +644,20 @@ export const frete_lancamentosOrderByRelevanceFieldEnum = {
 } as const
 
 export type frete_lancamentosOrderByRelevanceFieldEnum = (typeof frete_lancamentosOrderByRelevanceFieldEnum)[keyof typeof frete_lancamentosOrderByRelevanceFieldEnum]
+
+
+export const frete_vale_controlesOrderByRelevanceFieldEnum = {
+  tipo: 'tipo'
+} as const
+
+export type frete_vale_controlesOrderByRelevanceFieldEnum = (typeof frete_vale_controlesOrderByRelevanceFieldEnum)[keyof typeof frete_vale_controlesOrderByRelevanceFieldEnum]
+
+
+export const frete_faturas_valesOrderByRelevanceFieldEnum = {
+  status: 'status'
+} as const
+
+export type frete_faturas_valesOrderByRelevanceFieldEnum = (typeof frete_faturas_valesOrderByRelevanceFieldEnum)[keyof typeof frete_faturas_valesOrderByRelevanceFieldEnum]
 
 
 export const frete_semanasOrderByRelevanceFieldEnum = {

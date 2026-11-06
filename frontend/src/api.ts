@@ -52,17 +52,17 @@ export async function api<T>(
     });
   } catch {
     throw new Error(
-      "NÃ£o foi possível conectar ao servidor. Verifique se o backend estÃ¡ disponível.",
+      "Não foi possível conectar ao servidor. Verifique se o backend está disponível.",
     );
   }
   const data =
     response.ok && format === "text"
       ? await response.text()
       : await response.json().catch(() => null);
-  if (response.status === 403 && data?.code === 'ADMIN_APPROVAL_REQUIRED' && options.method?.toUpperCase() === 'DELETE' && !JSON.parse(String(options.body || '{}')).admin_authorization) {
+  if (response.status === 403 && data?.code === 'ADMIN_APPROVAL_REQUIRED' && !JSON.parse(String(options.body || '{}')).admin_authorization) {
     return requestDeletionApproval(credentials => api<T>(path, token, {
       ...options, body: JSON.stringify({ ...JSON.parse(String(options.body || '{}')), admin_authorization: credentials }),
-    }, format));
+    }, format), data.operation === 'edit' ? 'edit' : 'delete');
   }
   if (!response.ok)
     throw new ApiError(
@@ -70,9 +70,9 @@ export async function api<T>(
       response.status === 401 && token
         ? "Sua sessão expirou. Entre novamente."
         : Array.isArray(data?.message)
-          ? data.message.join(" â€¢ ")
+          ? data.message.join(" • ")
           : data?.message ||
-            `NÃ£o foi possível concluir a solicitação (${response.status}).`,
+            `Não foi possível concluir a solicitação (${response.status}).`,
     );
   return data as T;
 }

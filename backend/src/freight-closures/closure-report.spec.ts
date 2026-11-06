@@ -65,6 +65,41 @@ describe('Relatórios de fechamento', () => {
     );
   });
 
+  it('mostra os percentuais inicial e final corretos na conferência e no fechamento', () => {
+    const report = previewReport({
+      manifests: [{
+        manifestos: '100000001-1',
+        frt_tl_vlc: 100,
+        frete_calc: 800,
+        sub_total: 850,
+        carreg_perc: 0.125,
+        perc_final: 0.11764706,
+        percentual_antigo: 8.9853,
+      }],
+      entries: [],
+      coupons: [],
+      totals: { total_bruto: 100, total_liquido: 100 },
+    });
+    const preview = renderClosureReport(report);
+    expect(preview).toContain('PERC. INICIAL');
+    expect(preview).toContain('PERC. FINAL');
+    expect(preview).toContain('12,50%');
+    expect(preview).toContain('11,76%');
+    expect(preview).not.toContain('898,53%');
+    expect(preview).not.toContain('% TEST');
+    expect(preview).not.toContain('Percentual antigo');
+    expect(preview).toContain('<div class="report-row-gap" aria-hidden="true"></div>');
+    expect(preview.match(/class="report-row-gap"/g)).toHaveLength(2);
+
+    const final = renderClosureReport({
+      ...report,
+      origem: 'FINALIZACAO',
+    });
+    expect(final).toContain('12,50%');
+    expect(final).toContain('11,76%');
+    expect(final).not.toContain('898,53%');
+  });
+
   it('preserva dados ausentes em vez de inventar zeros no histórico', () => {
     const html = renderClosureReport(
       previewReport({
@@ -75,7 +110,8 @@ describe('Relatórios de fechamento', () => {
       }),
     );
     expect(html).toContain('SUBTOTAL 1');
-    expect(html).toContain('>—</td>');
+    expect(html).not.toContain('>—</td>');
+    expect(html).not.toMatch(/Não (registrad|informad|disponível)/);
     expect(html).not.toContain('R$ 0,00');
   });
   it('ordena manifestos, vales e cupons por data dentro da placa', () => {
@@ -86,21 +122,34 @@ describe('Relatórios de fechamento', () => {
           { id: 1, manifestos: 'MANIFESTO-CEDO', semana: '2026-10-08', frete_veiculo: '1' },
         ],
         entries: [
-          { id: 12, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-09', descricao: 'VALE-TARDE', valor: '1' },
-          { id: 11, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-07', descricao: 'VALE-CEDO', valor: '1' },
+          { id: 10, manifesto_id: null, codigo_despesa: '3333', tipo_despesa: 'Debito', data_lancamento: '2026-10-01', descricao: 'CTRB-SEMPRE-POR-ULTIMO', valor: '1' },
+          { id: 12, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-09', descricao: 'VALE-TARDE', valor: '1', responsavel_cod: 77 },
+          { id: 11, manifesto_id: null, tipo_despesa: 'Debito', data_lancamento: '2026-10-07', descricao: 'VALE-CEDO', valor: '1', responsavel_cod: 76 },
         ],
         coupons: [
           { id: 22, data_cobranca: '2026-10-11', descricao: 'CUPOM-TARDE', valor: '1' },
-          { id: 21, data_cobranca: '2026-10-06', descricao: 'CUPOM-CEDO', valor: '1' },
+          { id: 21, controle_id: 1021, data_cobranca: '2026-10-06', descricao: 'CUPOM-CEDO', valor: '1', responsavel_cod: 88, nota: { codigo_tipo: 'DIESEL', nome_tipo: 'Combustível' } },
         ],
         totals: { total_liquido: '0' },
       }),
     );
     expect(html.indexOf('MANIFESTO-CEDO')).toBeLessThan(html.indexOf('MANIFESTO-TARDE'));
     expect(html.indexOf('VALE-CEDO')).toBeLessThan(html.indexOf('VALE-TARDE'));
+    expect(html.indexOf('VALE-TARDE')).toBeLessThan(
+      html.indexOf('CTRB-SEMPRE-POR-ULTIMO'),
+    );
     expect(html).toContain('07/10/2026');
     expect(html).toContain('09/10/2026');
     expect(html.indexOf('CUPOM-CEDO')).toBeLessThan(html.indexOf('CUPOM-TARDE'));
+    expect(html.indexOf('CUPOM-CEDO')).toBeLessThan(html.indexOf('VALE-CEDO'));
+    expect(html).toContain('<h2>VALES</h2>');
+    expect(html).toContain('<div class="vale-section"><h2>VALES</h2>');
+    expect(html).not.toContain('<h2>CUPONS</h2>');
+    expect(html).toContain('1021');
+    expect(html).not.toContain('DIESEL');
+    expect(html).toContain('ABASTECIMENTO · CUPOM');
+    expect(html).toContain('USUÁRIO 88');
+    expect(html).toContain('USUÁRIO 77');
   });
   it('mantém créditos no manifesto e agrupa todos os vales abaixo sem duplicar', () => {
     const html = renderClosureReport(
@@ -214,6 +263,32 @@ describe('Relatórios de fechamento', () => {
     expect(report.manifests[0].manifestos).toBe('ORIGINAL');
     expect(report.cabecalho.status).toBe('CANCELADO');
   });
+  it('recupera o identificador global em históricos antigos', () => {
+    const report = savedReport({
+      manifests: [],
+      entries: [{ id: 1434, controle_id: 1521 }],
+      coupons: [],
+      closure: {
+        historico: {
+          finalizacao: {
+            dados: {
+              ...data,
+              entries: [
+                {
+                  id: 1434,
+                  codigo_despesa: '0002',
+                  tipo_despesa: 'Debito',
+                  valor: '120',
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    expect(report.entries[0].controle_id).toBe(1521);
+    expect(renderClosureReport(report)).toContain('1521');
+  });
   it('usa cópia do cancelamento legado após exclusão dos registros reabertos', () => {
     const report = savedReport({
       manifests: [],
@@ -315,7 +390,7 @@ describe('Relatórios de fechamento', () => {
     expect(html).toContain('RELATÓRIO POR MOTORISTA');
     expect(html).toContain('Motorista Teste');
     expect(html).toContain('12345');
-    expect(html).toContain('Adiantamento');
+    expect(html).toContain('CTRB');
     expect(html).toContain('Líquido a pagar');
   });
 });

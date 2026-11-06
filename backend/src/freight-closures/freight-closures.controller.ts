@@ -49,7 +49,9 @@ export class FreightClosuresController {
     @Query() dto: ConferenceDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.conference.report(dto, req.user);
+    return dto.finalizados === 'true'
+      ? this.service.historicalConference(dto, req.user)
+      : this.conference.report(dto, req.user);
   }
   @Get('conference/print')
   @Header('Content-Type', 'text/html; charset=utf-8')
@@ -62,10 +64,29 @@ export class FreightClosuresController {
     @Query() dto: ConferenceDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    const data = await this.conference.report(dto, req.user);
+    const data = dto.finalizados === 'true'
+      ? await this.service.historicalConference(dto, req.user)
+      : await this.conference.report(dto, req.user);
     const reports = data.groups.map((group) => {
-      const report = previewReport(group);
-      report.cabecalho.status = 'CONFERÊNCIA — NÃO FINALIZA PAGAMENTOS';
+      const historical = group as typeof group & {
+        cabecalho?: Record<string, unknown>;
+        titulo?: string;
+        reportOrigin?: string;
+      };
+      const report = historical.cabecalho
+        ? {
+            titulo: historical.titulo ?? 'Fechamento de frete',
+            origem: historical.reportOrigin ?? 'FINALIZACAO',
+            cabecalho: historical.cabecalho,
+            manifests: group.manifests,
+            entries: group.entries,
+            coupons: group.coupons,
+            totals: group.totals,
+            payment: group.payment,
+          }
+        : previewReport(group);
+      if (!historical.cabecalho)
+        report.cabecalho.status = 'CONFERÊNCIA — NÃO FINALIZA PAGAMENTOS';
       return renderClosureReport(report);
     });
     if (!reports.length)
@@ -102,12 +123,16 @@ export class FreightClosuresController {
     res.send(pdf);
   }
 
-  @Post(['conference/adjusted-print.pdf', 'conference/adjusted-print/pdf'])
+  @Post('conference/adjusted-print')
+  @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Cache-Control', 'no-store')
-  async adjustedConferencePrintPdf(
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  async adjustedConferencePrint(
     @Body() dto: WeekClosureDto,
     @Req() req: AuthenticatedRequest,
-    @Res() res: Response,
   ) {
     const previews = await this.service.adjustedWeekPreview(
       dto.semana,
@@ -133,6 +158,17 @@ export class FreightClosuresController {
           .join('') +
         '</body></html>'
       : '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Conferência</title><body><p>Nenhum registro encontrado.</p></body></html>';
+    return html;
+  }
+
+  @Post(['conference/adjusted-print.pdf', 'conference/adjusted-print/pdf'])
+  @Header('Cache-Control', 'no-store')
+  async adjustedConferencePrintPdf(
+    @Body() dto: WeekClosureDto,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    const html = await this.adjustedConferencePrint(dto, req);
     const pdf = await renderHtmlPdf(html);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -310,8 +346,8 @@ export class FreightClosuresController {
     return this.service.preview(dto, req.user);
   }
   @Get()
-  list(@Req() req: AuthenticatedRequest) {
-    return this.service.list(req.user);
+  list(@Req() req: AuthenticatedRequest, @Query('numero') numero?: string) {
+    return this.service.list(req.user, numero);
   }
   @Get(':id')
   one(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {

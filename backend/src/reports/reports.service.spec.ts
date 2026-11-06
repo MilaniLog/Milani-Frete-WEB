@@ -17,7 +17,14 @@ describe('Relatórios VBA', () => {
       },
       { frete_veiculo: '0', ctrb_total: '999', valor_liquido: '999' },
     ],
-    entries: [],
+    entries: [
+      {
+        id: 9,
+        codigo_despesa: '3333',
+        tipo_despesa: 'Debito',
+        valor: '25',
+      },
+    ],
     coupons: [],
     totals: { total_bruto: '1000', total_liquido: '900', total_ctrb: '1199' },
     payment: {
@@ -60,6 +67,7 @@ describe('Relatórios VBA', () => {
               fechamento_id: null,
               descricao: '<script>x</script>',
               departamento: 'A',
+              responsavel_cod: 7,
             },
           ]),
       },
@@ -82,6 +90,7 @@ describe('Relatórios VBA', () => {
               pago: false,
               fechamento_id: null,
               departamento: 'A',
+              responsavel_cod: 8,
             },
           ]),
       },
@@ -114,11 +123,17 @@ describe('Relatórios VBA', () => {
           .mockResolvedValue([
             {
               plate: 'ABC1234',
+              codVehicleType: 1,
               owner: '99999999999',
               owner_name: 'Alterado',
               empresa_sigla: 'ATT',
             },
           ]),
+      },
+      vehicleType: {
+        findMany: jest.fn().mockResolvedValue([
+          { codVehicleType: 1, typeName: 'VAN' },
+        ]),
       },
       branches: {
         findMany: jest.fn().mockImplementation((query) =>
@@ -194,6 +209,8 @@ describe('Relatórios VBA', () => {
     expect(result.rows[0][1]).not.toBe(5);
     expect(result.rows[0][5]).toBe('M1');
     expect(result.rows[1][5]).toBe('0001');
+    expect(result.columns).toContain('Usuário');
+    expect(result.rows[0][12]).toBe(7);
     expect(result.totals.at(-1)?.value).toBe('-0.10');
     expect(reportHtml(result)).not.toContain('<script>');
     expect(reportHtml(result)).toContain('&lt;script&gt;');
@@ -210,7 +227,7 @@ describe('Relatórios VBA', () => {
     );
 
     expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
-      where: { unit: 100, placa: 'ABC1234' },
+      where: { unit: 100, placa: 'ABC1234', cancelado: false },
       orderBy: { id: 'asc' },
     });
     expect(result.notes[0]).toContain('Todos os vales da placa ABC1234');
@@ -239,6 +256,39 @@ describe('Relatórios VBA', () => {
         created_at: { gte: start, lt: new Date('2026-09-27') },
       });
   });
+  it('filtra vales por crédito ou débito e pelo tipo da despesa', async () => {
+    await service.financial(
+      {
+        semana: '3926',
+        lancamentos: 'true',
+        cupons: 'false',
+        movimento: 'debito',
+        tipo: '0001',
+      },
+      user,
+    );
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        tipo_despesa: { in: ['Debito', 'Adiantamento'] },
+        codigo_despesa: '0001',
+      }),
+      orderBy: { id: 'asc' },
+    });
+
+    db.frete_lancamentos.findMany.mockClear();
+    await service.financial(
+      {
+        semana: '3926',
+        lancamentos: 'true',
+        cupons: 'false',
+        movimento: 'credito',
+      },
+      user,
+    );
+    expect(db.frete_lancamentos.findMany.mock.calls[0][0].where).toMatchObject({
+      tipo_despesa: 'Credito',
+    });
+  });
   it('permite somente cupons e valida seleção vazia e período', async () => {
     const result = await service.financial({ semana: '3926', lancamentos: 'false' }, user);
     expect(result.title).toBe('Conferência de cupons');
@@ -258,16 +308,40 @@ describe('Relatórios VBA', () => {
       service.financial({ semana: '3926', inicio: '2026-09-20' }, user),
     ).rejects.toMatchObject({ status: 400 });
   });
-  it('relatório de vales não consulta cupons e preserva o resumo fixo', async () => {
+  it('relatório de vales não consulta cupons e agrupa a impressão por placa', async () => {
     const result = await service.financial({ semana: '3926', cupons: 'false' }, user);
     expect(db.frete_cupons.findMany).not.toHaveBeenCalled();
     expect(result.title).toBe('Conferência de vales');
     expect(result.rows.every(row => row[0] === 'Vale')).toBe(true);
-    expect(reportHtml(result)).toContain('SELECIONADOS');
+    const html = reportHtml(result);
+    expect(html).toContain('ABC1234 · VAN · João');
+    expect(html).toContain('ID VALE');
+    expect(html).toContain('CRÉDITOS');
+    expect(html).not.toContain('<h3>DÉBITOS</h3>');
+    expect(html).not.toContain('<h3>CTRB</h3>');
+    expect(html).toContain('TOTAL DA PLACA');
+    expect(html).toContain('0002 - Pedágio');
+    expect(html).not.toContain('TIPO: 0002');
+  });
+  it('mantém o CTRB separado e não o soma ao total da placa', () => {
+    const html = reportHtml({
+      financialKind: 'entries',
+      title: 'Vales',
+      notes: [],
+      columns: ['Origem', 'ID Vale', 'Data', 'Placa', 'Motorista', 'Manifesto', 'Código'],
+      numeric: [10],
+      totals: [],
+      rows: [
+        ['Vale', 1, '20/09/2026', 'ABC1234', 'João', 'M1', '0001', 'Moeda', '', 'Debito', '-10.00'],
+        ['Vale', 2, '20/09/2026', 'ABC1234', 'João', 'M1', '3333', 'CTRB', '', 'Debito', '-5.00'],
+      ],
+    });
+    expect(html).toMatch(/TOTAL DE CTRB<\/th><th class="value">-?R\$\s*5,00/);
+    expect(html).toMatch(/TOTAL DA PLACA<\/strong><span>-?R\$\s*10,00/);
   });
   it('planilha usa histórico, exclui frete zero do CTRB e aplica regra VBA sem rateio', async () => {
     const result = await service.payments(
-      { semana: '3926', empresa: 'MMA' },
+      { semana: '3926', dominio: 'MLN', placa: 'ABC1234' },
       user,
     );
     expect(result.rows[0]).toEqual([
@@ -279,6 +353,7 @@ describe('Relatórios VBA', () => {
       'ABC1234',
       '1000.00',
       '200.00',
+      '25.00',
       '800.00',
       '100.00',
       '700.00',
@@ -287,19 +362,72 @@ describe('Relatórios VBA', () => {
       'SP',
       '150.00',
     ]);
+    expect(result.rows[1]).toEqual([
+      'MMA',
+      null,
+      'SUBTOTAL MMA',
+      null,
+      null,
+      null,
+      '1000.00',
+      '200.00',
+      '25.00',
+      '800.00',
+      '100.00',
+      '700.00',
+      null,
+      null,
+      null,
+      '150.00',
+    ]);
+    expect(result.subtotalRows).toEqual([1]);
+    expect(result.columns[0]).toBe('EMPRESA');
+    expect(result.columns[8]).toBe('CTRB PAGO');
+    expect(result.totalSections).toEqual([
+      {
+        title: 'Totais do frete',
+        totals: [
+          { label: 'Total TTL frete', value: '1000.00' },
+          { label: 'Total líquido sem CTRB', value: '800.00' },
+          { label: 'Total vales', value: '100.00' },
+          { label: 'Total líquido a pagar', value: '700.00' },
+        ],
+      },
+      {
+        title: 'Totais do CTRB',
+        totals: [
+          { label: 'Total CTRB bruto', value: '200.00' },
+          { label: 'Total CTRB líquido', value: '150.00' },
+          { label: 'Total CTRB pago', value: '25.00' },
+          { label: 'Total CTRB a pagar', value: '125.00' },
+        ],
+      },
+      {
+        title: 'Total final',
+        totals: [
+          { label: 'Total líquido a pagar', value: '700.00' },
+          { label: 'Total CTRB a pagar', value: '125.00' },
+          { label: 'Total a pagar', value: '825.00' },
+        ],
+      },
+    ]);
+    expect(result.columns).toContain('PLACA');
+    expect(result.columns).toContain('DOMÍNIO');
+    expect(result.columns).not.toContain('EMPR');
     expect(db.frete_fechamentos.findMany.mock.calls[0][0].where).toMatchObject({
       unit: 100,
       semana: '3926',
       status: 'FECHADO',
     });
     expect(db.frete_carregamento_manifestos.findMany).not.toHaveBeenCalled();
-    expect(
-      (await service.payments({ semana: '3926', empresa: 'ATT' }, user)).rows,
-    ).toHaveLength(0);
     const sheet = reportSpreadsheet(result);
     const sheetContents = sheet.toString('utf8');
     expect(sheet.subarray(0, 2).toString()).toBe('PK');
     expect(sheetContents).toContain('00123456789');
+    expect(sheetContents).toContain('SUBTOTAL MMA');
+    expect(sheetContents).toContain('EMPRESA: MMA');
+    expect(sheetContents).toContain('Total CTRB a pagar');
+    expect(sheetContents).toContain('Total a pagar');
     expect(sheetContents).toContain('<v>700</v>');
     expect(sheetContents).not.toContain('<f>');
   });
@@ -317,7 +445,9 @@ describe('Relatórios VBA', () => {
       { numero: 'asc' },
       { id: 'asc' },
     ]);
-    expect(db.frete_lancamentos.findMany).not.toHaveBeenCalled();
+    expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [9] } },
+    });
     db.frete_fechamentos.findMany.mockResolvedValue([]);
     await expect(service.reprint({ numero: '40' }, user)).rejects.toMatchObject(
       { status: 404 },
@@ -336,6 +466,22 @@ describe('Relatórios VBA', () => {
       unit: { in: [301, 830] },
       status: 'FECHADO',
       semana: '3926',
+    });
+  });
+  it('filtra a reimpressão pela categoria do veículo', async () => {
+    await service.reprint(
+      { semana: '3926', categoria: 'Esporadico' },
+      user,
+    );
+    expect(db.vehicle.findMany).toHaveBeenCalledWith({
+      where: { codVehicleType: { gte: 100 } },
+      select: { plate: true },
+    });
+    expect(db.frete_fechamentos.findMany.mock.calls.at(-1)[0].where).toMatchObject({
+      unit: 100,
+      status: 'FECHADO',
+      semana: '3926',
+      placa: { in: ['ABC1234'] },
     });
   });
   it.each(['FINANCEIRO', 'RH'] as const)(
@@ -370,7 +516,7 @@ describe('Relatórios VBA', () => {
       { ...closure, historico: null },
     ]);
     const r = await service.payments({ semana: '3926' }, user);
-    expect(r.rows[0][14]).toBeNull();
+    expect(r.rows[0][15]).toBeNull();
     expect(r.notes.join(' ')).toContain('sem cópia original');
   });
 });

@@ -29,11 +29,13 @@ export type AggregateFrete_tipos_nota = {
 export type Frete_tipos_notaAvgAggregateOutputType = {
   id: number | null
   unit: number | null
+  alterado_por: number | null
 }
 
 export type Frete_tipos_notaSumAggregateOutputType = {
   id: number | null
   unit: number | null
+  alterado_por: number | null
 }
 
 export type Frete_tipos_notaMinAggregateOutputType = {
@@ -43,6 +45,7 @@ export type Frete_tipos_notaMinAggregateOutputType = {
   nome: string | null
   tipo: string | null
   ativo: boolean | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -54,6 +57,7 @@ export type Frete_tipos_notaMaxAggregateOutputType = {
   nome: string | null
   tipo: string | null
   ativo: boolean | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -65,6 +69,7 @@ export type Frete_tipos_notaCountAggregateOutputType = {
   nome: number
   tipo: number
   ativo: number
+  alterado_por: number
   created_at: number
   updated_at: number
   _all: number
@@ -74,11 +79,13 @@ export type Frete_tipos_notaCountAggregateOutputType = {
 export type Frete_tipos_notaAvgAggregateInputType = {
   id?: true
   unit?: true
+  alterado_por?: true
 }
 
 export type Frete_tipos_notaSumAggregateInputType = {
   id?: true
   unit?: true
+  alterado_por?: true
 }
 
 export type Frete_tipos_notaMinAggregateInputType = {
@@ -88,6 +95,7 @@ export type Frete_tipos_notaMinAggregateInputType = {
   nome?: true
   tipo?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -99,6 +107,7 @@ export type Frete_tipos_notaMaxAggregateInputType = {
   nome?: true
   tipo?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
@@ -110,6 +119,7 @@ export type Frete_tipos_notaCountAggregateInputType = {
   nome?: true
   tipo?: true
   ativo?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -208,6 +218,7 @@ export type Frete_tipos_notaGroupByOutputType = {
   nome: string
   tipo: string
   ativo: boolean
+  alterado_por: number | null
   created_at: Date
   updated_at: Date
   _count: Frete_tipos_notaCountAggregateOutputType | null
@@ -242,6 +253,7 @@ export type frete_tipos_notaWhereInput = {
   nome?: Prisma.StringFilter<"frete_tipos_nota"> | string
   tipo?: Prisma.StringFilter<"frete_tipos_nota"> | string
   ativo?: Prisma.BoolFilter<"frete_tipos_nota"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"frete_tipos_nota"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_tipos_nota"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_tipos_nota"> | Date | string
 }
@@ -253,6 +265,7 @@ export type frete_tipos_notaOrderByWithRelationInput = {
   nome?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.frete_tipos_notaOrderByRelevanceInput
@@ -269,6 +282,7 @@ export type frete_tipos_notaWhereUniqueInput = Prisma.AtLeast<{
   nome?: Prisma.StringFilter<"frete_tipos_nota"> | string
   tipo?: Prisma.StringFilter<"frete_tipos_nota"> | string
   ativo?: Prisma.BoolFilter<"frete_tipos_nota"> | boolean
+  alterado_por?: Prisma.IntNullableFilter<"frete_tipos_nota"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_tipos_nota"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_tipos_nota"> | Date | string
 }, "id" | "unit_codigo">
@@ -280,6 +294,7 @@ export type frete_tipos_notaOrderByWithAggregationInput = {
   nome?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_tipos_notaCountOrderByAggregateInput
@@ -299,6 +314,7 @@ export type frete_tipos_notaScalarWhereWithAggregatesInput = {
   nome?: Prisma.StringWithAggregatesFilter<"frete_tipos_nota"> | string
   tipo?: Prisma.StringWithAggregatesFilter<"frete_tipos_nota"> | string
   ativo?: Prisma.BoolWithAggregatesFilter<"frete_tipos_nota"> | boolean
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_tipos_nota"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"frete_tipos_nota"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_tipos_nota"> | Date | string
 }
@@ -309,6 +325,7 @@ export type frete_tipos_notaCreateInput = {
   nome: string
   tipo: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -320,6 +337,7 @@ export type frete_tipos_notaUncheckedCreateInput = {
   nome: string
   tipo: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -330,6 +348,7 @@ export type frete_tipos_notaUpdateInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -341,6 +360,7 @@ export type frete_tipos_notaUncheckedUpdateInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -352,6 +372,7 @@ export type frete_tipos_notaCreateManyInput = {
   nome: string
   tipo: string
   ativo?: boolean
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -362,6 +383,7 @@ export type frete_tipos_notaUpdateManyMutationInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -373,6 +395,7 @@ export type frete_tipos_notaUncheckedUpdateManyInput = {
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   tipo?: Prisma.StringFieldUpdateOperationsInput | string
   ativo?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -395,6 +418,7 @@ export type frete_tipos_notaCountOrderByAggregateInput = {
   nome?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -402,6 +426,7 @@ export type frete_tipos_notaCountOrderByAggregateInput = {
 export type frete_tipos_notaAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_tipos_notaMaxOrderByAggregateInput = {
@@ -411,6 +436,7 @@ export type frete_tipos_notaMaxOrderByAggregateInput = {
   nome?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -422,6 +448,7 @@ export type frete_tipos_notaMinOrderByAggregateInput = {
   nome?: Prisma.SortOrder
   tipo?: Prisma.SortOrder
   ativo?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -429,6 +456,7 @@ export type frete_tipos_notaMinOrderByAggregateInput = {
 export type frete_tipos_notaSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -447,6 +475,14 @@ export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
@@ -460,6 +496,7 @@ export type frete_tipos_notaSelect<ExtArgs extends runtime.Types.Extensions.Inte
   nome?: boolean
   tipo?: boolean
   ativo?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["frete_tipos_nota"]>
@@ -473,11 +510,12 @@ export type frete_tipos_notaSelectScalar = {
   nome?: boolean
   tipo?: boolean
   ativo?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type frete_tipos_notaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "codigo" | "nome" | "tipo" | "ativo" | "created_at" | "updated_at", ExtArgs["result"]["frete_tipos_nota"]>
+export type frete_tipos_notaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "codigo" | "nome" | "tipo" | "ativo" | "alterado_por" | "created_at" | "updated_at", ExtArgs["result"]["frete_tipos_nota"]>
 
 export type $frete_tipos_notaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_tipos_nota"
@@ -489,6 +527,7 @@ export type $frete_tipos_notaPayload<ExtArgs extends runtime.Types.Extensions.In
     nome: string
     tipo: string
     ativo: boolean
+    alterado_por: number | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["frete_tipos_nota"]>
@@ -866,6 +905,7 @@ export interface frete_tipos_notaFieldRefs {
   readonly nome: Prisma.FieldRef<"frete_tipos_nota", 'String'>
   readonly tipo: Prisma.FieldRef<"frete_tipos_nota", 'String'>
   readonly ativo: Prisma.FieldRef<"frete_tipos_nota", 'Boolean'>
+  readonly alterado_por: Prisma.FieldRef<"frete_tipos_nota", 'Int'>
   readonly created_at: Prisma.FieldRef<"frete_tipos_nota", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"frete_tipos_nota", 'DateTime'>
 }

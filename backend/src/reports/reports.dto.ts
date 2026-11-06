@@ -45,5 +45,16 @@ export class ReportQuery {
   @IsOptional() @IsIn(['true', 'false']) cupons?: string;
   @IsOptional() @IsIn(['despesa', 'inclusao']) data_por?: string;
   @IsOptional() @IsIn(['abertos', 'pagos', 'todos']) situacao?: string;
+  @IsOptional() @IsIn(['todos', 'credito', 'debito']) movimento?: string;
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MaxLength(10)
+  tipo?: string;
   @IsOptional() @Matches(/^\d{1,9}$/) numero?: string;
+  @IsOptional()
+  @IsIn(['Todos', 'Agregado', 'Esporadico'])
+  categoria?: 'Todos' | 'Agregado' | 'Esporadico';
 }

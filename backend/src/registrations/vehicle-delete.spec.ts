@@ -8,7 +8,7 @@ function setup(count = 1) {
 it('exclui logicamente apenas o veículo ativo e registra o usuário', async () => {
   const { service, updateMany } = setup();
   expect(await service.removeVehicle('abc1d23', user)).toEqual({ plate: 'ABC1D23', excluded: true });
-  expect(updateMany).toHaveBeenCalledWith({ where: { plate: 'ABC1D23', canceled: false }, data: { canceled: true, user: 2 } });
+  expect(updateMany).toHaveBeenCalledWith({ where: { plate: 'ABC1D23', canceled: false }, data: { canceled: true, user: 2, alterado_por: 2 } });
 });
 it('rejeita placa inválida sem alterar registros', async () => {
   const { service, updateMany } = setup();

@@ -84,6 +84,67 @@ describe('FreightClosuresService', () => {
     expect(result.availableDebits).toEqual([]);
     expect(result.entries).toHaveLength(1);
   });
+  it('mostrar fechamento usa exatamente a cópia histórica da finalização', async () => {
+    const historicalEntry = {
+      id: 77,
+      controle_id: 177,
+      placa: dto.placa,
+      tipo_despesa: 'Debito',
+      codigo_despesa: '0005',
+      valor: '25',
+    };
+    db.frete_fechamentos.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 6,
+        numero: 10001,
+        unit: 2,
+        semana: '0001',
+        placa: dto.placa,
+        status: 'FECHADO',
+        periodo_inicio: new Date('2026-09-21'),
+        periodo_fim: new Date('2026-09-27'),
+        total_bruto: new Decimal(100),
+        total_ctrb: new Decimal(20),
+        total_liquido: new Decimal(75),
+        historico: {
+          finalizacao: {
+            dados: {
+              manifests: [{ id: 10, placa: dto.placa, manifestos: 'ORIGINAL' }],
+              entries: [historicalEntry],
+              coupons: [],
+              totals: {
+                total_bruto: '100',
+                total_ctrb: '20',
+                total_liquido: '75',
+              },
+              payment: null,
+            },
+          },
+        },
+      },
+    ]);
+    const result = await service.historicalConference(
+      { semana: '0001', finalizados: 'true' },
+      user,
+    );
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0]).toMatchObject({
+      closureNumber: 10001,
+      isClosed: true,
+      reportOrigin: 'FINALIZACAO',
+      manifests: [{ manifestos: 'ORIGINAL' }],
+      entries: [historicalEntry],
+    });
+    expect(db.frete_fechamentos.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          unit: 2,
+          semana: '0001',
+          status: 'FECHADO',
+        }),
+      }),
+    );
+  });
   it('consulta a ultima numeracao da semana globalmente', async () => {
     db.frete_carregamento_manifestos.findFirst.mockResolvedValue({
       num_fechamento: 10007,
@@ -117,11 +178,11 @@ describe('FreightClosuresService', () => {
     });
     expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { fechamento_id: 6, num_fechamento: 10001 },
+        data: { fechamento_id: 6, num_fechamento: 10001, alterado_por: user.cod },
       }),
     );
     expect(db.frete_cupons.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { fechamento_id: 6, pago: true } }),
+      expect.objectContaining({ data: { fechamento_id: 6, pago: true, alterado_por: user.cod } }),
     );
   });
   it('impede o fechamento quando o valor líquido está negativo', async () => {
@@ -152,7 +213,7 @@ describe('FreightClosuresService', () => {
     });
     expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { fechamento_id: 7, num_fechamento: 10002 },
+        data: { fechamento_id: 7, num_fechamento: 10002, alterado_por: user.cod },
       }),
     );
   });
@@ -174,8 +235,8 @@ describe('FreightClosuresService', () => {
 
     expect(db.frete_lancamentos.findMany).toHaveBeenCalledWith({
       where: {
-        unit: 2,
         placa: 'ABC1234',
+        cancelado: false,
         pago: false,
         fechamento_id: null,
         OR: [
@@ -192,19 +253,129 @@ describe('FreightClosuresService', () => {
           },
           {
             tipo_despesa: { in: ['Credito', 'Adiantamento'] },
-            data_lancamento: {
-              gte: new Date('2026-09-21'),
-              lte: new Date('2026-09-27'),
-            },
             OR: [
               { manifesto_id: { in: [10] } },
-              { manifesto_id: null },
+              { manifesto_id: null, manifesto_numero: { in: [] } },
+              {
+                manifesto_id: null,
+                manifesto_numero: null,
+                data_lancamento: {
+                  gte: new Date('2026-09-21'),
+                  lte: new Date('2026-09-27'),
+                },
+              },
             ],
           },
         ],
       },
       orderBy: { id: 'asc' },
     });
+  });
+  it('carrega cupons abertos de qualquer semana para a placa', async () => {
+    await service.preview(dto, user);
+
+    expect(db.frete_cupons.findMany).toHaveBeenCalledWith({
+      include: {
+        nota: { select: { codigo_tipo: true, nome_tipo: true } },
+      },
+      where: {
+        placa: 'ABC1234',
+        pago: false,
+        fechamento_id: null,
+      },
+      orderBy: { id: 'asc' },
+    });
+  });
+  it('trata credito de manifesto fechado como pagamento extra sem repetir o frete', async () => {
+    const closedManifest = {
+      id: 99,
+      unit: 2,
+      placa: dto.placa,
+      motorista: 'Motorista',
+      origem: 'SP',
+      fechamento_id: 8,
+      frete_veiculo: new Decimal(500),
+      ctrb_total: new Decimal(600),
+    };
+    db.frete_carregamento_manifestos.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([closedManifest]);
+    db.frete_lancamentos.findMany.mockResolvedValue([
+      {
+        id: 50,
+        unit: 2,
+        placa: dto.placa,
+        motorista: 'Motorista',
+        manifesto_id: 99,
+        manifesto_numero: '000123-4',
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: 'Credito',
+        codigo_despesa: '0060',
+        valor: new Decimal(75),
+      },
+    ]);
+    db.frete_cupons.findMany.mockResolvedValue([]);
+
+    const result = await service.preview(dto, user);
+
+    expect(result.manifests).toHaveLength(0);
+    expect(result.entries).toHaveLength(1);
+    expect(result.totals.fretes.toString()).toBe('0');
+    expect(result.totals.creditos.toString()).toBe('75');
+    expect(result.totals.total_liquido.toString()).toBe('75');
+    expect(result.motorista).toBe('Motorista');
+  });
+  it('mantem cupom desmarcado em aberto e fora do total do fechamento', async () => {
+    const result = await service.preview({ ...dto, coupon_ids: [] }, user);
+
+    expect(result.availableCoupons).toHaveLength(1);
+    expect(result.coupons).toHaveLength(0);
+    expect(result.totals.cupons.toString()).toBe('0');
+    expect(result.totals.total_liquido.toString()).toBe('110');
+  });
+  it('inclui debito e cupom da placa mesmo quando foram lancados em outra unidade', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([
+      {
+        id: 10,
+        unit: 100,
+        num_fechamento: 10001,
+        frete_veiculo: new Decimal(500),
+        ctrb_total: new Decimal(0),
+      },
+    ]);
+    db.frete_lancamentos.findMany.mockResolvedValue([
+      {
+        id: 883,
+        unit: 301,
+        placa: dto.placa,
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: 'Debito',
+        codigo_despesa: '0001',
+        valor: new Decimal(200),
+      },
+      {
+        id: 884,
+        unit: 301,
+        placa: dto.placa,
+        pago: false,
+        fechamento_id: null,
+        tipo_despesa: 'Credito',
+        valor: new Decimal(50),
+      },
+    ]);
+    db.frete_cupons.findMany.mockResolvedValue([
+      { id: 92, unit: 301, placa: dto.placa, valor: new Decimal(50) },
+    ]);
+
+    const result = await service.preview(dto, user);
+
+    expect(result.entries[0].id).toBe(883);
+    expect(result.entries[1].id).toBe(884);
+    expect(result.coupons[0].id).toBe(92);
+    expect(result.unit).toBe(100);
+    expect(result.totals.total_liquido.toString()).toBe('300');
   });
   it('impede fechamento quando o CTRB está repetido em dois manifestos', async () => {
     db.frete_carregamento_manifestos.findMany.mockResolvedValue([
@@ -232,7 +403,6 @@ describe('FreightClosuresService', () => {
     expect(db.frete_fechamentos.create).not.toHaveBeenCalled();
   });
   it.each([
-    { unit: 3 },
     { pago: true },
     { fechamento_id: 8 },
     { placa: 'XYZ1234' },
@@ -434,7 +604,7 @@ describe('FreightClosuresService', () => {
       });
       expect(db.frete_carregamento_manifestos.updateMany).toHaveBeenCalledWith({
         where: { fechamento_id: 6, unit: 2 },
-        data: { fechamento_id: null, num_fechamento: null },
+        data: { fechamento_id: null, num_fechamento: null, alterado_por: user.cod },
       });
     });
     it('aceita fechamento legado sem histórico', async () => {
@@ -468,14 +638,18 @@ describe('FreightClosuresService', () => {
         service.cancel(6, { motivo: 'Correção' }, admin),
       ).rejects.toMatchObject({ status: 404 });
     });
-    it('aborta quando há vínculo entre unidades', async () => {
+    it('reabre cupom da mesma placa mesmo quando foi lancado em outra unidade', async () => {
       db.frete_cupons.findMany.mockResolvedValue([
         { unit: 3, placa: dto.placa, pago: true },
       ]);
+
       await expect(
         service.cancel(6, { motivo: 'Correção' }, admin),
-      ).rejects.toMatchObject({ status: 409 });
-      expect(db.frete_fechamentos.updateMany).not.toHaveBeenCalled();
+      ).resolves.toMatchObject({ reabertos: { coupons: 1 } });
+      expect(db.frete_cupons.updateMany).toHaveBeenCalledWith({
+        where: { fechamento_id: 6, placa: dto.placa },
+        data: { fechamento_id: null, pago: false, alterado_por: user.cod },
+      });
     });
     it('aborta toda a operação quando a contagem diverge', async () => {
       db.frete_cupons.updateMany.mockResolvedValue({ count: 0 });

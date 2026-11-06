@@ -3,6 +3,8 @@ import SortableTable from "./SortableTable";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
 import DriverSelect from "./DriverSelect";
+import QuickDateInput from "./QuickDateInput";
+import { valeIdentifier } from "./vale-identifier";
 
 type Note = {
   id: number;
@@ -17,6 +19,7 @@ type Note = {
 };
 type Coupon = {
   id: number;
+  controle_id?: number | null;
   placa: string;
   motorista: string;
   semana: string;
@@ -52,10 +55,16 @@ export default function InvoiceConsultation({
     [couponForm, setCouponForm] = useState<Coupon | "new" | null>(null);
   const [deleting, setDeleting] = useState<"note" | Coupon | null>(null);
   const [editingType, setEditingType] = useState<NoteType | null>(null);
+  const [noteQuery, setNoteQuery] = useState("");
   const [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [success, setSuccess] = useState("");
+  const visibleNotes = notes.filter((note) => {
+    const query = noteQuery.trim().toLowerCase();
+    return !query || [note.numero, note.nome_tipo, note.departamento]
+      .some((value) => String(value ?? "").toLowerCase().includes(query));
+  });
   function fail(e: unknown) {
     if (e instanceof ApiError && e.status === 401) expired();
     else setError((e as Error).message);
@@ -356,10 +365,9 @@ export default function InvoiceConsultation({
               <div className="legacy-identity">
                 <label>
                   Inclusão
-                  <input
+                  <QuickDateInput
                     aria-label="Data de emissão"
                     name="emitido_em"
-                    type="date"
                     required
                     defaultValue={n?.emitido_em.slice(0, 10)}
                   />
@@ -378,10 +386,9 @@ export default function InvoiceConsultation({
                 </label>
                 <label>
                   Data
-                  <input
+                  <QuickDateInput
                     aria-label="Data da nota"
                     name="data_nota"
-                    type="date"
                     required
                     defaultValue={n?.data_nota.slice(0, 10)}
                   />
@@ -454,6 +461,10 @@ export default function InvoiceConsultation({
       )}
       <section className="panel">
         <div className="filters">
+          <label>
+            Pesquisar nota
+            <input type="search" placeholder="Número ou tipo da nota" value={noteQuery} onChange={(event) => setNoteQuery(event.target.value)} />
+          </label>
           <button
             className="secondary"
             disabled={busy || loading || editing}
@@ -470,7 +481,7 @@ export default function InvoiceConsultation({
           <p className="empty" role="status">
             Carregando notas…
           </p>
-        ) : !notes.length ? (
+        ) : !visibleNotes.length ? (
           <p className="empty">Nenhuma nota disponível na consulta.</p>
         ) : (
           <div className="table-scroll">
@@ -484,7 +495,7 @@ export default function InvoiceConsultation({
                 </tr>
               </thead>
               <tbody>
-                {notes.map((note) => (
+                {visibleNotes.map((note) => (
                   <tr key={note.id}>
                     <td>
                       {note.numero}
@@ -563,8 +574,8 @@ export default function InvoiceConsultation({
                 <tbody>
                   {coupons.map((coupon) => (
                     <tr key={coupon.id}>
-                      <td data-sort-primary={coupon.id} data-sort-secondary={coupon.placa} data-sort-tertiary={coupon.motorista}>
-                        {coupon.id} · {coupon.placa}
+                      <td data-sort-primary={valeIdentifier(coupon)} data-sort-secondary={coupon.placa} data-sort-tertiary={coupon.motorista}>
+                        {valeIdentifier(coupon)} · {coupon.placa}
                         <small>{coupon.motorista}</small>
                       </td>
                       <td>{coupon.semana}</td>
@@ -578,14 +589,14 @@ export default function InvoiceConsultation({
                               disabled={busy || editing}
                               onClick={() => setCouponForm(coupon)}
                             >
-                              Editar cupom {coupon.id}
+                              Editar cupom {valeIdentifier(coupon)}
                             </button>
                             <button
                               className="text-button"
                               disabled={busy || editing}
                               onClick={() => setDeleting(coupon)}
                             >
-                              Excluir cupom {coupon.id}
+                              Excluir cupom {valeIdentifier(coupon)}
                             </button>
                           </>
                         )}
@@ -614,7 +625,7 @@ export default function InvoiceConsultation({
               onSubmit={saveCoupon}
               className="legacy-form"
             >
-              <h3>{c ? `Editar cupom ${c.id}` : "Novo cupom"}</h3>
+              <h3>{c ? `Editar cupom ${valeIdentifier(c)}` : "Novo cupom"}</h3>
               {c && (
                 <p className="alert">
                   Confira o motorista selecionado para este cupom.
@@ -703,7 +714,7 @@ export default function InvoiceConsultation({
               <p>
                 {deleting === "note"
                   ? `Excluir a nota ${selected.numero} e todos os seus cupons abertos?`
-                  : `Excluir o cupom ${deleting.id} e devolver seu valor ao saldo da nota?`}{" "}
+                  : `Excluir o cupom ${valeIdentifier(deleting)} e devolver seu valor ao saldo da nota?`}{" "}
                 Esta ação não pode ser desfeita.
               </p>
               <button

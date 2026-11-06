@@ -20,8 +20,25 @@ import Units from "./Units";
 import FinancialReports from "./FinancialReports";
 import ReprintClosures from "./ReprintClosures";
 import ManifestClosureReport from "./ManifestClosureReport";
+import ValeInvoices from "./ValeInvoices";
+import ValeNavigation from "./ValeNavigation";
+import CouponNavigation from "./CouponNavigation";
+import ClosureNavigation from "./ClosureNavigation";
 import { useManifestCalculation } from "./useManifestCalculation";
 import { installSelectAllFields } from "./select-all-fields";
+import Users from "./Users";
+import { valeIdentifier } from "./vale-identifier";
+import BackToTop from "./BackToTop";
+
+type ManifestCreditRecord = {
+  id: number;
+  controle_id?: number | null;
+  codigo_despesa: string;
+  nome_despesa: string;
+  tipo_despesa: string;
+  valor: string;
+  descricao?: string | null;
+};
 
 type Manifest = {
   id: number;
@@ -40,10 +57,13 @@ type Manifest = {
   cancelado?: boolean;
   cancelado_em?: string | null;
   cancelado_por?: number | null;
+  creditos?: ManifestCreditRecord[];
   [key: string]: unknown;
 };
 type Week = { codigo: string; data_inicio: string; data_fim: string };
 type Destination = { id: number; nome: string };
+type Expense = { id: number; codigo: string; nome: string; tipo: string; ativo: boolean };
+type ManifestCredit = { id: number; expenseId: string; value: string; description: string };
 const money = (value: unknown) =>
   Number(value || 0).toLocaleString("pt-BR", {
     style: "currency",
@@ -61,6 +81,17 @@ const manifestNumbers = (m: Partial<Manifest>) =>
     m.manifesto_adicional_3,
   ].filter((value): value is string => typeof value === "string" && value.trim() !== "");
 const manifestLabel = (m: Partial<Manifest>) => manifestNumbers(m).join(" / ");
+const creditTypeLabel = (type: string) =>
+  type.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "credito"
+    ? "Crédito"
+    : type;
+const manifestCreditNotice = (manifest: Manifest) =>
+  (manifest.creditos ?? [])
+    .map(
+      (credit) =>
+        `Vale ${valeIdentifier(credit)} — ${creditTypeLabel(credit.tipo_despesa)} — ${credit.codigo_despesa} · ${credit.nome_despesa}`,
+    )
+    .join("; ");
 type ManifestParts = { prefix: string; suffix: string };
 const splitManifestParts = (value?: string | null): ManifestParts => {
   const text = String(value ?? "");
@@ -73,10 +104,35 @@ const joinManifestParts = (parts: ManifestParts) => `${parts.prefix}${parts.suff
 
 export default function App() {
   useEffect(() => installSelectAllFields(document), []);
+  useEffect(() => {
+    const confirmationPattern = /^Confirmar (exclusão|cancelamento|desativação)$/i;
+    const revealConfirmation = (root: Node) => {
+      if (!(root instanceof HTMLElement)) return;
+      const buttons = [
+        ...(root instanceof HTMLButtonElement ? [root] : []),
+        ...Array.from(root.querySelectorAll<HTMLButtonElement>("button")),
+      ];
+      const confirmation = buttons.find((button) =>
+        confirmationPattern.test(button.textContent?.trim() ?? ""),
+      );
+      if (!confirmation || confirmation.closest("dialog")) return;
+      const target = confirmation.closest<HTMLElement>('[role="alert"]') ?? confirmation;
+      requestAnimationFrame(() => {
+        target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      });
+    };
+    const observer = new MutationObserver((changes) => {
+      for (const change of changes)
+        for (const node of change.addedNodes) revealConfirmation(node);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   // Token stays in memory; reloading the page requires a new login.
   const [session, setSession] = useState<Session | null>(null);
   const [notice, setNotice] = useState("");
   const [page, setPage] = useState<Page>("home");
+  const [openClosureConsultation, setOpenClosureConsultation] = useState(false);
   const [entryManifestId, setEntryManifestId] = useState<number | null>(null);
   if (!session)
     return (
@@ -97,14 +153,18 @@ export default function App() {
   const pageTitle =
     page === "destinations"
       ? "Destinos"
+      : page === "users"
+        ? "Usuários"
       : page === "reprint-closures"
         ? "Reimprimir fechamentos"
       : page === "financial-report"
         ? "Relatório de vales"
+        : page === "vale-invoices"
+          ? "Fechamentos de vales"
         : page === "manifest-closure-report"
-          ? "Relatório de CTRB"
+          ? "Números de fechamento"
         : page === "coupons-report"
-          ? "Relat?rio de cupons"
+          ? "Relatório de cupons"
           : page === "payments-report"
             ? "Planilha de pagamentos"
             : page === "home"
@@ -126,7 +186,7 @@ export default function App() {
                           : page === "drivers"
                             ? "Motoristas"
                             : page === "vehicles"
-                              ? "Ve?culos"
+                              ? "Veículos"
                               : "Despesas";
   return (
     <div className="shell">
@@ -136,12 +196,38 @@ export default function App() {
         page={page}
         navigate={(next) => {
           setEntryManifestId(null);
+          setOpenClosureConsultation(false);
           setPage(next);
         }}
         logout={() => setSession(null)}
         title={pageTitle}
       />
       <main>
+        {allowed && ["entries", "financial-report", "vale-invoices"].includes(page) && (
+          <ValeNavigation
+            page={page}
+            navigate={(next) => {
+              setEntryManifestId(null);
+              setPage(next);
+            }}
+          />
+        )}
+        {allowed && ["invoices", "coupons-report"].includes(page) && (
+          <CouponNavigation page={page} navigate={setPage} />
+        )}
+        {allowed && page === "reprint-closures" && (
+          <ClosureNavigation
+            page={page}
+            navigate={(next) => {
+              setOpenClosureConsultation(false);
+              setPage(next);
+            }}
+            openConsultation={() => {
+              setOpenClosureConsultation(true);
+              setPage("closures");
+            }}
+          />
+        )}
         {allowed ? (
           page === "home" ? (
             <section className="content home-content">
@@ -167,6 +253,16 @@ export default function App() {
               kind={page === "financial-report" ? "financial" : page === "coupons-report" ? "coupons" : "payments"}
               token={session.accessToken}
               isAdmin={hasGlobalFreightAccess}
+              userUnit={session.user.unit}
+              expired={() => {
+                setSession(null);
+                setNotice("Sua sessão expirou. Entre novamente.");
+              }}
+            />
+          ) : page === "vale-invoices" ? (
+            <ValeInvoices
+              token={session.accessToken}
+              globalAccess={hasGlobalFreightAccess}
               userUnit={session.user.unit}
               expired={() => {
                 setSession(null);
@@ -209,6 +305,11 @@ export default function App() {
               setSession(null);
               setNotice("Sua sessão expirou. Entre novamente.");
             }} />
+          ) : page === "users" ? (
+            <Users token={session.accessToken} expired={() => {
+              setSession(null);
+              setNotice("Sua sessão expirou. Entre novamente.");
+            }} />
           ) : page === "payers" || page === "drivers" || page === "vehicles" ? (
             <Registrations
               key={page}
@@ -236,6 +337,8 @@ export default function App() {
               token={session.accessToken}
               isAdmin={hasGlobalFreightAccess}
               userUnit={session.user.unit}
+              initialConsulting={openClosureConsultation}
+              openReprint={() => setPage("reprint-closures")}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -276,6 +379,7 @@ export default function App() {
           </section>
         )}
       </main>
+      <BackToTop />
     </div>
   );
 }
@@ -469,7 +573,7 @@ function Manifests({
     try {
       const manifest = await api<Manifest>(`/manifests/${id}`, token);
       if (closed(manifest)) {
-        setError("Manifesto fechado não pode ser editado.");
+        setSelected(manifest);
         return;
       }
       setEditing(manifest);
@@ -509,7 +613,7 @@ function Manifests({
       <section className="panel">
         <form className="filters" onSubmit={(event) => { event.preventDefault(); void load(search); }}>
           <label>
-            NÃºmero do manifesto
+            Número do manifesto
             <input
               placeholder="Pode informar sem a unidade"
               value={search}
@@ -546,7 +650,7 @@ function Manifests({
                 <th>Frete do veículo</th>
                 <th>Situação</th>
                 <th>
-                  <span className="sr-only">Edição</span>
+                  <span className="sr-only">Ação</span>
                 </th>
                 <th className="manifest-delete-column">
                   <span className="sr-only">Exclusão</span>
@@ -569,17 +673,28 @@ function Manifests({
                     <td className="currency">{money(m.frete_veiculo)}</td>
                     <td>
                       <span className={`badge ${closed(m) || canceled(m) ? "closed" : ""}`}>
-                        {canceled(m) ? "Cancelado" : closed(m) ? "Fechado" : "Em aberto"}
+                        {canceled(m)
+                          ? "Cancelado"
+                          : closed(m)
+                            ? m.num_fechamento != null
+                              ? `Fechado · ${String(m.num_fechamento).padStart(8, "0")}`
+                              : "Fechado"
+                            : "Em aberto"}
                       </span>
                     </td>
                     <td>
                       <button
                         className="text-button"
-                        disabled={closed(m) || canceled(m)}
-                        onClick={() => void editManifest(m.id)}
-                        aria-label={`Editar manifesto ${manifestLabel(m)}`}
+                        onClick={() =>
+                          closed(m) || canceled(m)
+                            ? void detail(m.id)
+                            : void editManifest(m.id)
+                        }
+                        aria-label={`${closed(m) || canceled(m) ? "Consultar" : "Editar"} manifesto ${manifestLabel(m)}`}
                       >
-                        Editar manifesto
+                        {closed(m) || canceled(m)
+                          ? "Consultar manifesto"
+                          : "Editar manifesto"}
                       </button>
                     </td>
                     <td className="manifest-delete-column">
@@ -623,51 +738,33 @@ function Manifests({
       </div>
       {selected && (
         <Modal
-          title={`Manifesto ${manifestLabel(selected)}`}
+          title={`Consultar manifesto ${manifestLabel(selected)}`}
           close={() => setSelected(null)}
           locked={saving}
+          className="manifest-edit-dialog"
         >
-          <p>
-            {selected.placa} · {selected.motorista}
+          <p className="manifest-readonly-status">
+            <span className="badge closed">
+              {canceled(selected)
+                ? "Cancelado"
+                : closed(selected)
+                  ? selected.num_fechamento != null
+                    ? `Fechado · ${String(selected.num_fechamento).padStart(8, "0")}`
+                    : "Fechado"
+                  : "Em aberto"}
+            </span>
+            <span>Consulta somente para visualização. Nenhuma informação pode ser alterada.</span>
           </p>
-          <p>
-            {date(selected.semana)} · {selected.destino}
-          </p>
-          <span className="badge">
-            {canceled(selected)
-              ? "Cancelado"
-              : closed(selected)
-              ? `Fechado · ${selected.num_fechamento ?? selected.fechamento_id}`
-              : "Em aberto"}
-          </span>
-          <dl className="detail-grid">
-            {[
-              ["Frete do veículo", "frete_veiculo"],
-              ["Frete total", "frete_total"],
-              ["CTRB total", "ctrb_total"],
-              ["Retenções", "total_retencoes"],
-              ["Líquido CTRB", "valor_liquido"],
-              ["Vale-pedágio", "vale_pedagio"],
-            ].map(([label, key]) => (
-              <div key={key}>
-                <dt>{label}</dt>
-                <dd>{money(selected[key])}</dd>
-              </div>
-            ))}
-          </dl>
-          <p>{String(selected.observacao || "Sem observações.")}</p>
-          {!closed(selected) && !canceled(selected) && (
-            <button
-              className="primary"
-              disabled={saving}
-              onClick={() => {
-                setEditing(selected);
-                setSelected(null);
-              }}
-            >
-              Editar manifesto
-            </button>
-          )}
+          <CreateManifest
+            unit={session.user.unit}
+            initial={selected}
+            readOnly
+            token={token}
+            destinations={destinations}
+            onExpired={expired}
+            onBusy={setSaving}
+            done={() => undefined}
+          />
           <button
             type="button"
             className="secondary"
@@ -688,7 +785,7 @@ function Manifests({
               done={(count) => {
                 setSelected(null);
                 setSuccess(
-                  `Manifesto excluído com ${count} vales vinculados.`,
+                  `Manifesto cancelado com ${count} vales vinculados também cancelados.`,
                 );
                 void load();
               }}
@@ -707,7 +804,8 @@ function Manifests({
           onBusy={setSaving}
           done={(m) => {
             setFormVersion(version => version + 1);
-            setSuccess(`Manifesto ${manifestLabel(m)} cadastrado com sucesso.`);
+            const credits = manifestCreditNotice(m);
+            setSuccess(`Manifesto ${manifestLabel(m)} cadastrado com sucesso.${credits ? ` ${credits}.` : ""}`);
           }}
         />
       </section>}
@@ -727,7 +825,8 @@ function Manifests({
             onBusy={setSaving}
             done={(m) => {
               setEditing(null);
-              setSuccess(`Manifesto ${manifestLabel(m)} atualizado com sucesso.`);
+              const credits = manifestCreditNotice(m);
+              setSuccess(`Manifesto ${manifestLabel(m)} atualizado com sucesso.${credits ? ` ${credits}.` : ""}`);
               void load();
             }}
           />
@@ -750,7 +849,7 @@ function Manifests({
             autoCheck
             done={(count) => {
               setDeletingManifest(null);
-              setSuccess(`Manifesto excluído com ${count} vales vinculados.`);
+              setSuccess(`Manifesto cancelado com ${count} vales vinculados também cancelados.`);
               void load();
             }}
           />
@@ -804,12 +903,12 @@ function Modal({
 }
 
 const amounts = [
-  ["cod_777_00", "Frete 777"],
-  ["cod_888_00", "Frete 888"],
-  ["cod_999_00", "Frete 999"],
-  ["nao_777", "Não entregue 777"],
-  ["nao_888", "Não entregue 888"],
-  ["nao_999", "Não entregue 999"],
+  ["cod_777_00", "Frete 301"],
+  ["cod_888_00", "Frete COL"],
+  ["cod_999_00", "Frete 100"],
+  ["nao_777", "Não entregue 301"],
+  ["nao_888", "Não entregue COL"],
+  ["nao_999", "Não entregue 100"],
   ["outros", "Outros"],
   ["diaria", "Diária"],
   ["tde", "TDE"],
@@ -831,6 +930,7 @@ function CreateManifest({
   done,
   onExpired,
   initial,
+  readOnly = false,
   onBusy,
 }: {
   unit: number;
@@ -839,6 +939,7 @@ function CreateManifest({
   done: (m: Manifest) => void;
   onExpired: () => void;
   initial?: Manifest;
+  readOnly?: boolean;
   onBusy: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -862,13 +963,26 @@ function CreateManifest({
       .map(splitManifestParts),
   );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+  const [creditExpenses, setCreditExpenses] = useState<Expense[]>([]);
+  const [credits, setCredits] = useState<ManifestCredit[]>(
+    initial ? [] : [{ id: 1, expenseId: "", value: "", description: "" }],
+  );
+  const nextCreditId = useRef(initial ? 1 : 2);
+  const initialDestinationId = initial
+    ? destinations.find(
+        (destination) =>
+          destination.nome.trim().localeCompare(initial.destino.trim(), "pt-BR", {
+            sensitivity: "base",
+          }) === 0,
+      )?.id
+    : undefined;
   useEffect(() => {
     if (initial) return;
     requestAnimationFrame(() => {
       firstManifestFieldRef.current?.focus();
       firstManifestFieldRef.current?.select();
     });
-  }, [initial]);
+  }, [initial, destinations]);
   useEffect(() => {
     let active = true;
     api<{ plate: string; driver_cpf?:string|null; driver_name?:string|null }[]>("/registrations/vehicles", token)
@@ -879,6 +993,22 @@ function CreateManifest({
         else setError((e as Error).message);
       })
       .finally(() => { if (active) setLoadingVehicles(false); });
+    return () => { active = false; };
+  }, [token]);
+  useEffect(() => {
+    let active = true;
+    api<Expense[]>("/freight-expenses", token)
+      .then((rows) => {
+        if (!active) return;
+        setCreditExpenses(rows.filter((row) =>
+          row.ativo && row.tipo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "credito",
+        ));
+      })
+      .catch((e) => {
+        if (!active) return;
+        if (e instanceof ApiError && e.status === 401) onExpired();
+        else setError((e as Error).message);
+      });
     return () => { active = false; };
   }, [token]);
   function moneyFields(keys: string[]) {
@@ -931,6 +1061,7 @@ function CreateManifest({
   }, [calculation.preview?.vehicle.type]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) return;
     const fields = new FormData(event.currentTarget);
     const payload: Record<string, unknown> = {};
     for (const [key, value] of fields) {
@@ -956,6 +1087,19 @@ function CreateManifest({
     }
     payload.ctrb_numero = ctrb || null;
     payload.hora = enteredTime;
+    const enteredCredits = credits.filter((credit) =>
+      credit.expenseId || credit.value.trim() || credit.description.trim(),
+    );
+    if (enteredCredits.some((credit) => !credit.expenseId || Number(credit.value) <= 0)) {
+      setError("Preencha o tipo/despesa e um valor maior que zero em todos os créditos.");
+      return;
+    }
+    if (enteredCredits.length)
+      payload.creditos = enteredCredits.map((credit) => ({
+        despesa_id: Number(credit.expenseId),
+        valor: Number(credit.value),
+        descricao: credit.description.trim(),
+      }));
     const formatted = formatManifestNumber(String(payload.manifestos ?? ''));
     if (formatted) payload.manifestos = formatted;
     else if (!initial || payload.manifestos !== initial.manifestos) {
@@ -1023,7 +1167,7 @@ function CreateManifest({
   }
   return (
     <form ref={formRef} onSubmit={submit} onChange={calculation.changed} className="legacy-form manifest-compact">
-      {initial && (
+      {initial && !readOnly && (
         <p className="alert">
           Confira o motorista selecionado e o destino antes de salvar.
         </p>
@@ -1033,7 +1177,7 @@ function CreateManifest({
           {error}
         </p>
       )}
-      <fieldset disabled={busy}>
+      <fieldset disabled={busy || readOnly}>
         <fieldset className="legacy-group">
           <legend>A receber</legend>
           <div className="form-grid legacy-manifest-header">
@@ -1148,7 +1292,7 @@ function CreateManifest({
                   onBlur={e => {
                     const value = parseQuickDate(e.target.value);
                     if (value) e.target.value = value.display;
-                    e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe uma data v?lida, como 121226 ou 12/12/2026.');
+                    e.target.setCustomValidity(value || !e.target.value ? '' : 'Informe uma data válida, como 121226 ou 12/12/2026.');
                   }}
                   required
                 />
@@ -1191,7 +1335,7 @@ function CreateManifest({
             />
             <label>
               Destino
-              <SearchableSelect aria-label="Destino" name="destino_id" required defaultValue="">
+              <SearchableSelect aria-label="Destino" name="destino_id" required defaultValue={initialDestinationId == null ? "" : String(initialDestinationId)}>
                 <option value="" disabled>
                   Selecione
                 </option>
@@ -1278,7 +1422,8 @@ function CreateManifest({
         </fieldset>
         </div>
         <div className="manifest-side-blocks">
-        <fieldset className="legacy-group">
+        <div className="manifest-payable-layout">
+        <fieldset className="legacy-group manifest-payable-group">
           <legend>A pagar <HelpTip label="A pagar">Os pagamentos vinculados podem ser incluídos na tela Vales, acessível pelo Menu após salvar o manifesto.</HelpTip></legend>
           <div className="form-grid">
             <label>
@@ -1287,17 +1432,49 @@ function CreateManifest({
             </label>
             <label>
               Frete do veículo
-              <input
-                name="frete_veiculo"
-                type="number"
-                min="0"
-                step="0.0001"
-                placeholder="Informe o frete"
-                required
-              />
+              <input name="frete_veiculo" type="number" min="0" step="0.0001" placeholder="Informe o frete" required />
             </label>
           </div>
         </fieldset>
+        {!initial && <button type="button" className="secondary manifest-credit-add" disabled={!creditExpenses.length}
+          onClick={() => setCredits((rows) => [...rows, { id: nextCreditId.current++, expenseId: "", value: "", description: "" }])}>
+          + Adicionar créditos
+        </button>}
+        </div>
+        {initial && !!initial.creditos?.length && (
+          <section className="manifest-existing-credits" aria-label="Créditos vinculados ao manifesto">
+            <h3>Créditos do manifesto</h3>
+            {initial.creditos.map((credit) => (
+              <div className="manifest-credit-row" key={credit.id}>
+                <strong>Vale {valeIdentifier(credit)} — {creditTypeLabel(credit.tipo_despesa)}</strong>
+                <span>{credit.codigo_despesa} · {credit.nome_despesa}</span>
+                <span>{money(credit.valor)}</span>
+                <span>{credit.descricao || ""}</span>
+              </div>
+            ))}
+          </section>
+        )}
+        {credits.map((credit, index) => (
+          <div className="manifest-credit-row" key={credit.id}>
+            <label>Tipo / Despesa
+              <select aria-label={`Despesa do crédito ${index + 1}`} required={!!(credit.expenseId || credit.value || credit.description)} value={credit.expenseId}
+                onChange={(event) => setCredits((rows) => rows.map((row) => row.id === credit.id ? { ...row, expenseId: event.target.value } : row))}>
+                <option value="" disabled>Selecione</option>
+                {creditExpenses.map((expense) => <option key={expense.id} value={expense.id}>{expense.codigo} · {expense.nome}</option>)}
+              </select>
+            </label>
+            <label>Valor
+              <input aria-label={`Valor do crédito ${index + 1}`} type="number" min="0.01" max="9999999999999.99" step="0.01" required={!!(credit.expenseId || credit.value || credit.description)} value={credit.value}
+                onChange={(event) => setCredits((rows) => rows.map((row) => row.id === credit.id ? { ...row, value: event.target.value } : row))} />
+            </label>
+            <label>Descrição
+              <input aria-label={`Descrição do crédito ${index + 1}`} maxLength={255} value={credit.description}
+                onChange={(event) => setCredits((rows) => rows.map((row) => row.id === credit.id ? { ...row, description: event.target.value } : row))} />
+            </label>
+            <button type="button" className="text-button" aria-label={`Remover crédito ${index + 1}`}
+              onClick={() => setCredits((rows) => rows.filter((row) => row.id !== credit.id))}>Remover</button>
+          </div>
+        ))}
         <fieldset className="legacy-group">
           <legend>A receber do cliente</legend>
           <div className="form-grid">
@@ -1319,12 +1496,12 @@ function CreateManifest({
           {calculation.error && <p role="alert" className="alert">Não foi possível calcular: {calculation.error}</p>}
           {calculation.preview && <div className="form-grid">
             {[
-              ["Frete 777 calculado", calculation.preview.freightsCalculated.freight777],
-              ["Frete 888 calculado", calculation.preview.freightsCalculated.freight888],
-              ["Frete 999 calculado", calculation.preview.freightsCalculated.freight999],
-              ["Não entregue 777 calculado", calculation.preview.freightsCalculated.notDelivery777],
-              ["Não entregue 888 calculado", calculation.preview.freightsCalculated.notDelivery888],
-              ["Não entregue 999 calculado", calculation.preview.freightsCalculated.notDelivery999],
+              ["Frete 301 calculado", calculation.preview.freightsCalculated.freight777],
+              ["Frete COL calculado", calculation.preview.freightsCalculated.freight888],
+              ["Frete 100 calculado", calculation.preview.freightsCalculated.freight999],
+              ["Não entregue 301 calculado", calculation.preview.freightsCalculated.notDelivery777],
+              ["Não entregue COL calculado", calculation.preview.freightsCalculated.notDelivery888],
+              ["Não entregue 100 calculado", calculation.preview.freightsCalculated.notDelivery999],
               ["Total dos fretes calculados", calculation.preview.totalFretes],
               ["Total a receber", calculation.preview.totalReceive - calculation.preview.discounts],
               ["Vales a pagar", calculation.preview.despesas_empresa],
@@ -1338,14 +1515,14 @@ function CreateManifest({
           Observações
           <textarea name="observacao" maxLength={255} rows={3} />
         </label>
-        <button className="primary" disabled={!destinations.length || busy}>
+        {!readOnly && <button className="primary" disabled={!destinations.length || busy}>
           {busy
             ? "Salvando…"
             : initial
               ? "Salvar alterações"
               : "Cadastrar manifesto"}
-        </button>
-        {!destinations.length && (
+        </button>}
+        {!readOnly && !destinations.length && (
           <p role="status">
             É necessário um destino ativo cadastrado para salvar.
           </p>

@@ -28,24 +28,29 @@ export type AggregateFrete_cupons = {
 
 export type Frete_cuponsAvgAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   unit: number | null
   nota_id: number | null
   valor: runtime.Decimal | null
   fechamento_id: number | null
   responsavel_cod: number | null
+  alterado_por: number | null
 }
 
 export type Frete_cuponsSumAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   unit: number | null
   nota_id: number | null
   valor: runtime.Decimal | null
   fechamento_id: number | null
   responsavel_cod: number | null
+  alterado_por: number | null
 }
 
 export type Frete_cuponsMinAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   unit: number | null
   nota_id: number | null
   placa: string | null
@@ -59,12 +64,14 @@ export type Frete_cuponsMinAggregateOutputType = {
   fechamento_id: number | null
   responsavel_cod: number | null
   departamento: string | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
 
 export type Frete_cuponsMaxAggregateOutputType = {
   id: number | null
+  controle_id: number | null
   unit: number | null
   nota_id: number | null
   placa: string | null
@@ -78,12 +85,14 @@ export type Frete_cuponsMaxAggregateOutputType = {
   fechamento_id: number | null
   responsavel_cod: number | null
   departamento: string | null
+  alterado_por: number | null
   created_at: Date | null
   updated_at: Date | null
 }
 
 export type Frete_cuponsCountAggregateOutputType = {
   id: number
+  controle_id: number
   unit: number
   nota_id: number
   placa: number
@@ -97,6 +106,7 @@ export type Frete_cuponsCountAggregateOutputType = {
   fechamento_id: number
   responsavel_cod: number
   departamento: number
+  alterado_por: number
   created_at: number
   updated_at: number
   _all: number
@@ -105,24 +115,29 @@ export type Frete_cuponsCountAggregateOutputType = {
 
 export type Frete_cuponsAvgAggregateInputType = {
   id?: true
+  controle_id?: true
   unit?: true
   nota_id?: true
   valor?: true
   fechamento_id?: true
   responsavel_cod?: true
+  alterado_por?: true
 }
 
 export type Frete_cuponsSumAggregateInputType = {
   id?: true
+  controle_id?: true
   unit?: true
   nota_id?: true
   valor?: true
   fechamento_id?: true
   responsavel_cod?: true
+  alterado_por?: true
 }
 
 export type Frete_cuponsMinAggregateInputType = {
   id?: true
+  controle_id?: true
   unit?: true
   nota_id?: true
   placa?: true
@@ -136,12 +151,14 @@ export type Frete_cuponsMinAggregateInputType = {
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
 
 export type Frete_cuponsMaxAggregateInputType = {
   id?: true
+  controle_id?: true
   unit?: true
   nota_id?: true
   placa?: true
@@ -155,12 +172,14 @@ export type Frete_cuponsMaxAggregateInputType = {
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
 }
 
 export type Frete_cuponsCountAggregateInputType = {
   id?: true
+  controle_id?: true
   unit?: true
   nota_id?: true
   placa?: true
@@ -174,6 +193,7 @@ export type Frete_cuponsCountAggregateInputType = {
   fechamento_id?: true
   responsavel_cod?: true
   departamento?: true
+  alterado_por?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -267,6 +287,7 @@ export type frete_cuponsGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 
 export type Frete_cuponsGroupByOutputType = {
   id: number
+  controle_id: number
   unit: number
   nota_id: number
   placa: string
@@ -280,6 +301,7 @@ export type Frete_cuponsGroupByOutputType = {
   fechamento_id: number | null
   responsavel_cod: number
   departamento: string | null
+  alterado_por: number | null
   created_at: Date
   updated_at: Date
   _count: Frete_cuponsCountAggregateOutputType | null
@@ -309,6 +331,7 @@ export type frete_cuponsWhereInput = {
   OR?: Prisma.frete_cuponsWhereInput[]
   NOT?: Prisma.frete_cuponsWhereInput | Prisma.frete_cuponsWhereInput[]
   id?: Prisma.IntFilter<"frete_cupons"> | number
+  controle_id?: Prisma.IntFilter<"frete_cupons"> | number
   unit?: Prisma.IntFilter<"frete_cupons"> | number
   nota_id?: Prisma.IntFilter<"frete_cupons"> | number
   placa?: Prisma.StringFilter<"frete_cupons"> | string
@@ -322,6 +345,7 @@ export type frete_cuponsWhereInput = {
   fechamento_id?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   responsavel_cod?: Prisma.IntFilter<"frete_cupons"> | number
   departamento?: Prisma.StringNullableFilter<"frete_cupons"> | string | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
   nota?: Prisma.XOR<Prisma.Frete_notasScalarRelationFilter, Prisma.frete_notasWhereInput>
@@ -329,6 +353,7 @@ export type frete_cuponsWhereInput = {
 
 export type frete_cuponsOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   placa?: Prisma.SortOrder
@@ -342,6 +367,7 @@ export type frete_cuponsOrderByWithRelationInput = {
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   nota?: Prisma.frete_notasOrderByWithRelationInput
@@ -350,6 +376,7 @@ export type frete_cuponsOrderByWithRelationInput = {
 
 export type frete_cuponsWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  controle_id?: number
   AND?: Prisma.frete_cuponsWhereInput | Prisma.frete_cuponsWhereInput[]
   OR?: Prisma.frete_cuponsWhereInput[]
   NOT?: Prisma.frete_cuponsWhereInput | Prisma.frete_cuponsWhereInput[]
@@ -366,13 +393,15 @@ export type frete_cuponsWhereUniqueInput = Prisma.AtLeast<{
   fechamento_id?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   responsavel_cod?: Prisma.IntFilter<"frete_cupons"> | number
   departamento?: Prisma.StringNullableFilter<"frete_cupons"> | string | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
   nota?: Prisma.XOR<Prisma.Frete_notasScalarRelationFilter, Prisma.frete_notasWhereInput>
-}, "id">
+}, "id" | "controle_id">
 
 export type frete_cuponsOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   placa?: Prisma.SortOrder
@@ -386,6 +415,7 @@ export type frete_cuponsOrderByWithAggregationInput = {
   fechamento_id?: Prisma.SortOrderInput | Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrderInput | Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.frete_cuponsCountOrderByAggregateInput
@@ -400,6 +430,7 @@ export type frete_cuponsScalarWhereWithAggregatesInput = {
   OR?: Prisma.frete_cuponsScalarWhereWithAggregatesInput[]
   NOT?: Prisma.frete_cuponsScalarWhereWithAggregatesInput | Prisma.frete_cuponsScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"frete_cupons"> | number
+  controle_id?: Prisma.IntWithAggregatesFilter<"frete_cupons"> | number
   unit?: Prisma.IntWithAggregatesFilter<"frete_cupons"> | number
   nota_id?: Prisma.IntWithAggregatesFilter<"frete_cupons"> | number
   placa?: Prisma.StringWithAggregatesFilter<"frete_cupons"> | string
@@ -413,11 +444,13 @@ export type frete_cuponsScalarWhereWithAggregatesInput = {
   fechamento_id?: Prisma.IntNullableWithAggregatesFilter<"frete_cupons"> | number | null
   responsavel_cod?: Prisma.IntWithAggregatesFilter<"frete_cupons"> | number
   departamento?: Prisma.StringNullableWithAggregatesFilter<"frete_cupons"> | string | null
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_cupons"> | number | null
   created_at?: Prisma.DateTimeWithAggregatesFilter<"frete_cupons"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"frete_cupons"> | Date | string
 }
 
 export type frete_cuponsCreateInput = {
+  controle_id: number
   placa: string
   motorista: string
   tipo_veiculo: string
@@ -429,6 +462,7 @@ export type frete_cuponsCreateInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
   nota: Prisma.frete_notasCreateNestedOneWithoutCuponsInput
@@ -436,6 +470,7 @@ export type frete_cuponsCreateInput = {
 
 export type frete_cuponsUncheckedCreateInput = {
   id?: number
+  controle_id: number
   unit: number
   nota_id: number
   placa: string
@@ -449,11 +484,13 @@ export type frete_cuponsUncheckedCreateInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_cuponsUpdateInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
   tipo_veiculo?: Prisma.StringFieldUpdateOperationsInput | string
@@ -465,6 +502,7 @@ export type frete_cuponsUpdateInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   nota?: Prisma.frete_notasUpdateOneRequiredWithoutCuponsNestedInput
@@ -472,6 +510,7 @@ export type frete_cuponsUpdateInput = {
 
 export type frete_cuponsUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   nota_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
@@ -485,12 +524,14 @@ export type frete_cuponsUncheckedUpdateInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_cuponsCreateManyInput = {
   id?: number
+  controle_id: number
   unit: number
   nota_id: number
   placa: string
@@ -504,11 +545,13 @@ export type frete_cuponsCreateManyInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_cuponsUpdateManyMutationInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
   tipo_veiculo?: Prisma.StringFieldUpdateOperationsInput | string
@@ -520,12 +563,14 @@ export type frete_cuponsUpdateManyMutationInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_cuponsUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   nota_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
@@ -539,6 +584,7 @@ export type frete_cuponsUncheckedUpdateManyInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -561,6 +607,7 @@ export type frete_cuponsOrderByRelevanceInput = {
 
 export type frete_cuponsCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   placa?: Prisma.SortOrder
@@ -574,21 +621,25 @@ export type frete_cuponsCountOrderByAggregateInput = {
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_cuponsAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   valor?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_cuponsMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   placa?: Prisma.SortOrder
@@ -602,12 +653,14 @@ export type frete_cuponsMaxOrderByAggregateInput = {
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_cuponsMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   placa?: Prisma.SortOrder
@@ -621,17 +674,20 @@ export type frete_cuponsMinOrderByAggregateInput = {
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
   departamento?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
 
 export type frete_cuponsSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  controle_id?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   nota_id?: Prisma.SortOrder
   valor?: Prisma.SortOrder
   fechamento_id?: Prisma.SortOrder
   responsavel_cod?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_cuponsCreateNestedManyWithoutNotaInput = {
@@ -676,15 +732,8 @@ export type frete_cuponsUncheckedUpdateManyWithoutNotaNestedInput = {
   deleteMany?: Prisma.frete_cuponsScalarWhereInput | Prisma.frete_cuponsScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type frete_cuponsCreateWithoutNotaInput = {
+  controle_id: number
   placa: string
   motorista: string
   tipo_veiculo: string
@@ -696,12 +745,14 @@ export type frete_cuponsCreateWithoutNotaInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_cuponsUncheckedCreateWithoutNotaInput = {
   id?: number
+  controle_id: number
   placa: string
   motorista: string
   tipo_veiculo: string
@@ -713,6 +764,7 @@ export type frete_cuponsUncheckedCreateWithoutNotaInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -748,6 +800,7 @@ export type frete_cuponsScalarWhereInput = {
   OR?: Prisma.frete_cuponsScalarWhereInput[]
   NOT?: Prisma.frete_cuponsScalarWhereInput | Prisma.frete_cuponsScalarWhereInput[]
   id?: Prisma.IntFilter<"frete_cupons"> | number
+  controle_id?: Prisma.IntFilter<"frete_cupons"> | number
   unit?: Prisma.IntFilter<"frete_cupons"> | number
   nota_id?: Prisma.IntFilter<"frete_cupons"> | number
   placa?: Prisma.StringFilter<"frete_cupons"> | string
@@ -761,12 +814,14 @@ export type frete_cuponsScalarWhereInput = {
   fechamento_id?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   responsavel_cod?: Prisma.IntFilter<"frete_cupons"> | number
   departamento?: Prisma.StringNullableFilter<"frete_cupons"> | string | null
+  alterado_por?: Prisma.IntNullableFilter<"frete_cupons"> | number | null
   created_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"frete_cupons"> | Date | string
 }
 
 export type frete_cuponsCreateManyNotaInput = {
   id?: number
+  controle_id: number
   placa: string
   motorista: string
   tipo_veiculo: string
@@ -778,11 +833,13 @@ export type frete_cuponsCreateManyNotaInput = {
   fechamento_id?: number | null
   responsavel_cod: number
   departamento?: string | null
+  alterado_por?: number | null
   created_at?: Date | string
   updated_at?: Date | string
 }
 
 export type frete_cuponsUpdateWithoutNotaInput = {
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
   tipo_veiculo?: Prisma.StringFieldUpdateOperationsInput | string
@@ -794,12 +851,14 @@ export type frete_cuponsUpdateWithoutNotaInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_cuponsUncheckedUpdateWithoutNotaInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
   tipo_veiculo?: Prisma.StringFieldUpdateOperationsInput | string
@@ -811,12 +870,14 @@ export type frete_cuponsUncheckedUpdateWithoutNotaInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type frete_cuponsUncheckedUpdateManyWithoutNotaInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  controle_id?: Prisma.IntFieldUpdateOperationsInput | number
   placa?: Prisma.StringFieldUpdateOperationsInput | string
   motorista?: Prisma.StringFieldUpdateOperationsInput | string
   tipo_veiculo?: Prisma.StringFieldUpdateOperationsInput | string
@@ -828,6 +889,7 @@ export type frete_cuponsUncheckedUpdateManyWithoutNotaInput = {
   fechamento_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   responsavel_cod?: Prisma.IntFieldUpdateOperationsInput | number
   departamento?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -836,6 +898,7 @@ export type frete_cuponsUncheckedUpdateManyWithoutNotaInput = {
 
 export type frete_cuponsSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  controle_id?: boolean
   unit?: boolean
   nota_id?: boolean
   placa?: boolean
@@ -849,6 +912,7 @@ export type frete_cuponsSelect<ExtArgs extends runtime.Types.Extensions.Internal
   fechamento_id?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
   nota?: boolean | Prisma.frete_notasDefaultArgs<ExtArgs>
@@ -858,6 +922,7 @@ export type frete_cuponsSelect<ExtArgs extends runtime.Types.Extensions.Internal
 
 export type frete_cuponsSelectScalar = {
   id?: boolean
+  controle_id?: boolean
   unit?: boolean
   nota_id?: boolean
   placa?: boolean
@@ -871,11 +936,12 @@ export type frete_cuponsSelectScalar = {
   fechamento_id?: boolean
   responsavel_cod?: boolean
   departamento?: boolean
+  alterado_por?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type frete_cuponsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "unit" | "nota_id" | "placa" | "motorista" | "tipo_veiculo" | "semana" | "data_cobranca" | "valor" | "descricao" | "pago" | "fechamento_id" | "responsavel_cod" | "departamento" | "created_at" | "updated_at", ExtArgs["result"]["frete_cupons"]>
+export type frete_cuponsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "controle_id" | "unit" | "nota_id" | "placa" | "motorista" | "tipo_veiculo" | "semana" | "data_cobranca" | "valor" | "descricao" | "pago" | "fechamento_id" | "responsavel_cod" | "departamento" | "alterado_por" | "created_at" | "updated_at", ExtArgs["result"]["frete_cupons"]>
 export type frete_cuponsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   nota?: boolean | Prisma.frete_notasDefaultArgs<ExtArgs>
 }
@@ -887,6 +953,7 @@ export type $frete_cuponsPayload<ExtArgs extends runtime.Types.Extensions.Intern
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    controle_id: number
     unit: number
     nota_id: number
     placa: string
@@ -900,6 +967,7 @@ export type $frete_cuponsPayload<ExtArgs extends runtime.Types.Extensions.Intern
     fechamento_id: number | null
     responsavel_cod: number
     departamento: string | null
+    alterado_por: number | null
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["frete_cupons"]>
@@ -1273,6 +1341,7 @@ export interface Prisma__frete_cuponsClient<T, Null = never, ExtArgs extends run
  */
 export interface frete_cuponsFieldRefs {
   readonly id: Prisma.FieldRef<"frete_cupons", 'Int'>
+  readonly controle_id: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly unit: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly nota_id: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly placa: Prisma.FieldRef<"frete_cupons", 'String'>
@@ -1286,6 +1355,7 @@ export interface frete_cuponsFieldRefs {
   readonly fechamento_id: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly responsavel_cod: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly departamento: Prisma.FieldRef<"frete_cupons", 'String'>
+  readonly alterado_por: Prisma.FieldRef<"frete_cupons", 'Int'>
   readonly created_at: Prisma.FieldRef<"frete_cupons", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"frete_cupons", 'DateTime'>
 }

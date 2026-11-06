@@ -12,6 +12,7 @@ export class DriversService {
 
   async findAll() {
     const drivers = await this.prisma.driver.findMany({
+      where: { canceled: false },
       orderBy: {
         name: 'asc',
       },
@@ -35,9 +36,10 @@ export class DriversService {
       throw new BadRequestException('CPF inválido.');
     }
 
-    const driver = await this.prisma.driver.findUnique({
+    const driver = await this.prisma.driver.findFirst({
       where: {
         cpf: BigInt(normalizedCpf),
+        canceled: false,
       },
 
       select: {

@@ -22,6 +22,7 @@ export default function ReprintClosures({
     [number, setNumber] = useState(""),
     [week, setWeek] = useState(""),
     [plate, setPlate] = useState(""),
+    [category, setCategory] = useState("Todos"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [success, setSuccess] = useState("");
@@ -55,6 +56,8 @@ export default function ReprintClosures({
     .sort();
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const driverReport = submitter?.value === "drivers";
     const reportWindow = window.open("", "_blank");
     if (reportWindow) reportWindow.opener = null;
     setBusy(true);
@@ -64,17 +67,19 @@ export default function ReprintClosures({
       const q = number
         ? new URLSearchParams({
             numero: number,
+            ...(category !== "Todos" ? { categoria: category } : {}),
             ...(isAdmin && domain ? { dominio: domain } : {}),
             ...(isAdmin && unit ? { local: unit } : {}),
           })
         : new URLSearchParams({
             semana: week,
             ...(plate ? { placa: plate } : {}),
+            ...(category !== "Todos" ? { categoria: category } : {}),
             ...(isAdmin && domain ? { dominio: domain } : {}),
             ...(isAdmin && unit ? { local: unit } : {}),
           });
       const response = await fetch(
-        apiUrl(`/freight-reports/closures/reprint?${q}`),
+        apiUrl(`/freight-reports/closures/${driverReport ? "drivers" : "reprint"}?${q}`),
         { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (!response.ok) {
@@ -91,14 +96,18 @@ export default function ReprintClosures({
       if (reportWindow) reportWindow.location.href = url;
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = number
-        ? `fechamento-${number}.html`
-        : `fechamentos-${week}.html`;
+      anchor.download = driverReport
+        ? number
+          ? `motorista-fechamento-${number}.html`
+          : `motoristas-fechamentos-${week}.html`
+        : number
+          ? `fechamento-${number}.html`
+          : `fechamentos-${week}.html`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
-      setSuccess("Relatório em HTML baixado com sucesso.");
+      setSuccess(`${driverReport ? "Relatório do motorista" : "Fechamento de frete"} baixado com sucesso.`);
     } catch (e) {
       reportWindow?.close();
       fail(e);
@@ -185,15 +194,32 @@ export default function ReprintClosures({
                   onChange={(e) => setPlate(normalizePlate(e.target.value))}
                 />
               </label>
+              <label>
+                Categoria de veículo
+                <select
+                  aria-label="Categoria de veículo"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="Todos">Todos</option>
+                  <option value="Agregado">Agregado</option>
+                  <option value="Esporadico">Esporádico</option>
+                </select>
+              </label>
             </div>
             <datalist id="reprint-weeks">
               {weeks.map((w) => (
                 <option key={w.codigo} value={w.codigo} />
               ))}
             </datalist>
-            <button className="primary">
-              Imprimir fechamento de frete
-            </button>
+            <div className="actions">
+              <button className="primary" type="submit" value="freight">
+                Imprimir fechamento de frete
+              </button>
+              <button className="secondary" type="submit" value="drivers">
+                Imprimir relatório do motorista
+              </button>
+            </div>
           </fieldset>
         </form>
     </section>

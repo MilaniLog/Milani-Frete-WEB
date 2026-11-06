@@ -79,6 +79,14 @@ export class ClosureDto {
   @IsInt({ each: true })
   @Min(1, { each: true })
   debit_entry_ids?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  coupon_ids?: number[];
 }
 
 class WeekClosureSelectionDto {
@@ -94,6 +102,13 @@ class WeekClosureSelectionDto {
   @IsInt({ each: true })
   @Min(1, { each: true })
   debit_entry_ids: number[];
+
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  coupon_ids: number[];
 }
 
 export class WeekClosureDto {

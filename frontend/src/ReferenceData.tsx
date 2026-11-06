@@ -2,6 +2,8 @@ import { normalizeWeek } from "./field-formats";
 import SortableTable from "./SortableTable";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
+import { expenseName, expenseType } from "./expense-display";
+import QuickDateInput from "./QuickDateInput";
 
 type Week = { codigo: string; data_inicio: string; data_fim: string };
 type Expense = {
@@ -37,6 +39,16 @@ export default function ReferenceData({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [query, setQuery] = useState("");
+  const visibleRows = rows.filter((row) => {
+    const search = query.trim().toLowerCase();
+    if (!search) return true;
+    return weeks
+      ? [(row as Week).codigo, date((row as Week).data_inicio), date((row as Week).data_fim)]
+          .some((value) => value.toLowerCase().includes(search))
+      : [(row as Expense).codigo, (row as Expense).nome, (row as Expense).tipo]
+          .some((value) => value.toLowerCase().includes(search));
+  });
   function fail(e: unknown) {
     if (e instanceof ApiError && e.status === 401) expired();
     else setError((e as Error).message);
@@ -200,10 +212,9 @@ export default function ReferenceData({
                   <>
                     <label>
                       Início
-                      <input
+                      <QuickDateInput
                         aria-label="Data inicial"
                         name="data_inicio"
-                        type="date"
                         required
                         defaultValue={(
                           current as Week | null
@@ -212,10 +223,9 @@ export default function ReferenceData({
                     </label>
                     <label>
                       Fim
-                      <input
+                      <QuickDateInput
                         aria-label="Data final"
                         name="data_fim"
-                        type="date"
                         required
                         defaultValue={(current as Week | null)?.data_fim.slice(
                           0,
@@ -297,6 +307,10 @@ export default function ReferenceData({
       )}
       <section className="panel">
         <div className="filters">
+          <label>
+            {weeks ? "Pesquisar semana" : "Pesquisar despesa"}
+            <input type="search" placeholder={weeks ? "Código ou data" : "Código, nome ou tipo"} value={query} onChange={(event) => setQuery(event.target.value)} />
+          </label>
           <button
             className="secondary"
             disabled={busy || loading}
@@ -304,13 +318,13 @@ export default function ReferenceData({
           >
             Atualizar cadastros
           </button>
-          <span>{rows.length} registros</span>
+          <span>{visibleRows.length} registros</span>
         </div>
         {loading ? (
           <p className="empty" role="status">
             Carregando cadastros…
           </p>
-        ) : !rows.length ? (
+        ) : !visibleRows.length ? (
           <p className="empty">
             {error
               ? "Consulta indisponível. Tente atualizar."
@@ -329,18 +343,18 @@ export default function ReferenceData({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {visibleRows.map((row) => (
                   <tr key={weeks ? row.codigo : (row as Expense).id}>
                     <td>{row.codigo}</td>
                     <td>
                       {weeks
                         ? date((row as Week).data_inicio)
-                        : (row as Expense).nome}
+                        : expenseName((row as Expense).codigo, (row as Expense).nome)}
                     </td>
                     <td>
                       {weeks
                         ? date((row as Week).data_fim)
-                        : (row as Expense).tipo}
+                        : expenseType((row as Expense).codigo, (row as Expense).tipo)}
                     </td>
                     {!weeks && (
                       <td>{(row as Expense).ativo ? "Ativa" : "Inativa"}</td>

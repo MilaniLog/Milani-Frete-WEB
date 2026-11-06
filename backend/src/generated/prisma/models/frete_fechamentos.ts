@@ -33,6 +33,7 @@ export type Frete_fechamentosAvgAggregateOutputType = {
   total_bruto: runtime.Decimal | null
   total_ctrb: runtime.Decimal | null
   total_liquido: runtime.Decimal | null
+  alterado_por: number | null
 }
 
 export type Frete_fechamentosSumAggregateOutputType = {
@@ -42,6 +43,7 @@ export type Frete_fechamentosSumAggregateOutputType = {
   total_bruto: runtime.Decimal | null
   total_ctrb: runtime.Decimal | null
   total_liquido: runtime.Decimal | null
+  alterado_por: number | null
 }
 
 export type Frete_fechamentosMinAggregateOutputType = {
@@ -56,6 +58,7 @@ export type Frete_fechamentosMinAggregateOutputType = {
   total_ctrb: runtime.Decimal | null
   total_liquido: runtime.Decimal | null
   status: string | null
+  alterado_por: number | null
 }
 
 export type Frete_fechamentosMaxAggregateOutputType = {
@@ -70,6 +73,7 @@ export type Frete_fechamentosMaxAggregateOutputType = {
   total_ctrb: runtime.Decimal | null
   total_liquido: runtime.Decimal | null
   status: string | null
+  alterado_por: number | null
 }
 
 export type Frete_fechamentosCountAggregateOutputType = {
@@ -85,6 +89,7 @@ export type Frete_fechamentosCountAggregateOutputType = {
   total_ctrb: number
   total_liquido: number
   status: number
+  alterado_por: number
   _all: number
 }
 
@@ -96,6 +101,7 @@ export type Frete_fechamentosAvgAggregateInputType = {
   total_bruto?: true
   total_ctrb?: true
   total_liquido?: true
+  alterado_por?: true
 }
 
 export type Frete_fechamentosSumAggregateInputType = {
@@ -105,6 +111,7 @@ export type Frete_fechamentosSumAggregateInputType = {
   total_bruto?: true
   total_ctrb?: true
   total_liquido?: true
+  alterado_por?: true
 }
 
 export type Frete_fechamentosMinAggregateInputType = {
@@ -119,6 +126,7 @@ export type Frete_fechamentosMinAggregateInputType = {
   total_ctrb?: true
   total_liquido?: true
   status?: true
+  alterado_por?: true
 }
 
 export type Frete_fechamentosMaxAggregateInputType = {
@@ -133,6 +141,7 @@ export type Frete_fechamentosMaxAggregateInputType = {
   total_ctrb?: true
   total_liquido?: true
   status?: true
+  alterado_por?: true
 }
 
 export type Frete_fechamentosCountAggregateInputType = {
@@ -148,6 +157,7 @@ export type Frete_fechamentosCountAggregateInputType = {
   total_ctrb?: true
   total_liquido?: true
   status?: true
+  alterado_por?: true
   _all?: true
 }
 
@@ -250,6 +260,7 @@ export type Frete_fechamentosGroupByOutputType = {
   total_ctrb: runtime.Decimal
   total_liquido: runtime.Decimal
   status: string
+  alterado_por: number | null
   _count: Frete_fechamentosCountAggregateOutputType | null
   _avg: Frete_fechamentosAvgAggregateOutputType | null
   _sum: Frete_fechamentosSumAggregateOutputType | null
@@ -288,6 +299,7 @@ export type frete_fechamentosWhereInput = {
   total_ctrb?: Prisma.DecimalFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFilter<"frete_fechamentos"> | string
+  alterado_por?: Prisma.IntNullableFilter<"frete_fechamentos"> | number | null
 }
 
 export type frete_fechamentosOrderByWithRelationInput = {
@@ -303,6 +315,7 @@ export type frete_fechamentosOrderByWithRelationInput = {
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _relevance?: Prisma.frete_fechamentosOrderByRelevanceInput
 }
 
@@ -322,6 +335,7 @@ export type frete_fechamentosWhereUniqueInput = Prisma.AtLeast<{
   total_ctrb?: Prisma.DecimalFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFilter<"frete_fechamentos"> | string
+  alterado_por?: Prisma.IntNullableFilter<"frete_fechamentos"> | number | null
 }, "id">
 
 export type frete_fechamentosOrderByWithAggregationInput = {
@@ -337,6 +351,7 @@ export type frete_fechamentosOrderByWithAggregationInput = {
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.frete_fechamentosCountOrderByAggregateInput
   _avg?: Prisma.frete_fechamentosAvgOrderByAggregateInput
   _max?: Prisma.frete_fechamentosMaxOrderByAggregateInput
@@ -360,6 +375,7 @@ export type frete_fechamentosScalarWhereWithAggregatesInput = {
   total_ctrb?: Prisma.DecimalWithAggregatesFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalWithAggregatesFilter<"frete_fechamentos"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringWithAggregatesFilter<"frete_fechamentos"> | string
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"frete_fechamentos"> | number | null
 }
 
 export type frete_fechamentosCreateInput = {
@@ -374,6 +390,7 @@ export type frete_fechamentosCreateInput = {
   total_ctrb?: runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: string
+  alterado_por?: number | null
 }
 
 export type frete_fechamentosUncheckedCreateInput = {
@@ -389,6 +406,7 @@ export type frete_fechamentosUncheckedCreateInput = {
   total_ctrb?: runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: string
+  alterado_por?: number | null
 }
 
 export type frete_fechamentosUpdateInput = {
@@ -403,6 +421,7 @@ export type frete_fechamentosUpdateInput = {
   total_ctrb?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type frete_fechamentosUncheckedUpdateInput = {
@@ -418,6 +437,7 @@ export type frete_fechamentosUncheckedUpdateInput = {
   total_ctrb?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type frete_fechamentosCreateManyInput = {
@@ -433,6 +453,7 @@ export type frete_fechamentosCreateManyInput = {
   total_ctrb?: runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: string
+  alterado_por?: number | null
 }
 
 export type frete_fechamentosUpdateManyMutationInput = {
@@ -447,6 +468,7 @@ export type frete_fechamentosUpdateManyMutationInput = {
   total_ctrb?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type frete_fechamentosUncheckedUpdateManyInput = {
@@ -462,6 +484,7 @@ export type frete_fechamentosUncheckedUpdateManyInput = {
   total_ctrb?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   total_liquido?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type frete_fechamentosOrderByRelevanceInput = {
@@ -483,6 +506,7 @@ export type frete_fechamentosCountOrderByAggregateInput = {
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_fechamentosAvgOrderByAggregateInput = {
@@ -492,6 +516,7 @@ export type frete_fechamentosAvgOrderByAggregateInput = {
   total_bruto?: Prisma.SortOrder
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_fechamentosMaxOrderByAggregateInput = {
@@ -506,6 +531,7 @@ export type frete_fechamentosMaxOrderByAggregateInput = {
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_fechamentosMinOrderByAggregateInput = {
@@ -520,6 +546,7 @@ export type frete_fechamentosMinOrderByAggregateInput = {
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type frete_fechamentosSumOrderByAggregateInput = {
@@ -529,6 +556,7 @@ export type frete_fechamentosSumOrderByAggregateInput = {
   total_bruto?: Prisma.SortOrder
   total_ctrb?: Prisma.SortOrder
   total_liquido?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 
@@ -546,6 +574,7 @@ export type frete_fechamentosSelect<ExtArgs extends runtime.Types.Extensions.Int
   total_ctrb?: boolean
   total_liquido?: boolean
   status?: boolean
+  alterado_por?: boolean
 }, ExtArgs["result"]["frete_fechamentos"]>
 
 
@@ -563,9 +592,10 @@ export type frete_fechamentosSelectScalar = {
   total_ctrb?: boolean
   total_liquido?: boolean
   status?: boolean
+  alterado_por?: boolean
 }
 
-export type frete_fechamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"historico" | "id" | "numero" | "unit" | "semana" | "periodo_inicio" | "periodo_fim" | "placa" | "total_bruto" | "total_ctrb" | "total_liquido" | "status", ExtArgs["result"]["frete_fechamentos"]>
+export type frete_fechamentosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"historico" | "id" | "numero" | "unit" | "semana" | "periodo_inicio" | "periodo_fim" | "placa" | "total_bruto" | "total_ctrb" | "total_liquido" | "status" | "alterado_por", ExtArgs["result"]["frete_fechamentos"]>
 
 export type $frete_fechamentosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "frete_fechamentos"
@@ -583,6 +613,7 @@ export type $frete_fechamentosPayload<ExtArgs extends runtime.Types.Extensions.I
     total_ctrb: runtime.Decimal
     total_liquido: runtime.Decimal
     status: string
+    alterado_por: number | null
   }, ExtArgs["result"]["frete_fechamentos"]>
   composites: {}
 }
@@ -964,6 +995,7 @@ export interface frete_fechamentosFieldRefs {
   readonly total_ctrb: Prisma.FieldRef<"frete_fechamentos", 'Decimal'>
   readonly total_liquido: Prisma.FieldRef<"frete_fechamentos", 'Decimal'>
   readonly status: Prisma.FieldRef<"frete_fechamentos", 'String'>
+  readonly alterado_por: Prisma.FieldRef<"frete_fechamentos", 'Int'>
 }
     
 

@@ -10,6 +10,10 @@ function Harness() {
   const [status,setStatus]=useState('');
   return <><AdminDeletionApproval/><button onClick={() => void api('/registrations/vehicles/ABC1234','operator-token',{method:'DELETE'}).then(()=>setStatus('Excluído')).catch(e=>setStatus(e.message))}>Excluir</button><p>{status}</p></>;
 }
+function EditHarness() {
+  const [status,setStatus]=useState('');
+  return <><AdminDeletionApproval/><button onClick={() => void api('/freight-entries/90','operator-token',{method:'PUT',body:JSON.stringify({valor:20})}).then(()=>setStatus('Editado')).catch(e=>setStatus(e.message))}>Editar</button><p>{status}</p></>;
+}
 const response=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status});
 it('solicita senha, permite corrigir senha incorreta e mantém o token do operador',async()=>{
   vi.stubGlobal('fetch',vi.fn(async (_url,options)=>{
@@ -35,8 +39,22 @@ it('cancelar não repete a exclusão',async()=>{
   vi.stubGlobal('fetch',vi.fn(async()=>response({code:'ADMIN_APPROVAL_REQUIRED'},403)));
   render(<Harness/>);fireEvent.click(screen.getByText('Excluir'));
   fireEvent.click(await screen.findByText('Cancelar'));
-  await screen.findByText('Exclusão cancelada.');
+  await screen.findByText('Autorização cancelada.');
   expect(fetch).toHaveBeenCalledTimes(1);
+});
+it('solicita autorização administrativa para edição de vale',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async (_url,options)=>{
+    const body=JSON.parse(String(options?.body||'{}'));
+    return body.admin_authorization
+      ? response({entry:{id:90}})
+      : response({code:'ADMIN_APPROVAL_REQUIRED',operation:'edit',message:'Autorização necessária'},403);
+  }));
+  render(<EditHarness/>);fireEvent.click(screen.getByText('Editar'));
+  expect(await screen.findByRole('heading',{name:'Autorizar edição'})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Código do administrador'),{target:{value:'8'}});
+  fireEvent.change(screen.getByLabelText('Senha do administrador'),{target:{value:'correct'}});
+  fireEvent.click(screen.getByText('Autorizar e salvar'));
+  await screen.findByText('Editado');
 });
 it('ADM autorizado pelo servidor exclui sem pedir senha',async()=>{
   vi.stubGlobal('fetch',vi.fn(async()=>response({})));

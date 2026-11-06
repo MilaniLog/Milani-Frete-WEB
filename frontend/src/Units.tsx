@@ -10,6 +10,12 @@ export default function Units({ token, expired }: { token: string; expired: () =
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [query, setQuery] = useState("");
+  const visibleRows = rows.filter((row) => {
+    const search = query.trim().toLowerCase();
+    return !search || [row.codigo, row.local, row.dominio]
+      .some((value) => String(value ?? "").toLowerCase().includes(search));
+  });
 
   function fail(reason: unknown) {
     if (reason instanceof ApiError && reason.status === 401) expired();
@@ -66,12 +72,13 @@ export default function Units({ token, expired }: { token: string; expired: () =
       </form>
     </section>}
     <section className="panel">
+      <label>Pesquisar unidade<input type="search" placeholder="Código, local ou domínio" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       <button className="secondary" disabled={busy || !!editing} onClick={() => void load()}>Atualizar unidades</button>
       {busy && <p role="status">Carregando…</p>}
       <div className="table-scroll"><SortableTable><thead><tr><th>Código</th><th>Local</th><th>Domínio</th><th>Ações</th></tr></thead>
-        <tbody>{rows.map(row => <tr key={row.codigo}><td>{row.codigo}</td><td>{row.local}</td><td>{row.dominio}</td><td><button className="text-button" disabled={busy || !!editing} onClick={() => setEditing(row)}>Editar unidade {row.codigo}</button></td></tr>)}</tbody>
+        <tbody>{visibleRows.map(row => <tr key={row.codigo}><td>{row.codigo}</td><td>{row.local}</td><td>{row.dominio}</td><td><button className="text-button" disabled={busy || !!editing} onClick={() => setEditing(row)}>Editar unidade {row.codigo}</button></td></tr>)}</tbody>
       </SortableTable></div>
-      {!busy && !rows.length && <p className="empty">Nenhuma unidade cadastrada.</p>}
+      {!busy && !visibleRows.length && <p className="empty">Nenhuma unidade encontrada.</p>}
     </section>
   </section>;
 }

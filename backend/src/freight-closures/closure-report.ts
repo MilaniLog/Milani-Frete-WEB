@@ -11,6 +11,11 @@ const chronological = (rows: Row[], field: string) =>
       (Number.isNaN(rightTime) ? Number.POSITIVE_INFINITY : rightTime);
     return byDate || Number(left.id ?? 0) - Number(right.id ?? 0);
   });
+const valesChronological = (rows: Row[], field: string) =>
+  chronological(rows, field).sort((left, right) =>
+    Number(String(left.codigo_despesa ?? '').trim() === '3333') -
+    Number(String(right.codigo_despesa ?? '').trim() === '3333'),
+  );
 const manifestLabel = (manifest: Row) =>
   [
     manifest.manifestos,
@@ -29,6 +34,16 @@ export type ClosureReport = {
   coupons: Row[];
   totals: Row;
   payment: Row | null;
+};
+
+const restoreGlobalIdentifiers = (savedRows: Row[], currentRows: Row[]) => {
+  const currentById = new Map(
+    currentRows.map((row) => [Number(row.id), row.controle_id]),
+  );
+  return savedRows.map((row) => ({
+    ...row,
+    controle_id: row.controle_id ?? currentById.get(Number(row.id)) ?? null,
+  }));
 };
 
 export function previewReport(data: Row): ClosureReport {
@@ -97,8 +112,8 @@ export function savedReport(detail: Row): ClosureReport {
         : null,
     },
     manifests: source.manifests,
-    entries: source.entries,
-    coupons: source.coupons,
+    entries: restoreGlobalIdentifiers(source.entries, detail.entries ?? []),
+    coupons: restoreGlobalIdentifiers(source.coupons, detail.coupons ?? []),
     totals: original?.totals ?? {
       total_bruto: closure.total_bruto,
       total_ctrb: closure.total_ctrb,
@@ -117,14 +132,14 @@ const escape = (value: unknown) =>
       ]!,
   );
 function money(value: unknown) {
-  if (value === null || value === undefined) return 'Não disponível';
+  if (value === null || value === undefined) return '';
   const [whole, fraction] = new Decimal(String(value))
     .toFixed(2, Decimal.ROUND_HALF_EVEN)
     .split('.');
   return `R$ ${whole.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${fraction}`;
 }
 function date(value: unknown) {
-  if (!value) return 'Não informado';
+  if (!value) return '';
   const text = value instanceof Date ? value.toISOString() : String(value);
   return /^\d{4}-\d{2}-\d{2}/.test(text)
     ? text.slice(0, 10).split('-').reverse().join('/')
@@ -134,10 +149,10 @@ function date(value: unknown) {
 /** Fixed eight-column worksheet layout, shared by preview and historic reprints. */
 export function renderClosureReport(report: ClosureReport): string {
   const h = report.cabecalho;
-  const moneyOrDash = (v: unknown) => (v == null ? '—' : money(v));
+  const moneyOrDash = (v: unknown) => (v == null ? '' : money(v));
   const percent = (v: unknown) =>
     v == null
-      ? '—'
+      ? ''
       : `${new Decimal(String(v)).mul(100).toFixed(2).replace('.', ',')}%`;
   type Cell = { value: unknown; span?: number; right?: boolean; nowrap?: boolean };
   const cell = (value: unknown, span = 1, right = false, nowrap = false): Cell => ({
@@ -240,7 +255,7 @@ export function renderClosureReport(report: ClosureReport): string {
         (total
           ? ctrbKeys.slice(0, 8).map((k) => moneyOrDash(m[k]))
           : [
-              m.ctrb_numero ?? '—',
+              m.ctrb_numero ?? '',
               ...[
                 'ctrb_adiantamento',
                 'sest_senat',
@@ -258,26 +273,28 @@ export function renderClosureReport(report: ClosureReport): string {
         cell('VALE-PEDÁGIO'),
         cell(moneyOrDash(m.vale_pedagio), 1, true),
       ]),
-    ]);
+    ], 'ctrb-table');
   const entries = (list: Row[], advances = false, valeIds = false) =>
     table(
-      chronological(list, 'data_lancamento').map((e) =>
+      valesChronological(list, 'data_lancamento').map((e) =>
         advances
           ? row([
               cell(date(e.data_lancamento)),
-              cell(e.id, 1, !valeIds),
+              cell(e.controle_id ?? e.id, 1, !valeIds),
+              cell(e.responsavel_cod == null ? '' : `USUÁRIO ${e.responsavel_cod}`),
               cell(money(e.valor)),
               cell('CTRB'),
               cell(e.codigo_despesa),
-              cell(e.descricao, 3),
+              cell(e.descricao, 2),
             ])
           : row([
               cell(date(e.data_lancamento)),
-              cell(e.id, 1, !valeIds),
+              cell(e.controle_id ?? e.id, 1, !valeIds),
+              cell(e.responsavel_cod == null ? '' : `USUÁRIO ${e.responsavel_cod}`),
               cell(e.codigo_despesa),
               cell(
                 `${e.nome_despesa ?? ''} ${e.tipo_despesa === 'Credito' ? 'C' : 'D'}`,
-                2,
+                1,
               ),
               cell(e.descricao, 2),
               cell(
@@ -319,6 +336,58 @@ export function renderClosureReport(report: ClosureReport): string {
       e.tipo_despesa === 'Adiantamento' &&
       String(e.codigo_despesa ?? '').trim() !== '3333',
   );
+  const valeAndCouponRows = () => {
+    const records = [
+      ...bottomEntries.map((entry) => ({
+        kind: 'entry' as const,
+        record: entry,
+        date: entry.data_lancamento,
+        id: entry.controle_id ?? entry.id,
+      })),
+      ...bottomAdvances.map((entry) => ({
+        kind: 'entry' as const,
+        record: entry,
+        date: entry.data_lancamento,
+        id: entry.controle_id ?? entry.id,
+      })),
+      ...report.coupons.map((coupon) => ({
+        kind: 'coupon' as const,
+        record: coupon,
+        date: coupon.data_cobranca,
+        id: coupon.controle_id ?? coupon.id,
+      })),
+    ];
+    const ordered = chronological(records, 'date').sort(
+      (left, right) =>
+        Number(String(left.record.codigo_despesa ?? '').trim() === '3333') -
+        Number(String(right.record.codigo_despesa ?? '').trim() === '3333'),
+    );
+    return table(
+      ordered.map(({ kind, record: item }) => {
+        if (kind === 'coupon') {
+          return row([
+            cell(date(item.data_cobranca)),
+            cell(item.controle_id ?? item.id, 1, false),
+            cell(item.responsavel_cod == null ? '' : `USUÁRIO ${item.responsavel_cod}`),
+            cell(''),
+            cell('ABASTECIMENTO · CUPOM'),
+            cell(item.descricao, 2),
+            cell(`−${money(item.valor)}`, 1, true),
+          ]);
+        }
+        return row([
+          cell(date(item.data_lancamento)),
+          cell(item.controle_id ?? item.id, 1, false),
+          cell(item.responsavel_cod == null ? '' : `USUÁRIO ${item.responsavel_cod}`),
+          cell(item.codigo_despesa),
+          cell(`${item.nome_despesa ?? ''} ${item.tipo_despesa === 'Credito' ? 'C' : 'D'}`),
+          cell(item.descricao, 2),
+          cell(`−${money(item.valor)}`, 1, true),
+        ]);
+      }),
+      'entries',
+    );
+  };
   const payments = [report.payment?.primeira, report.payment?.segunda].filter(
     (p) =>
       p && (p.empresa || new Decimal(String(p.valor ?? 0)).isZero() === false),
@@ -368,17 +437,15 @@ export function renderClosureReport(report: ClosureReport): string {
       : null;
   const forUse = sum('sub_total');
   const receivable = sumPresent([forUse, sum('descarga')]);
-  const extrasForTest = (m: Row) =>
-    sumPresent(
-      fields.filter(([, k]) => k !== 'paletização').map(([, k]) => m[k]),
-    );
+  const totalVehicleFreight = sum('frt_tl_vlc');
+  const initialPercent = ratio(totalVehicleFreight, calculatedFreight);
+  const finalPercent = ratio(totalVehicleFreight, forUse);
   const indicators = [
     subtotal,
     forUse,
     receivable,
-    ratio(reportGross ?? gross, forUse),
-    ratio(reportGross ?? gross, receivable),
-    ratio(reportGross ?? gross, extrasForTest(aggregate)),
+    initialPercent,
+    finalPercent,
   ];
   const linkedAdvance3333 = report.entries.filter(
     (entry) =>
@@ -393,14 +460,16 @@ export function renderClosureReport(report: ClosureReport): string {
   const ctrbSubtotal = aggregate.valor_liquido;
   const ctrbFinal =
     ctrbSubtotal != null ? ctrbSubtotal.minus(totalAdiantamento3333) : null;
-  const firstPayer = report.payment?.primeira?.empresa ?? 'Não cadastrada';
-  const owner = `${h.beneficiario?.nome ?? 'Não registrado'}${report.payment?.primeira?.empresa ? ` - ${report.payment.primeira.empresa}` : ''}`;
+  const firstPayer = report.payment?.primeira?.empresa ?? '';
+  const owner = [h.beneficiario?.nome, report.payment?.primeira?.empresa]
+    .filter(Boolean)
+    .join(' - ');
   const warnings = `${report.origem === 'PREVIA' ? '<p>PRÉVIA — NÃO FINALIZADO. Conferência provisória.</p>' : report.origem !== 'FINALIZACAO' ? '<p>Fechamento legado: sem cópia original da finalização; dados dos vínculos atuais ou do cancelamento.</p>' : ''}${h.status && h.status !== 'FINALIZADO' && report.origem !== 'PREVIA' ? `<p>${escape(h.status)}</p>` : ''}${h.cancelamento ? `<p>Cancelado em ${escape(date(h.cancelamento.em))}. Usuário: ${escape(h.cancelamento.usuario?.cod)}. Motivo: ${escape(h.cancelamento.motivo)}</p>` : ''}`;
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(report.titulo)}</title><style>
 @page{size:A4 portrait;margin:10mm 10mm 14mm;@bottom-center{content:"Página " counter(page) " de " counter(pages);font:9pt Arial}}
-*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:190mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.summary .company col:nth-child(6){width:9.4%!important}.summary .company col:nth-child(7){width:17.4%!important}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
+*{box-sizing:border-box}body{font:8.5pt Arial,sans-serif;color:#000;background:white;max-width:190mm;margin:0 auto;line-height:1.15}h1{font-size:9pt;font-weight:normal;text-align:center;margin:0 0 17pt}.sheet{width:100%;table-layout:fixed;border-collapse:collapse;margin:0}.sheet th,.sheet td{font-weight:normal;text-align:left;vertical-align:top;padding:1pt 1pt;overflow-wrap:anywhere;min-height:13pt}.sheet .right{text-align:right;white-space:nowrap}.metadata{margin-bottom:15pt}.metadata td{font-size:7.2pt;padding:0;white-space:nowrap;overflow-wrap:normal}.owner{margin-bottom:1pt}.manifest{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.manifest-head{break-inside:avoid}.manifest .sheet{break-inside:avoid}.sheet tr{break-inside:avoid}.manifest-heading th{white-space:nowrap}.entries td{font-size:8pt;overflow-wrap:anywhere;word-break:break-word}.entries col:nth-child(1){width:9%!important}.entries col:nth-child(2){width:9%!important}.entries col:nth-child(3){width:13%!important}.entries col:nth-child(4){width:7%!important}.entries col:nth-child(5){width:18%!important}.entries col:nth-child(6),.entries col:nth-child(7){width:15%!important}.entries col:nth-child(8){width:14%!important}.ctrb-table th{font-size:7pt;padding-right:3pt}.ctrb-table td{font-size:7.7pt}.ctrb-table col:nth-child(1){width:12%!important}.ctrb-table col:nth-child(2){width:15%!important}.ctrb-table col:nth-child(3){width:13%!important}.ctrb-table col:nth-child(4){width:9%!important}.ctrb-table col:nth-child(5){width:14%!important}.ctrb-table col:nth-child(6){width:9%!important}.ctrb-table col:nth-child(7),.ctrb-table col:nth-child(8){width:14%!important}.vale-section{border-bottom:1px dashed #333;padding-bottom:10pt;margin-bottom:7pt}.report-row-gap{height:13pt;break-inside:avoid}.summary{break-inside:avoid}.summary .company td{font-size:10pt}.summary .company col:nth-child(6){width:9.4%!important}.summary .company col:nth-child(7){width:17.4%!important}.category-totals{margin:12pt 0;font-size:7.5pt}.category-totals td{white-space:nowrap}.summary th{font-size:7pt;white-space:nowrap}.indicators{margin:10pt 0 12pt}.notes{border-top:1px dashed #333;padding-top:5pt;margin-top:14pt;font-size:7pt}.warnings p{font-size:8pt;margin:3pt 0}.screen{font-size:10pt;background:#eee;padding:8px}h2{font-size:8.5pt;font-weight:normal;margin:5pt 0}.print-info{font-size:7pt}@media print{body{max-width:none;margin:0}.screen{display:none}}
 </style></head><body><h1>${report.origem === 'FINALIZACAO' ? 'FECHAMENTO DE FRETE' : 'CONFERÊNCIA DE FRETES E VALES'}</h1>
-${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(`UNIDADE:${h.unit ?? '—'}`), cell(`FECH:${closureNumber}`)])], 'metadata')}
+${table([row([cell('SEM:'), cell(h.semana), cell(`PERÍODO:${date(h.periodo_inicio)} - ${date(h.periodo_fim)}`, 2), cell('IMPRESSO EM:'), cell(printed), cell(h.unit == null ? '' : `UNIDADE:${h.unit}`), cell(`FECH:${closureNumber}`)])], 'metadata')}
 ${table([row([cell('PLACA:'), cell(h.placa), cell('', 2), cell('PROPRIETÁRIO'), cell(owner, 3)])], 'owner')}
 <div class="warnings">${warnings}</div>
 ${
@@ -442,13 +511,13 @@ ${
             cell('FRETE'),
             cell(''),
             cell(m.tipo_veiculo),
-            cell(`CIOT: ${m.ciot ?? '—'}`, 2),
+            cell(m.ciot == null ? '' : `CIOT: ${m.ciot}`, 2),
             cell(m.destino),
             cell(`+${money(m.frete_veiculo)}`, 1, true),
           ]),
         ],
         'manifest-heading',
-      )}</div>${entries(linked.filter((e) => e.tipo_despesa === 'Credito'))}${extras(m)}${paired([...freight.map((x) => x[0]), 'PERCENT', '% TEST'], [...freight.map((x) => moneyOrDash(m[x[1]])), percent(m.percentual_antigo), percent(ratio(m.frt_tl_vlc, extrasForTest(m)))])}${ctrb(m)}${entries(
+      )}</div>${entries(linked.filter((e) => e.tipo_despesa === 'Credito'))}${extras(m)}<div class="report-row-gap" aria-hidden="true"></div>${paired([...freight.map((x) => x[0]), 'PERC. INICIAL', 'PERC. FINAL'], [...freight.map((x) => moneyOrDash(m[x[1]])), percent(m.carreg_perc ?? m.perc_carreg), percent(m.perc_final ?? m.final_perc)])}<div class="report-row-gap" aria-hidden="true"></div>${ctrb(m)}${entries(
         linked.filter(
           (e) =>
             e.tipo_despesa === 'Adiantamento' &&
@@ -462,16 +531,7 @@ ${
 }
 
 ${entries(outsideCredits)}
-${
-  bottomEntries.length || bottomAdvances.length
-    ? `<h2>VALES</h2>${entries(bottomEntries, false, true)}${entries(
-        bottomAdvances,
-        true,
-        true,
-      )}`
-    : ''
-}
-${report.coupons.length ? `<h2>CUPONS</h2>${table(chronological(report.coupons, 'data_cobranca').map((c) => row([cell(c.id), cell(date(c.data_cobranca)), cell(`Nota (ID): ${c.nota_id}`), cell(c.descricao, 4), cell(`−${money(c.valor)}`, 1, true)])))}` : ''}
+${bottomEntries.length || bottomAdvances.length || report.coupons.length ? `<div class="vale-section"><h2>VALES</h2>${valeAndCouponRows()}</div>` : ''}
 <div class="summary">${table([row([cell('T Bruto:'), cell(moneyOrDash(reportGross)), cell('T CTRB:'), cell(moneyOrDash(totalCtrb)), cell('T Vales:'), cell(moneyOrDash(deductions)), cell('Saldo:'), cell(moneyOrDash(reportSaldo), 1, true)])])}
 ${table(
   [
@@ -488,7 +548,7 @@ ${table(
     ...linkedAdvance3333.map((entry) =>
       row([
         cell('', 6),
-        cell(entry.id ?? '—'),
+        cell(entry.controle_id ?? entry.id ?? ''),
         cell(`−${money(entry.valor)}`, 1, true),
       ]),
     ),
@@ -508,9 +568,8 @@ ${table(
     'SUBTOTAL 1',
     'PARA USO',
     'TOTAL A RECEBER',
-    'Percentual novo',
-    'Percentual',
-    '% TEST',
+    'PERC. INICIAL',
+    'PERC. FINAL',
   ].map((label, i) =>
     row([
       cell('', 6),
@@ -524,14 +583,14 @@ ${table(
   ),
   'indicators',
 )}</div>
-<div class="notes">Fechamento: ${escape(closureNumber)}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : 'Distribuição do pagamento não registrada.')} ${report.origem === 'FINALIZACAO' ? 'Documento de fechamento de frete.' : 'Documento de conferência; não comprova transferência.'} Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos adiantamentos 3333. “—”: informação não registrada no histórico.</div></body></html>`;
+<div class="notes">Fechamento: ${escape(closureNumber)}. ${escape(report.payment?.criterio ? `Critério: ${report.payment.criterio}.` : '')} ${report.origem === 'FINALIZACAO' ? 'Documento de fechamento de frete.' : 'Documento de conferência; não comprova transferência.'} Saldo do relatório conforme VBA: líquido do fechamento menos CTRB bruto; TOTAL CTRB = subtotal do valor líquido do CTRB menos os vales CTRB de código 3333.</div></body></html>`;
 }
 
 export function renderDriverClosureReport(report: ClosureReport): string {
   const h = report.cabecalho;
   const driver =
     report.manifests.find((row) => row.motorista)?.motorista ??
-    'Não informado';
+    '';
   const manifestRows = chronological(report.manifests, 'semana')
     .map(
       (manifest) =>
@@ -541,13 +600,13 @@ export function renderDriverClosureReport(report: ClosureReport): string {
   const entryRows = chronological(report.entries, 'data_lancamento')
     .map(
       (entry) =>
-        `<tr><td>${escape(entry.id)}</td><td>${escape(entry.codigo_despesa)}</td><td>${escape(entry.nome_despesa)}</td><td>${escape(entry.tipo_despesa)}</td><td>${escape(date(entry.data_lancamento))}</td><td class="right">${escape(money(entry.valor))}</td></tr>`,
+        `<tr><td>${escape(entry.controle_id ?? entry.id)}</td><td>${escape(entry.responsavel_cod ?? '')}</td><td>${escape(entry.codigo_despesa)}</td><td>${escape(String(entry.codigo_despesa ?? '').trim() === '3333' ? 'CTRB' : entry.nome_despesa)}</td><td>${escape(String(entry.codigo_despesa ?? '').trim() === '3333' ? 'CTRB' : entry.tipo_despesa)}</td><td>${escape(date(entry.data_lancamento))}</td><td class="right">${escape(money(entry.valor))}</td></tr>`,
     )
     .join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório por motorista</title><style>
 @page{size:A4 portrait;margin:10mm 10mm 14mm}*{box-sizing:border-box}body{font:10pt Arial;color:#000;margin:0}h1{text-align:center;font-size:13pt;margin:0 0 18px}h2{font-size:10pt;margin:18px 0 5px}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:18px}.meta strong{display:inline-block;min-width:95px}table{width:100%;border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ddd;text-align:left}th{background:#eee}.right{text-align:right}.totals{margin-top:18px;margin-left:auto;width:310px}.totals td:first-child{font-weight:bold}</style></head><body>
 <h1>RELATÓRIO POR MOTORISTA</h1><div class="meta"><div><strong>Fechamento:</strong>${escape(h.numero)}</div><div><strong>Semana:</strong>${escape(h.semana)}</div><div><strong>Placa:</strong>${escape(h.placa)}</div><div><strong>Motorista:</strong>${escape(driver)}</div><div><strong>Período:</strong>${escape(date(h.periodo_inicio))} a ${escape(date(h.periodo_fim))}</div><div><strong>Unidade:</strong>${escape(h.unit)}</div></div>
 <h2>MANIFESTOS</h2><table><thead><tr><th>Data</th><th>Manifesto</th><th>Destino</th><th class="right">Frete</th><th class="right">CTRB</th><th class="right">Líquido</th></tr></thead><tbody>${manifestRows || '<tr><td colspan="6">Nenhum manifesto.</td></tr>'}</tbody></table>
-<h2>VALES</h2><table><thead><tr><th>ID</th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Data</th><th class="right">Valor</th></tr></thead><tbody>${entryRows || '<tr><td colspan="6">Nenhum vale.</td></tr>'}</tbody></table>
+<h2>VALES</h2><table><thead><tr><th>ID</th><th>Usuário</th><th>Código</th><th>Descrição</th><th>Tipo</th><th>Data</th><th class="right">Valor</th></tr></thead><tbody>${entryRows || '<tr><td colspan="7">Nenhum vale.</td></tr>'}</tbody></table>
 <table class="totals"><tr><td>Bruto</td><td class="right">${escape(money(report.totals.total_bruto))}</td></tr><tr><td>CTRB</td><td class="right">${escape(money(report.totals.total_ctrb))}</td></tr><tr><td>Líquido a pagar</td><td class="right">${escape(money(report.totals.total_liquido))}</td></tr></table></body></html>`;
 }

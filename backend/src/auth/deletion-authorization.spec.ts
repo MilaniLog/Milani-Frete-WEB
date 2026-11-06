@@ -38,11 +38,26 @@ it('não aceita senha de usuário comum como autorização', async () => {
   request.body.admin_authorization = {cod:8,password:'correct'};
   await expect(service.authorize(request)).rejects.toMatchObject({status:403});
 });
-it('não solicita autorização administrativa para consulta ou edição', async () => {
+it('não solicita autorização administrativa para consulta, inclusão ou edição de outros recursos', async () => {
   const {service,request,db} = setup();
-  for (const method of ['GET','POST','PUT']) { request.method=method; await service.authorize(request); }
+  for (const method of ['GET','POST']) { request.method=method; await service.authorize(request); }
+  request.method='PUT'; request.path='/manifests/1'; await service.authorize(request);
   expect(db.employees.findUnique).not.toHaveBeenCalled();
 });
+it.each(['/freight-entries/90', '/api/manifests/1/entries/90'])(
+  'exige autorização para editar vale em %s',
+  async path => {
+    const {service,request} = setup();
+    request.method='PUT'; request.path=path;
+    await expect(service.authorize(request)).rejects.toMatchObject({
+      response: { code: 'ADMIN_APPROVAL_REQUIRED', operation: 'edit' },
+    });
+    request.body.admin_authorization={cod:8,password:'correct'};
+    await expect(service.authorize(request)).resolves.toBeUndefined();
+    expect(request.body).toEqual({});
+    expect(request.user.deletionApprovedBy).toBe(8);
+  },
+);
 it('guard JWT aplica a autorização sem transformar recusa em sessão expirada', async () => {
   const {service,request} = setup(); request.headers={authorization:'Bearer test'};
   const guard = new JwtAuthGuard({verifyAsync:async()=>request.user} as any,{getOrThrow:()=> 'test-secret'} as any,service);

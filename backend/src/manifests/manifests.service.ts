@@ -89,7 +89,7 @@ export class ManifestsService {
       if (!manifest) throw new NotFoundException('Manifesto não encontrado.');
       originalFreight = Number(manifest.frete_veiculo);
       expenses = companyExpenses(await this.prisma.frete_lancamentos.findMany({
-        where: { manifesto_id: dto.manifesto_id, ...(await this.operationalUnitWhere(user, manifest.unit)) },
+        where: { manifesto_id: dto.manifesto_id, cancelado: false, ...(await this.operationalUnitWhere(user, manifest.unit)) },
         select: { tipo_despesa: true, valor: true },
       }));
     }
@@ -252,7 +252,12 @@ export class ManifestsService {
       throw new NotFoundException('Manifesto não encontrado.');
     }
 
-    return manifesto;
+    const creditos = await this.prisma.frete_lancamentos.findMany({
+      where: { manifesto_id: id, tipo_despesa: 'Credito', cancelado: false },
+      orderBy: [{ data_lancamento: 'asc' }, { id: 'asc' }],
+    });
+
+    return { ...manifesto, creditos };
   }
 
   // =========================================================
@@ -268,25 +273,84 @@ export class ManifestsService {
         where: {
           unit: manifestUnit,
           manifesto_id: null,
+          cancelado: false,
           manifesto_numero: { in: numbers },
           pago: false,
           fechamento_id: null,
         },
       });
+      const creditEntries = [];
+      for (const credit of dto.creditos ?? []) {
+        const expense = await tx.frete_despesas.findFirst({
+          where: { id: credit.despesa_id, ativo: true },
+        });
+        if (!expense)
+          throw new NotFoundException('Despesa de credito nao encontrada ou inativa.');
+        const expenseType = String(expense.tipo)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+        if (expenseType !== 'credito')
+          throw new BadRequestException('Selecione apenas despesas do tipo credito.');
+        creditEntries.push({
+          codigo_despesa: expense.codigo,
+          nome_despesa: expense.nome,
+          tipo_despesa: 'Credito',
+          data_lancamento: new Date(`${dto.semana}T00:00:00.000Z`),
+          valor: credit.valor,
+          descricao: credit.descricao?.trim() || null,
+          departamento: null,
+          pago: false,
+          fechamento_id: null,
+        });
+      }
       const data = await this.buildData(
         tx,
         dto,
         user,
         undefined,
-        companyExpenses(pendingEntries),
+        companyExpenses([...pendingEntries, ...creditEntries]),
         manifestUnit,
       );
       const created = await tx.frete_carregamento_manifestos.create({ data });
+      const createdCredits = [];
+      if (creditEntries.length) {
+        const week = await periodForDate(tx, creditEntries[0].data_lancamento);
+        const last = await tx.frete_lancamentos.aggregate({
+          where: { unit: manifestUnit },
+          _max: { numero: true },
+        });
+        for (const [index, credit] of creditEntries.entries()) {
+          const control = await tx.frete_vale_controles.create({
+            data: { tipo: 'LANCAMENTO' },
+          });
+          createdCredits.push(await tx.frete_lancamentos.create({
+            data: {
+              ...credit,
+              controle_id: control.id,
+              numero: (last._max.numero ?? 0) + index + 1,
+              unit: manifestUnit,
+              semana: week.codigo,
+              manifesto_id: created.id,
+              manifesto_numero: created.manifestos,
+              placa: created.placa,
+              motorista: created.motorista,
+              tipo_veiculo: created.tipo_veiculo,
+              destino: created.destino,
+              responsavel_cod: user.cod,
+              alterado_por: user.cod,
+              emitido_em: new Date(),
+              updated_at: new Date(),
+            },
+          }));
+        }
+      }
       if (pendingEntries.length)
         await tx.frete_lancamentos.updateMany({
           where: { id: { in: pendingEntries.map((entry) => entry.id) } },
           data: {
             manifesto_id: created.id,
+            alterado_por: user.cod,
             placa: created.placa,
             motorista: created.motorista,
             tipo_veiculo: created.tipo_veiculo,
@@ -294,13 +358,13 @@ export class ManifestsService {
             updated_at: new Date(),
           },
         });
-      return created;
+      return { ...created, creditos: createdCredits };
     });
   }
 
   async update(id: number, dto: CreateManifestDto, user: AuthUser) {
     return this.mutate(async (tx) => {
-      const { manifest, entries } = await this.editable(tx, id, user);
+      const { manifest, entries } = await this.editable(tx, id, user, 'update');
       const data = await this.buildData(
         tx,
         {
@@ -326,9 +390,16 @@ export class ManifestsService {
       });
       // Vínculo por ID preserva os vales quando o número muda.
       await tx.frete_lancamentos.updateMany({
-        where: { manifesto_id: id, unit: manifest.unit },
+        where: {
+          manifesto_id: id,
+          unit: manifest.unit,
+          cancelado: false,
+          pago: false,
+          fechamento_id: null,
+        },
         data: {
           manifesto_numero: updated.manifestos,
+          alterado_por: user.cod,
           placa: updated.placa,
           motorista: updated.motorista,
           tipo_veiculo: updated.tipo_veiculo,
@@ -336,19 +407,31 @@ export class ManifestsService {
           updated_at: new Date(),
         },
       });
-      return updated;
+      const creditos = await tx.frete_lancamentos.findMany({
+        where: { manifesto_id: id, tipo_despesa: 'Credito', cancelado: false },
+        orderBy: [{ data_lancamento: 'asc' }, { id: 'asc' }],
+      });
+      return { ...updated, creditos };
     });
   }
 
   async remove(id: number, user: AuthUser) {
     return this.mutate(async (tx) => {
-      const { manifest } = await this.editable(tx, id, user);
-      const entries = await tx.frete_lancamentos.deleteMany({
+      const { manifest } = await this.editable(tx, id, user, 'remove');
+      const entries = await tx.frete_lancamentos.updateMany({
         where: {
           manifesto_id: id,
           unit: manifest.unit,
           pago: false,
           fechamento_id: null,
+          cancelado: false,
+        },
+        data: {
+          cancelado: true,
+          cancelado_em: new Date(),
+          cancelado_por: user.cod,
+          alterado_por: user.cod,
+          updated_at: new Date(),
         },
       });
       await tx.frete_carregamento_manifestos.update({
@@ -357,6 +440,7 @@ export class ManifestsService {
           cancelado: true,
           cancelado_em: new Date(),
           cancelado_por: user.cod,
+          alterado_por: user.cod,
           updated_at: new Date(),
         },
       });
@@ -368,6 +452,7 @@ export class ManifestsService {
     tx: Prisma.TransactionClient,
     id: number,
     user: AuthUser,
+    action: 'update' | 'remove',
   ) {
     const manifest = await tx.frete_carregamento_manifestos.findFirst({
       where: { id, ...(await this.operationalUnitWhere(user)) },
@@ -384,9 +469,10 @@ export class ManifestsService {
       );
     }
     const entries = await tx.frete_lancamentos.findMany({
-      where: { manifesto_id: id },
+      where: { manifesto_id: id, cancelado: false },
     });
     if (
+      action === 'remove' &&
       entries.some(
         (entry) =>
           entry.unit !== manifest.unit || entry.pago || entry.fechamento_id != null,
@@ -397,7 +483,12 @@ export class ManifestsService {
       );
     }
     await periodForDate(tx, manifest.semana);
-    for (const entry of entries)
+    for (const entry of entries.filter(
+      (item) =>
+        item.unit === manifest.unit &&
+        !item.pago &&
+        item.fechamento_id == null,
+    ))
       await periodForDate(
         tx,
         entry.data_lancamento,
@@ -558,6 +649,10 @@ export class ManifestsService {
 
     if (!driver) {
       throw new NotFoundException('Motorista não encontrado.');
+    }
+
+    if (driver.canceled) {
+      throw new BadRequestException('Este motorista está desativado.');
     }
 
     // =======================================================
@@ -944,6 +1039,7 @@ export class ManifestsService {
       // =================================================
 
       usuario: String(user.cod),
+      alterado_por: user.cod,
     };
   }
 

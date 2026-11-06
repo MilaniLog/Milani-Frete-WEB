@@ -16,6 +16,7 @@ const manifest = {
   id: 88,
   manifestos: "100018302-4",
   semana: "2026-09-21",
+  hora: "10:30",
   placa: "ABC1234",
   motorista: "João Silva",
   tipo_veiculo: "Truck",
@@ -78,12 +79,12 @@ async function mount(locked = false) {
     ).toBe(false),
   );
 }
-function values() {
-  const week = screen.getByLabelText("Semana");
+async function values() {
+  const week = screen.getByLabelText("Semana").closest("label")!
+    .querySelector("select") as HTMLSelectElement;
   fireEvent.change(week, {
     target: { value: "3926" },
   });
-  fireEvent.keyDown(week, { key: "Enter" });
   fireEvent.change(screen.getByLabelText("Data do vale"), {
     target: { value: "2026-09-21" },
   });
@@ -93,6 +94,7 @@ function values() {
   fireEvent.change(screen.getByLabelText("Valor do vale"), {
     target: { value: "25.50" },
   });
+  await waitFor(() => expect((screen.getByLabelText("Semana") as HTMLInputElement).value).toContain("3926"));
 }
 function fillManifest(value = manifest.manifestos) {
   fireEvent.change(screen.getByLabelText("Primeiros três dígitos do manifesto"), {
@@ -115,21 +117,36 @@ it("mantém a digitação parcial da unidade no campo do manifesto", async () =>
   expect((prefix as HTMLInputElement).value).toBe("10");
   expect((screen.getByLabelText("Número do manifesto") as HTMLInputElement).value).toBe("");
 });
-function choosePlate(value = "ABC1234") {
-  const field = screen.getByLabelText("Placa");
+async function choosePlate(value = "ABC1234") {
+  const field = document.querySelector('select[name="placa"]') as HTMLSelectElement;
   fireEvent.change(field, { target: { value } });
-  fireEvent.keyDown(field, { key: "Enter" });
+  await waitFor(() => expect((screen.getByLabelText("Placa") as HTMLInputElement).value).toBe(value));
 }
+it("começa por semana, deixa a data vazia e mostra data e hora do manifesto", async () => {
+  await mount();
+  const week = screen.getByLabelText("Semana");
+  const manifestField = screen.getByLabelText("Manifesto");
+  expect(
+    week.compareDocumentPosition(manifestField) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect((screen.getByLabelText("Data do vale") as HTMLInputElement).value).toBe("");
+
+  fillManifest();
+  expect(
+    await screen.findByText("Hora: 10:30 · Data: 21/09/2026"),
+  ).toBeTruthy();
+  expect((screen.getByLabelText("Data do vale") as HTMLInputElement).value).toBe("");
+});
 it("abre formulário e salva por placa/semana sem pesquisar manifesto", async () => {
   await mount();
   expect(
     (screen.getByLabelText("Número do manifesto") as HTMLInputElement).required,
   ).toBe(false);
   expect(document.querySelector('form input[name="manifesto"]')).toBeTruthy();
-  choosePlate();
-  values();
+  await choosePlate();
+  await values();
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
-  await screen.findByText(/Vale 42 salvo/);
+  await screen.findByText(/Vale 90 salvo/);
   const writes = vi
     .mocked(fetch)
     .mock.calls.filter(([, o]) => o?.method === "POST");
@@ -162,9 +179,9 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
       "João Silva",
     ),
   );
-  values();
+  await values();
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
-  await screen.findByText(/Vale 42 salvo/);
+  await screen.findByText(/Vale 90 salvo/);
   expect(
     JSON.parse(
       String(
@@ -173,6 +190,18 @@ it("preenche dados ao sair do manifesto e envia vínculo", async () => {
       ),
     ),
   ).toHaveProperty("manifesto_id", 88);
+
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  expect((screen.getByPlaceholderText("000000-0") as HTMLInputElement).value).toBe("018302-4");
+  fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
+  await waitFor(() => {
+    expect((screen.getByPlaceholderText("000") as HTMLInputElement).value).toBe("");
+    expect((screen.getByPlaceholderText("000000-0") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Semana") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Placa") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Data do vale") as HTMLInputElement).value).toBe("");
+  });
+  expect(vi.mocked(fetch).mock.calls.filter(([, options]) => options?.method === "POST")).toHaveLength(1);
 });
 it("salva o vale pelo número antes de o manifesto existir", async () => {
   await mount();
@@ -184,10 +213,10 @@ it("salva o vale pelo número antes de o manifesto existir", async () => {
   );
   fillManifest();
   await screen.findByText(/Manifesto ainda não cadastrado/);
-  choosePlate();
-  values();
+  await choosePlate();
+  await values();
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
-  await screen.findByText(/Vale 42 salvo/);
+  await screen.findByText(/Vale 90 salvo/);
   const request = vi.mocked(fetch).mock.calls.find(
     ([url, options]) =>
       String(url).endsWith("/freight-entries") && options?.method === "POST",
@@ -246,7 +275,7 @@ it("exibe o ID pelo botão Editar, carrega e salva o vale sem criar outro", asyn
     target: { value: "40" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Salvar vale" }));
-  await screen.findByText(/Vale 42 salvo/);
+  await screen.findByText(/Vale 90 salvo/);
   const write = vi
     .mocked(fetch)
     .mock.calls.find(([, o]) => o?.method === "PUT");
@@ -259,9 +288,13 @@ it("exibe o ID pelo botão Editar, carrega e salva o vale sem criar outro", asyn
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
 });
-it.each([false, true])(
-  "exclusão aparece somente ao editar e respeita bloqueio pago=%s",
-  async (pago) => {
+it.each([
+  { pago: false, fatura: null },
+  { pago: true, fatura: null },
+  { pago: false, fatura: 7 },
+])(
+  "exclusão aparece somente ao editar e respeita bloqueio pago=$pago fatura=$fatura",
+  async ({ pago, fatura }) => {
     await mount();
     expect(
       screen.queryByRole("button", { name: "Excluir vale" }),
@@ -283,6 +316,8 @@ it.each([false, true])(
       departamento: null,
       pago,
       fechamento_id: null,
+      fatura_id: fatura,
+      numero_fatura: fatura == null ? null : 15,
     };
     const normal = vi.mocked(fetch).getMockImplementation()!;
     vi.mocked(fetch).mockImplementation((u, o) =>
@@ -326,14 +361,14 @@ it.each([false, true])(
     ).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Manter vale" }));
     expect(
-      screen.queryByRole("button", { name: "Confirmar exclusão" }),
+      screen.queryByRole("button", { name: "Confirmar cancelamento" }),
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Excluir vale" }));
     fireEvent.change(screen.getByLabelText("ID do vale"), {
       target: { value: "91" },
     });
     expect(
-      screen.queryByRole("button", { name: "Confirmar exclusão" }),
+      screen.queryByRole("button", { name: "Confirmar cancelamento" }),
     ).toBeNull();
     fireEvent.change(screen.getByLabelText("ID do vale"), {
       target: { value: "90" },
@@ -349,8 +384,8 @@ it.each([false, true])(
       ).toBe(false),
     );
     fireEvent.click(screen.getByRole("button", { name: "Excluir vale" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-    await screen.findByText("Vale 12 excluído com sucesso.");
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
+    await screen.findByText("Vale 90 cancelado com sucesso. Histórico preservado.");
     expect(fetch).toHaveBeenCalledWith(
       "/api/freight-entries/90",
       expect.objectContaining({ method: "DELETE" }),
@@ -361,17 +396,17 @@ it.each([false, true])(
   },
 );
 
-it("não permite salvar em manifesto fechado", async () => {
+it("permite credito e debito em manifesto fechado", async () => {
   await mount(true);
   fillManifest();
-  await screen.findByText(/Registro pago ou fechado:/);
+  await screen.findByText(/Manifesto fechado: o credito sera pago/);
   expect(
     (
       screen.getByRole("button", {
         name: "Salvar vale",
       }) as HTMLButtonElement
     ).disabled,
-  ).toBe(true);
+  ).toBe(false);
 });
 it("descarta resposta atrasada quando o manifesto é apagado", async () => {
   await mount();

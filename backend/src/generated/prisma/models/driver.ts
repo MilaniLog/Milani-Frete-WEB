@@ -30,12 +30,14 @@ export type DriverAvgAggregateOutputType = {
   cpf: number | null
   unit: number | null
   user: number | null
+  alterado_por: number | null
 }
 
 export type DriverSumAggregateOutputType = {
   cpf: bigint | null
   unit: number | null
   user: number | null
+  alterado_por: number | null
 }
 
 export type DriverMinAggregateOutputType = {
@@ -44,6 +46,8 @@ export type DriverMinAggregateOutputType = {
   name: string | null
   unit: number | null
   user: number | null
+  alterado_por: number | null
+  canceled: boolean | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -54,6 +58,8 @@ export type DriverMaxAggregateOutputType = {
   name: string | null
   unit: number | null
   user: number | null
+  alterado_por: number | null
+  canceled: boolean | null
   created_at: Date | null
   updated_at: Date | null
 }
@@ -64,6 +70,8 @@ export type DriverCountAggregateOutputType = {
   name: number
   unit: number
   user: number
+  alterado_por: number
+  canceled: number
   created_at: number
   updated_at: number
   _all: number
@@ -74,12 +82,14 @@ export type DriverAvgAggregateInputType = {
   cpf?: true
   unit?: true
   user?: true
+  alterado_por?: true
 }
 
 export type DriverSumAggregateInputType = {
   cpf?: true
   unit?: true
   user?: true
+  alterado_por?: true
 }
 
 export type DriverMinAggregateInputType = {
@@ -88,6 +98,8 @@ export type DriverMinAggregateInputType = {
   name?: true
   unit?: true
   user?: true
+  alterado_por?: true
+  canceled?: true
   created_at?: true
   updated_at?: true
 }
@@ -98,6 +110,8 @@ export type DriverMaxAggregateInputType = {
   name?: true
   unit?: true
   user?: true
+  alterado_por?: true
+  canceled?: true
   created_at?: true
   updated_at?: true
 }
@@ -108,6 +122,8 @@ export type DriverCountAggregateInputType = {
   name?: true
   unit?: true
   user?: true
+  alterado_por?: true
+  canceled?: true
   created_at?: true
   updated_at?: true
   _all?: true
@@ -205,6 +221,8 @@ export type DriverGroupByOutputType = {
   name: string
   unit: number
   user: number
+  alterado_por: number | null
+  canceled: boolean
   created_at: Date
   updated_at: Date
   _count: DriverCountAggregateOutputType | null
@@ -238,6 +256,8 @@ export type driverWhereInput = {
   name?: Prisma.StringFilter<"driver"> | string
   unit?: Prisma.IntFilter<"driver"> | number
   user?: Prisma.IntFilter<"driver"> | number
+  alterado_por?: Prisma.IntNullableFilter<"driver"> | number | null
+  canceled?: Prisma.BoolFilter<"driver"> | boolean
   created_at?: Prisma.DateTimeFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"driver"> | Date | string
 }
@@ -248,6 +268,8 @@ export type driverOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  canceled?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _relevance?: Prisma.driverOrderByRelevanceInput
@@ -262,6 +284,8 @@ export type driverWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"driver"> | string
   unit?: Prisma.IntFilter<"driver"> | number
   user?: Prisma.IntFilter<"driver"> | number
+  alterado_por?: Prisma.IntNullableFilter<"driver"> | number | null
+  canceled?: Prisma.BoolFilter<"driver"> | boolean
   created_at?: Prisma.DateTimeFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeFilter<"driver"> | Date | string
 }, "cpf">
@@ -272,6 +296,8 @@ export type driverOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrderInput | Prisma.SortOrder
+  canceled?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
   _count?: Prisma.driverCountOrderByAggregateInput
@@ -290,6 +316,8 @@ export type driverScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"driver"> | string
   unit?: Prisma.IntWithAggregatesFilter<"driver"> | number
   user?: Prisma.IntWithAggregatesFilter<"driver"> | number
+  alterado_por?: Prisma.IntNullableWithAggregatesFilter<"driver"> | number | null
+  canceled?: Prisma.BoolWithAggregatesFilter<"driver"> | boolean
   created_at?: Prisma.DateTimeWithAggregatesFilter<"driver"> | Date | string
   updated_at?: Prisma.DateTimeWithAggregatesFilter<"driver"> | Date | string
 }
@@ -300,6 +328,8 @@ export type driverCreateInput = {
   name: string
   unit?: number
   user: number
+  alterado_por?: number | null
+  canceled?: boolean
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -310,6 +340,8 @@ export type driverUncheckedCreateInput = {
   name: string
   unit?: number
   user: number
+  alterado_por?: number | null
+  canceled?: boolean
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -320,6 +352,8 @@ export type driverUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -330,6 +364,8 @@ export type driverUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -340,6 +376,8 @@ export type driverCreateManyInput = {
   name: string
   unit?: number
   user: number
+  alterado_por?: number | null
+  canceled?: boolean
   created_at?: Date | string
   updated_at?: Date | string
 }
@@ -350,6 +388,8 @@ export type driverUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -360,6 +400,8 @@ export type driverUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   unit?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.IntFieldUpdateOperationsInput | number
+  alterado_por?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  canceled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   created_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updated_at?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -376,6 +418,8 @@ export type driverCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+  canceled?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -384,6 +428,7 @@ export type driverAvgOrderByAggregateInput = {
   cpf?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type driverMaxOrderByAggregateInput = {
@@ -392,6 +437,8 @@ export type driverMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+  canceled?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -402,6 +449,8 @@ export type driverMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
+  canceled?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   updated_at?: Prisma.SortOrder
 }
@@ -410,6 +459,7 @@ export type driverSumOrderByAggregateInput = {
   cpf?: Prisma.SortOrder
   unit?: Prisma.SortOrder
   user?: Prisma.SortOrder
+  alterado_por?: Prisma.SortOrder
 }
 
 export type BigIntFieldUpdateOperationsInput = {
@@ -428,6 +478,8 @@ export type driverSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name?: boolean
   unit?: boolean
   user?: boolean
+  alterado_por?: boolean
+  canceled?: boolean
   created_at?: boolean
   updated_at?: boolean
 }, ExtArgs["result"]["driver"]>
@@ -440,11 +492,13 @@ export type driverSelectScalar = {
   name?: boolean
   unit?: boolean
   user?: boolean
+  alterado_por?: boolean
+  canceled?: boolean
   created_at?: boolean
   updated_at?: boolean
 }
 
-export type driverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"empresa_sigla" | "cpf" | "name" | "unit" | "user" | "created_at" | "updated_at", ExtArgs["result"]["driver"]>
+export type driverOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"empresa_sigla" | "cpf" | "name" | "unit" | "user" | "alterado_por" | "canceled" | "created_at" | "updated_at", ExtArgs["result"]["driver"]>
 
 export type $driverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "driver"
@@ -455,6 +509,8 @@ export type $driverPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     name: string
     unit: number
     user: number
+    alterado_por: number | null
+    canceled: boolean
     created_at: Date
     updated_at: Date
   }, ExtArgs["result"]["driver"]>
@@ -831,6 +887,8 @@ export interface driverFieldRefs {
   readonly name: Prisma.FieldRef<"driver", 'String'>
   readonly unit: Prisma.FieldRef<"driver", 'Int'>
   readonly user: Prisma.FieldRef<"driver", 'Int'>
+  readonly alterado_por: Prisma.FieldRef<"driver", 'Int'>
+  readonly canceled: Prisma.FieldRef<"driver", 'Boolean'>
   readonly created_at: Prisma.FieldRef<"driver", 'DateTime'>
   readonly updated_at: Prisma.FieldRef<"driver", 'DateTime'>
 }

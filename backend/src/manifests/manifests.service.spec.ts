@@ -107,6 +107,7 @@ describe('Manutenção de manifestos', () => {
         valor: 50,
         pago: false,
         fechamento_id: null,
+        cancelado: false,
       },
       {
         id: 2,
@@ -116,6 +117,7 @@ describe('Manutenção de manifestos', () => {
         valor: 25,
         pago: false,
         fechamento_id: null,
+        cancelado: false,
       },
       {
         id: 3,
@@ -125,9 +127,13 @@ describe('Manutenção de manifestos', () => {
         valor: 10,
         pago: false,
         fechamento_id: null,
+        cancelado: false,
       },
     ];
     db = {
+      frete_vale_controles: {
+        create: jest.fn(async () => ({ id: 1000 + entries.length })),
+      },
       frete_carregamento_manifestos: {
         findFirst: jest.fn(async ({ where }) => {
           if (where.manifestos) return null;
@@ -149,15 +155,25 @@ describe('Manutenção de manifestos', () => {
       },
       frete_lancamentos: {
         findMany: jest.fn(async () => entries),
+        aggregate: jest.fn(async () => ({
+          _max: { numero: entries.reduce((max, entry) => Math.max(max, entry.numero ?? 0), 0) },
+        })),
+        create: jest.fn(async ({ data }) => {
+          const entry = { id: entries.length + 100, ...data };
+          entries.push(entry);
+          return entry;
+        }),
         updateMany: jest.fn(async ({ data }) => {
           entries = entries.map((entry) => ({ ...entry, ...data }));
           return { count: entries.length };
         }),
-        deleteMany: jest.fn(async () => {
-          const count = entries.length;
-          entries = [];
-          return { count };
-        }),
+      },
+      frete_despesas: {
+        findFirst: jest.fn(async ({ where }) =>
+          where.id === 7
+            ? { id: 7, codigo: '0060', nome: 'Complemento de frete', tipo: 'Credito', ativo: true }
+            : null,
+        ),
       },
       vehicle: {
         findUnique: jest.fn(async () => ({
@@ -207,6 +223,17 @@ describe('Manutenção de manifestos', () => {
     service = new ManifestsService(db, new FreightCalculationService(db));
   });
 
+  it('não permite criar manifesto com motorista desativado', async () => {
+    db.driver.findUnique.mockResolvedValue({
+      name: 'Motorista desativado',
+      canceled: true,
+    });
+    await expect(service.create(dto, user)).rejects.toThrow(
+      'Este motorista está desativado.',
+    );
+    expect(db.frete_carregamento_manifestos.create).not.toHaveBeenCalled();
+  });
+
   it('vincula automaticamente os vales cadastrados antes do manifesto', async () => {
     entries = [
       {
@@ -226,6 +253,7 @@ describe('Manutenção de manifestos', () => {
       where: {
         unit: 101,
         manifesto_id: null,
+        cancelado: false,
         manifesto_numero: { in: [dto.manifestos] },
         pago: false,
         fechamento_id: null,
@@ -237,6 +265,33 @@ describe('Manutenção de manifestos', () => {
       motorista: 'Novo motorista',
       destino: 'NOVO DESTINO',
     });
+  });
+
+  it('cria vários créditos junto com o manifesto', async () => {
+    const created = await service.create(
+      {
+        ...dto,
+        creditos: [
+          { despesa_id: 7, valor: 25.5, descricao: 'Primeiro' },
+          { despesa_id: 7, valor: 30, descricao: 'Segundo' },
+        ],
+      },
+      user,
+    );
+    expect(created.id).toBe(2);
+    expect(db.frete_lancamentos.create).toHaveBeenCalledTimes(2);
+    expect(entries.slice(-2).map((entry) => entry.controle_id)).toEqual([
+      1003,
+      1004,
+    ]);
+    expect(created.creditos.map((entry) => entry.controle_id)).toEqual([
+      1003,
+      1004,
+    ]);
+    expect(entries.slice(-2)).toEqual([
+      expect.objectContaining({ numero: 1, manifesto_id: 2, tipo_despesa: 'Credito', valor: 25.5, descricao: 'Primeiro' }),
+      expect.objectContaining({ numero: 2, manifesto_id: 2, tipo_despesa: 'Credito', valor: 30, descricao: 'Segundo' }),
+    ]);
   });
 
   it('preserva origem/frete manual, inclui créditos e sincroniza os dados vinculados', async () => {
@@ -304,7 +359,8 @@ describe('Manutenção de manifestos', () => {
       canceled: true,
       deletedEntries: 3,
     });
-    expect(entries).toHaveLength(0);
+    expect(entries).toHaveLength(3);
+    expect(entries.every((entry) => entry.cancelado)).toBe(true);
     expect(manifest).toMatchObject({
       id: 1,
       cancelado: true,
@@ -312,7 +368,7 @@ describe('Manutenção de manifestos', () => {
     });
     expect(manifest.cancelado_em).toBeInstanceOf(Date);
     expect(
-      db.frete_lancamentos.deleteMany.mock.invocationCallOrder[0],
+      db.frete_lancamentos.updateMany.mock.invocationCallOrder[0],
     ).toBeLessThan(
       db.frete_carregamento_manifestos.update.mock.invocationCallOrder[0],
     );
@@ -328,7 +384,7 @@ describe('Manutenção de manifestos', () => {
       await expect(service.remove(1, user)).rejects.toBeInstanceOf(
         ConflictException,
       );
-      expect(db.frete_lancamentos.deleteMany).not.toHaveBeenCalled();
+      expect(db.frete_lancamentos.updateMany).not.toHaveBeenCalled();
     },
   );
 
@@ -343,17 +399,34 @@ describe('Manutenção de manifestos', () => {
   });
 
   it.each(['pago', 'fechamento_id', 'unit'])(
-    'bloqueia quando vale possui %s incompatível',
+    'permite editar, mas bloqueia cancelamento quando vale possui %s incompatível',
     async (field) => {
       entries[0][field] = field === 'pago' ? true : 202;
-      await expect(service.update(1, dto, user)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(service.update(1, dto, user)).resolves.toMatchObject({
+        id: 1,
+      });
       await expect(service.remove(1, user)).rejects.toBeInstanceOf(
         ConflictException,
       );
     },
   );
+
+  it('não sincroniza a edição do manifesto sobre vales já cobrados', async () => {
+    entries[0].pago = true;
+
+    await service.update(1, dto, user);
+
+    expect(db.frete_lancamentos.updateMany).toHaveBeenCalledWith({
+      where: {
+        manifesto_id: 1,
+        unit: manifest.unit,
+        cancelado: false,
+        pago: false,
+        fechamento_id: null,
+      },
+      data: expect.any(Object),
+    });
+  });
 
   it('não altera nem exclui manifesto de outra unidade', async () => {
     await expect(

@@ -11,6 +11,7 @@ import ManifestEntries from "./ManifestEntries";
 
 const entry = {
   id: 9,
+  controle_id: 12,
   numero: 12,
   codigo_despesa: "01",
   nome_despesa: "Pedágio",
@@ -129,8 +130,8 @@ it("exige confirmação para excluir", async () => {
   expect(
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "DELETE"),
   ).toBe(false);
-  fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-  await screen.findByText("Vale excluído. Valores recalculados.");
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
+  await screen.findByText("Vale cancelado. Valores recalculados.");
   expect(fetch).toHaveBeenCalledWith(
     "/api/manifests/1/entries/9",
     expect.objectContaining({ method: "DELETE" }),
@@ -147,7 +148,7 @@ it.each([true, false])(
       ),
     );
     mount(locked);
-    await screen.findByText("Pago / fechado");
+    await screen.findByText("Pago");
     expect(
       screen.queryByRole("button", { name: "Editar vale 12" }),
     ).toBeNull();
@@ -176,8 +177,8 @@ it("não informa falha de gravação quando somente a atualização da lista fal
   fireEvent.click(
     await screen.findByRole("button", { name: "Excluir vale 12" }),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
-  await screen.findByText("Vale excluído. Valores recalculados.");
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelamento" }));
+  await screen.findByText("Vale cancelado. Valores recalculados.");
   await screen.findByText("Falha na consulta.");
   await waitFor(() => expect(onBusy).toHaveBeenLastCalledWith(false));
 });

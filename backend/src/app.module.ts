@@ -18,6 +18,8 @@ import { FreightEntriesModule } from './freight-entries/freight-entries.module';
 import { WeeksModule } from './weeks/weeks.module';
 import { FreightInvoicesModule } from './freight-invoices/freight-invoices.module';
 import { FreightClosuresModule } from './freight-closures/freight-closures.module';
+import { ValeInvoicesModule } from './vale-invoices/vale-invoices.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { FreightClosuresModule } from './freight-closures/freight-closures.modul
     WeeksModule,
     FreightInvoicesModule,
     FreightClosuresModule,
+    ValeInvoicesModule,
+    UsersModule,
   ],
 
   controllers: [AppController],

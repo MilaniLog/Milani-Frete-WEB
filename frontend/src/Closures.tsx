@@ -5,6 +5,8 @@ import ClosureForm, {
   emptyClosureFilters,
   type ClosureFilters,
 } from "./ClosureForm";
+import { expenseName } from "./expense-display";
+import { valeIdentifier } from "./vale-identifier";
 
 type Totals = {
   total_bruto: string;
@@ -23,6 +25,7 @@ type Payment = {
 };
 type ManifestRow = {
   id: number; unit?: number; semana?: string; manifestos: string; frete_veiculo: string;
+  tipo_veiculo?: string | null; motorista?: string | null;
   hora?: string | null; destino?: string | null;
   ctrb_numero?: string | null; ctrb_total?: string; ctrb_adiantamento?: string;
   vale_pedagio?: string; sest_senat?: string; irrf?: string;
@@ -30,8 +33,11 @@ type ManifestRow = {
 };
 type EntryRow = {
   id: number;
+  controle_id?: number | null;
   numero: number;
   unit?: number;
+  motorista?: string | null;
+  tipo_veiculo?: string | null;
   manifesto_id?: number | null;
   manifesto_numero?: string | null;
   data_lancamento?: string;
@@ -39,12 +45,20 @@ type EntryRow = {
   nome_despesa: string;
   tipo_despesa: string;
   valor: string;
+  descricao?: string | null;
+  responsavel_cod?: number | null;
 };
 type CouponRow = {
   id: number;
+  controle_id?: number | null;
   nota_id: number;
+  motorista?: string | null;
+  tipo_veiculo?: string | null;
   valor: string;
   data_cobranca?: string;
+  descricao?: string | null;
+  responsavel_cod?: number | null;
+  nota?: { codigo_tipo?: string | null; nome_tipo?: string | null } | null;
 };
 type Preview = {
   semana: string;
@@ -53,11 +67,13 @@ type Preview = {
   origem?: string | null;
   placa: string;
   motorista?: string | null;
+  tipoVeiculo?: string | null;
   closureNumber?: number | null;
   isClosed?: boolean;
   manifests: ManifestRow[];
   entries: EntryRow[];
   availableDebits?: EntryRow[];
+  availableCoupons?: CouponRow[];
   coupons: CouponRow[];
   totals: Totals;
   payment: Payment | null;
@@ -80,7 +96,7 @@ type Report = Pick<
 };
 const money = (value: string | undefined) =>
   value == null
-    ? "Não registrado"
+    ? ""
     : Number(value).toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL",
@@ -89,37 +105,41 @@ const recordDate = (value?: string) => {
   const day = value?.slice(0, 10);
   return day && /^\d{4}-\d{2}-\d{2}$/.test(day)
     ? day.split("-").reverse().join("/")
-    : "—";
+    : "";
 };
 const manifestWithoutUnit = (value: string) =>
   /^\d{3}/.test(value) ? value.slice(3) : value;
 const entryDescription = (entry: EntryRow) =>
   entry.codigo_despesa
-    ? `${entry.codigo_despesa} - ${entry.nome_despesa}`
-    : entry.nome_despesa;
+    ? `${entry.codigo_despesa} - ${expenseName(entry.codigo_despesa, entry.nome_despesa)}`
+    : expenseName(entry.codigo_despesa, entry.nome_despesa);
+const couponExpense = (_coupon: CouponRow) => "ABASTECIMENTO";
 const entryManifestNumber = (entry: EntryRow, manifests: ManifestRow[]) => {
   const manifest = manifests.find((item) => item.id === entry.manifesto_id);
   const number = manifest?.manifestos ?? entry.manifesto_numero;
   return number ? manifestWithoutUnit(number) : "Sem manifesto";
 };
-const entryIdentifier = (entry: EntryRow) => String(entry.id);
+const entryIdentifier = (entry: EntryRow) => String(valeIdentifier(entry));
 const recordTime = (value?: string) => {
   const time = value ? Date.parse(value) : Number.NaN;
   return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
 };
 const recordHour = (value?: string | null) => {
   const digits = value?.replace(/\D/g, "") ?? "";
-  return digits.length >= 4 ? `${digits.slice(0, 2)}:${digits.slice(2, 4)}` : value || "—";
+  return digits.length >= 4 ? `${digits.slice(0, 2)}:${digits.slice(2, 4)}` : value || "";
 };
 
 const debitRows = (data: Pick<Preview, "entries" | "availableDebits">) =>
   data.availableDebits ??
   data.entries.filter((entry) => entry.tipo_despesa === "Debito");
+const couponRows = (data: Pick<Preview, "coupons" | "availableCoupons">) =>
+  data.availableCoupons ?? data.coupons;
+type RecordSelection = { debits: number[]; coupons: number[] };
 const decimal = (value: string | undefined) => Number(value ?? 0);
 const moneyValue = (value: number) => value.toFixed(2);
 const initialBatchSelections = (groups: Preview[]) =>
   Object.fromEntries(
-    groups.map((group) => [group.placa, []]),
+    groups.map((group) => [group.placa, { debits: [], coupons: [] }]),
   );
 
 const batchStorageKey = (week: string) =>
@@ -135,12 +155,19 @@ const loadBatchSelections = (week: string, groups: Preview[]) => {
     return Object.fromEntries(
       groups.map((group) => {
         const available = new Set(debitRows(group).map((entry) => entry.id));
-        const saved = Array.isArray(parsed[group.placa])
-          ? parsed[group.placa].filter(
+        const stored = parsed[group.placa];
+        const savedDebits = Array.isArray(stored)
+          ? stored.filter(
               (id: unknown) => typeof id === "number" && available.has(id),
             )
-          : fallback[group.placa];
-        return [group.placa, saved];
+          : Array.isArray(stored?.debits)
+            ? stored.debits.filter((id: unknown) => typeof id === "number" && available.has(id))
+            : [];
+        const availableCoupons = new Set(couponRows(group).map((coupon) => coupon.id));
+        const savedCoupons = Array.isArray(stored?.coupons)
+          ? stored.coupons.filter((id: unknown) => typeof id === "number" && availableCoupons.has(id))
+          : [];
+        return [group.placa, { debits: savedDebits, coupons: savedCoupons }];
       }),
     );
   } catch {
@@ -148,24 +175,36 @@ const loadBatchSelections = (week: string, groups: Preview[]) => {
   }
 };
 
-const withSelectedDebits = (data: Preview, selectedIds: number[]): Preview => {
-  const selected = new Set(selectedIds);
+const withSelections = (data: Preview, selection: RecordSelection): Preview => {
+  const selected = new Set(selection.debits);
+  const selectedCoupons = new Set(selection.coupons);
   const debits = debitRows(data);
   const selectedTotal = debits
     .filter((entry) => selected.has(entry.id))
     .reduce((total, entry) => total + decimal(entry.valor), 0);
   const originalDebits = decimal(data.totals.debitos);
   const originalNet = decimal(data.totals.total_liquido);
+  const coupons = couponRows(data);
+  const selectedCouponRows = coupons.filter((coupon) => selectedCoupons.has(coupon.id));
+  const selectedCouponTotal = selectedCouponRows.reduce(
+    (total, coupon) => total + decimal(coupon.valor), 0,
+  );
+  const originalCoupons = decimal(data.totals.cupons);
   return {
     ...data,
     entries: data.entries.filter(
-      (entry) => entry.tipo_despesa !== "Debito" || selected.has(entry.id),
+      (entry) =>
+        entry.tipo_despesa !== "Debito" ||
+        String(entry.codigo_despesa ?? "").trim() === "3333" ||
+        selected.has(entry.id),
     ),
+    coupons: selectedCouponRows,
     totals: {
       ...data.totals,
       debitos: moneyValue(selectedTotal),
+      cupons: moneyValue(selectedCouponTotal),
       total_liquido: moneyValue(
-        originalNet + originalDebits - selectedTotal,
+        originalNet + originalDebits + originalCoupons - selectedTotal - selectedCouponTotal,
       ),
     },
   };
@@ -180,15 +219,20 @@ export default function Closures({
   token,
   isAdmin,
   userUnit,
+  openReprint,
+  initialConsulting = false,
   expired,
 }: {
   token: string;
   isAdmin: boolean;
   userUnit: number;
+  openReprint?: () => void;
+  initialConsulting?: boolean;
   expired: () => void;
 }) {
   const [rows, setRows] = useState<Closure[]>([]);
-  const [consultingClosures, setConsultingClosures] = useState(false);
+  const [closureSearch, setClosureSearch] = useState("");
+  const [consultingClosures, setConsultingClosures] = useState(initialConsulting);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -197,6 +241,7 @@ export default function Closures({
   const [plate, setPlate] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [selectedDebitIds, setSelectedDebitIds] = useState<number[]>([]);
+  const [selectedCouponIds, setSelectedCouponIds] = useState<number[]>([]);
   const [confirm, setConfirm] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
   const conferenceRef = useRef<HTMLDivElement | null>(null);
@@ -210,11 +255,17 @@ export default function Closures({
   const [batchWeek, setBatchWeek] = useState("");
   const [batchIndex, setBatchIndex] = useState(0);
   const [batchDebitSelections, setBatchDebitSelections] = useState<
-    Record<string, number[]>
+    Record<string, RecordSelection>
   >({});
+  const visibleClosures = rows.filter((row) => {
+    const query = closureSearch.trim().toLowerCase();
+    return !query || [row.numero, row.semana, row.placa, row.status]
+      .some((value) => String(value ?? "").toLowerCase().includes(query));
+  });
   function invalidate() {
     setPreview(null);
     setSelectedDebitIds([]);
+    setSelectedCouponIds([]);
     setConfirm(false);
     setConferenceGroups(null);
     setConferenceQuery("");
@@ -236,10 +287,11 @@ export default function Closures({
     if (e instanceof ApiError && e.status === 401) expired();
     else setError((e as Error).message);
   }
-  async function load() {
+  async function load(search = closureSearch) {
     setLoading(true);
     try {
-      setRows(await api<Closure[]>("/freight-closures", token));
+      const query = search.trim();
+      setRows(await api<Closure[]>(`/freight-closures${/^\d+$/.test(query) ? `?numero=${encodeURIComponent(query)}` : ""}`, token));
     } catch (e) {
       fail(e);
     } finally {
@@ -311,6 +363,7 @@ export default function Closures({
       );
       setPreview(data);
       setSelectedDebitIds([]);
+      setSelectedCouponIds([]);
     } catch (e) {
       fail(e);
     } finally {
@@ -334,12 +387,15 @@ export default function Closures({
         : 0;
       setBatchIndex(Math.max(0, refreshedIndex));
       setBatchDebitSelections((previous) => {
-        const next: Record<string, number[]> = {};
+        const next: Record<string, RecordSelection> = {};
         for (const group of data.groups) {
           const available = new Set(debitRows(group).map((row) => row.id));
-          next[group.placa] = (previous[group.placa] ?? []).filter((id) =>
-            available.has(id),
-          );
+          const prior = previous[group.placa] ?? { debits: [], coupons: [] };
+          const availableCoupons = new Set(couponRows(group).map((row) => row.id));
+          next[group.placa] = {
+            debits: prior.debits.filter((id) => available.has(id)),
+            coupons: prior.coupons.filter((id) => availableCoupons.has(id)),
+          };
         }
         return next;
       });
@@ -367,6 +423,8 @@ export default function Closures({
       );
       const available = new Set(debitRows(data).map((row) => row.id));
       setSelectedDebitIds((ids) => ids.filter((id) => available.has(id)));
+      const availableCoupons = new Set(couponRows(data).map((row) => row.id));
+      setSelectedCouponIds((ids) => ids.filter((id) => availableCoupons.has(id)));
       setPreview(data);
       setSuccess("Dados da placa atualizados.");
     } catch (e) {
@@ -426,6 +484,7 @@ export default function Closures({
       );
       setPreview(data);
       setSelectedDebitIds([]);
+      setSelectedCouponIds([]);
       setConfirm(true);
     } catch (e) {
       fail(e);
@@ -500,6 +559,7 @@ export default function Closures({
             semana: preview.semana,
             placa: preview.placa,
             debit_entry_ids: selectedDebitIds,
+            coupon_ids: selectedCouponIds,
           }),
         },
       );
@@ -524,7 +584,7 @@ export default function Closures({
       conferenceGroups?.slice(0, batchIndex + 1).filter((group) => !group.isClosed) ?? [];
     const invalid = reviewed
       .map((group) =>
-        withSelectedDebits(group, batchDebitSelections[group.placa] ?? []),
+        withSelections(group, batchDebitSelections[group.placa] ?? { debits: [], coupons: [] }),
       )
       .find((group) => negativeNetMessage(group));
     if (invalid) {
@@ -573,9 +633,9 @@ export default function Closures({
     if (!batchWeek || busy || !conferenceGroups?.length) return;
     const currentIndex = Math.min(batchIndex, conferenceGroups.length - 1);
     const current = conferenceGroups[currentIndex];
-    const currentDisplay = withSelectedDebits(
+    const currentDisplay = withSelections(
       current,
-      batchDebitSelections[current.placa] ?? [],
+      batchDebitSelections[current.placa] ?? { debits: [], coupons: [] },
     );
     const negativeMessage = negativeNetMessage(currentDisplay);
     if (negativeMessage) {
@@ -597,7 +657,8 @@ export default function Closures({
           body: JSON.stringify({
             semana: batchWeek,
             placa: current.placa,
-            debit_entry_ids: batchDebitSelections[current.placa] ?? [],
+            debit_entry_ids: batchDebitSelections[current.placa]?.debits ?? [],
+            coupon_ids: batchDebitSelections[current.placa]?.coupons ?? [],
           }),
         },
       );
@@ -677,13 +738,15 @@ export default function Closures({
     if (conferenceGroups?.length)
       return conferenceGroups.map((group) => ({
         placa: group.placa,
-        debit_entry_ids: batchDebitSelections[group.placa] ?? [],
+        debit_entry_ids: batchDebitSelections[group.placa]?.debits ?? [],
+        coupon_ids: batchDebitSelections[group.placa]?.coupons ?? [],
       }));
     if (preview?.placa)
       return [
         {
           placa: preview.placa,
           debit_entry_ids: selectedDebitIds,
+          coupon_ids: selectedCouponIds,
         },
       ];
     return [];
@@ -707,7 +770,7 @@ export default function Closures({
     setError("");
     try {
       const response = await fetch(
-        apiUrl("/freight-closures/conference/adjusted-print/pdf"),
+        apiUrl("/freight-closures/conference/adjusted-print"),
         {
           method: "POST",
           headers: {
@@ -738,7 +801,7 @@ export default function Closures({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "conferencia-ajustada.pdf";
+      anchor.download = "conferencia-ajustada.html";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -831,7 +894,19 @@ export default function Closures({
     }
   }
   const previewDisplay = preview
-    ? withSelectedDebits(preview, selectedDebitIds)
+    ? withSelections(preview, { debits: selectedDebitIds, coupons: selectedCouponIds })
+    : null;
+  const reportVehicleType = report
+    ? report.manifests.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+      report.entries.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+      report.coupons.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
+      null
+    : null;
+  const reportDriver = report
+    ? report.manifests.find((row) => row.motorista)?.motorista ??
+      report.entries.find((row) => row.motorista)?.motorista ??
+      report.coupons.find((row) => row.motorista)?.motorista ??
+      null
     : null;
   return (
     <div className="content">
@@ -860,6 +935,11 @@ export default function Closures({
         >
           {consultingClosures ? "+ Novo fechamento" : "Consultar fechamentos"}
         </button>
+        {openReprint && (
+          <button type="button" className="secondary" onClick={openReprint}>
+            Reimprimir fechamentos
+          </button>
+        )}
       </div>
       <div hidden={consultingClosures}>
       <section className="panel reference-form">
@@ -901,39 +981,52 @@ export default function Closures({
                   conferenceGroups[
                     Math.min(batchIndex, conferenceGroups.length - 1)
                   ];
-                const selectedIds = batchDebitSelections[current.placa] ?? [];
+                const selection = batchDebitSelections[current.placa] ?? { debits: [], coupons: [] };
                 const currentDisplay = current.isClosed
                   ? current
-                  : withSelectedDebits(current, selectedIds);
+                  : withSelections(current, selection);
                 return (
                   <section className="panel batch-conference-panel">
-                    <div className="batch-saved-line">
+                    {!filters.finalizados && <div className="batch-saved-line">
                       <span className="badge">Seleções salvas nesta conferência</span>
-                    </div>
+                    </div>}
                     <div ref={conferenceRef} className="filters batch-conference-heading">
                       <div>
                         <h3>
                           {batchIndex + 1} de {conferenceGroups.length} ·{" "}
                           {current.placa}
+                          {current.tipoVeiculo ? ` · ${current.tipoVeiculo}` : ""}
                           {current.motorista ? ` · ${current.motorista}` : ""}
-                          {` · Fechamento ${current.closureNumber ?? "—"}`}
+                          {current.closureNumber != null ? ` · Fechamento ${current.closureNumber}` : ""}
+                          {current.isClosed ? " · FECHADO" : ""}
                         </h3>
                         <p className="muted">
-                          Semana {current.semana} · {recordDate(current.periodo_inicio)} a {recordDate(current.periodo_fim)} · Origem {current.origem || "—"}
+                          Semana {current.semana} · {recordDate(current.periodo_inicio)} a {recordDate(current.periodo_fim)}{current.origem ? ` · Origem ${current.origem}` : ""}
                         </p>
-                        {current.isClosed && (
-                          <span className="badge">Fechamento já finalizado</span>
-                        )}
                       </div>
                     </div>
                     <Values
                       data={currentDisplay}
                       selectableDebits={current.isClosed ? undefined : debitRows(current)}
-                      selectedDebitIds={current.isClosed ? undefined : selectedIds}
+                      selectedDebitIds={current.isClosed ? undefined : selection.debits}
                       setSelectedDebitIds={current.isClosed ? undefined : (ids) =>
                         setBatchDebitSelections((previous) => ({
                           ...previous,
-                          [current.placa]: ids,
+                          [current.placa]: {
+                            ...(previous[current.placa] ?? { debits: [], coupons: [] }),
+                            debits: ids,
+                          },
+                        }))
+                      }
+                      selectableCoupons={current.isClosed ? undefined : couponRows(current)}
+                      selectedCouponIds={current.isClosed ? undefined : selection.coupons}
+                      setSelectedCouponIds={current.isClosed ? undefined : (ids) =>
+                        setBatchDebitSelections((previous) => ({
+                          ...previous,
+                          [current.placa]: {
+                            ...(previous[current.placa] ?? { debits: [], coupons: [] }),
+                            coupons: ids,
+                          },
                         }))
                       }
                       busy={busy}
@@ -947,14 +1040,29 @@ export default function Closures({
                       >
                         Atualizar dados
                       </button>
-                      <button
-                        type="button"
-                        className="secondary batch-compact-action"
-                        disabled={busy || !activeConferenceWeek()}
-                        onClick={() => void downloadAdjustedConference()}
-                      >
-                        Baixar conferência
-                      </button>
+                      {filters.finalizados ? (
+                        <button
+                          type="button"
+                          className="secondary batch-compact-action"
+                          disabled={busy || current.closureNumber == null}
+                          onClick={() => current.closureNumber != null && void download(
+                            `/freight-reports/closures/reprint?numero=${encodeURIComponent(current.closureNumber)}`,
+                            `fechamento-${current.closureNumber}.html`,
+                            true,
+                          )}
+                        >
+                          Reimprimir fechamento
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="secondary batch-compact-action"
+                          disabled={busy || !activeConferenceWeek()}
+                          onClick={() => void downloadAdjustedConference()}
+                        >
+                          Baixar conferência
+                        </button>
+                      )}
                       {!current.isClosed && (
                         <button type="button" className="primary batch-compact-action" disabled={busy || !activeConferenceWeek()} onClick={saveBatchAdjustments}>
                           Salvar alterações
@@ -1011,11 +1119,13 @@ export default function Closures({
               <div>
                 <h3>
                   1 de 1 · {preview.placa}
+                  {preview.tipoVeiculo ? ` · ${preview.tipoVeiculo}` : ""}
                   {preview.motorista ? ` · ${preview.motorista}` : ""}
-                  {` · Fechamento ${preview.closureNumber ?? "—"}`}
+                  {preview.closureNumber != null ? ` · Fechamento ${preview.closureNumber}` : ""}
+                  {preview.isClosed ? " · FECHADO" : ""}
                 </h3>
                 <p className="muted">
-                  Semana {preview.semana} · {recordDate(preview.periodo_inicio)} a {recordDate(preview.periodo_fim)} · Origem {preview.origem || "—"}
+                  Semana {preview.semana} · {recordDate(preview.periodo_inicio)} a {recordDate(preview.periodo_fim)}{preview.origem ? ` · Origem ${preview.origem}` : ""}
                 </p>
               </div>
             </div>
@@ -1024,6 +1134,9 @@ export default function Closures({
               selectableDebits={debitRows(preview)}
               selectedDebitIds={selectedDebitIds}
               setSelectedDebitIds={setSelectedDebitIds}
+              selectableCoupons={couponRows(preview)}
+              selectedCouponIds={selectedCouponIds}
+              setSelectedCouponIds={setSelectedCouponIds}
               busy={busy}
             />
             <div className="actions batch-conference-actions">
@@ -1040,13 +1153,13 @@ export default function Closures({
                 disabled={busy}
                 onClick={() =>
                   void download(
-                    `/freight-closures/preview/print/pdf?${new URLSearchParams({
+                    `/freight-closures/preview/print?${new URLSearchParams({
                       ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
                       ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
                       semana: preview.semana,
                       placa: preview.placa,
                     }).toString()}`,
-                    "conferencia.pdf",
+                    "conferencia.html",
                   )
                 }
               >
@@ -1095,6 +1208,19 @@ export default function Closures({
       <section className="panel" hidden={!consultingClosures}>
         <div className="filters">
           <h2>Últimos fechamentos</h2>
+          <form onSubmit={(event) => { event.preventDefault(); void load(closureSearch); }}>
+          <label>
+            Pesquisar fechamento
+            <input
+              type="search"
+              inputMode="numeric"
+              placeholder="Número, semana ou placa"
+              value={closureSearch}
+              onChange={(event) => setClosureSearch(event.target.value)}
+            />
+          </label>
+          <button className="secondary" disabled={busy || loading}>Pesquisar</button>
+          </form>
           <button
             className="secondary"
             disabled={busy || loading}
@@ -1110,7 +1236,7 @@ export default function Closures({
           <p className="empty" role="status">
             Carregando fechamentos…
           </p>
-        ) : !rows.length ? (
+        ) : !visibleClosures.length ? (
           <p className="empty">Nenhum fechamento disponível na consulta.</p>
         ) : (
           <div className="table-scroll">
@@ -1125,11 +1251,11 @@ export default function Closures({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {visibleClosures.map((row) => (
                   <tr key={row.id}>
                     <td>{row.numero}</td>
                     <td>
-                      {row.semana ?? "Não registrada"}
+                      {row.semana ?? ""}
                       <small>{row.placa}</small>
                     </td>
                     <td>{money(row.total_liquido)}</td>
@@ -1164,15 +1290,18 @@ export default function Closures({
             </SortableTable>
           </div>
         )}
-        <p className="table-footer">Até 50 fechamentos da unidade.</p>
+        <p className="table-footer">{visibleClosures.length} fechamentos exibidos · até 50 carregados.</p>
       </section>
       {report && (
         <section className="panel reference-form">
           <h2>
-            Fechamento {report.cabecalho.numero} · {report.cabecalho.status}
+            1 de 1 · {report.cabecalho.placa}
+            {reportVehicleType ? ` · ${reportVehicleType}` : ""}
+            {reportDriver ? ` · ${reportDriver}` : ""}
+            {` · Fechamento ${report.cabecalho.numero} · ${report.cabecalho.status}`}
           </h2>
           <p>
-            Semana {report.cabecalho.semana} · {report.cabecalho.placa}
+            Semana {report.cabecalho.semana}
           </p>
           {report.origem !== "FINALIZACAO" && (
             <p className="alert">
@@ -1246,6 +1375,9 @@ function Values({
   selectableDebits,
   selectedDebitIds,
   setSelectedDebitIds,
+  selectableCoupons,
+  selectedCouponIds,
+  setSelectedCouponIds,
   busy = false,
 }: {
   data: Pick<
@@ -1255,6 +1387,9 @@ function Values({
   selectableDebits?: EntryRow[];
   selectedDebitIds?: number[];
   setSelectedDebitIds?: (ids: number[]) => void;
+  selectableCoupons?: CouponRow[];
+  selectedCouponIds?: number[];
+  setSelectedCouponIds?: (ids: number[]) => void;
   busy?: boolean;
 }) {
   const creditRows = data.entries.filter(
@@ -1265,9 +1400,17 @@ function Values({
     selectedDebitIds ?? debitEntries.map((entry) => entry.id),
   );
   const canSelectDebits = !!setSelectedDebitIds;
+  const couponEntries = selectableCoupons ?? data.coupons;
+  const selectedCoupons = new Set(
+    selectedCouponIds ?? couponEntries.map((coupon) => coupon.id),
+  );
+  const canSelectCoupons = !!setSelectedCouponIds;
   const selectedDebitTotal = debitEntries
     .filter((entry) => selected.has(entry.id))
     .reduce((total, entry) => total + decimal(entry.valor), 0);
+  const selectedCouponTotal = couponEntries
+    .filter((coupon) => selectedCoupons.has(coupon.id))
+    .reduce((total, coupon) => total + decimal(coupon.valor), 0);
   const manifestTotal = data.manifests.reduce(
     (total, item) => total + decimal(item.frete_veiculo),
     0,
@@ -1294,6 +1437,14 @@ function Values({
     (total, entry) => total + decimal(entry.valor),
     0,
   );
+  const ctrbAdvanceIds = new Set(ctrbAdvanceEntries.map((entry) => entry.id));
+  const pendingDebitTotal = debitEntries
+    .filter((entry) => !selected.has(entry.id) && !ctrbAdvanceIds.has(entry.id))
+    .reduce((total, entry) => total + decimal(entry.valor), 0);
+  const pendingCouponTotal = couponEntries
+    .filter((coupon) => !selectedCoupons.has(coupon.id))
+    .reduce((total, coupon) => total + decimal(coupon.valor), 0);
+  const pendingValeTotal = pendingDebitTotal + pendingCouponTotal;
   const ctrbMlnTotal =
     data.manifests.reduce(
       (total, manifest) => total + decimal(manifest.valor_liquido),
@@ -1306,14 +1457,37 @@ function Values({
     ...data.manifests.map((manifest) => ({
       kind: "manifest" as const,
       date: manifest.semana,
+      manifestNumber: manifestWithoutUnit(manifest.manifestos),
       manifest,
     })),
-    ...creditRows.map((entry) => ({
-      kind: "entry" as const,
-      date: entry.data_lancamento,
-      entry,
-    })),
-  ].sort((a, b) => recordTime(a.date) - recordTime(b.date));
+    ...creditRows.map((entry) => {
+      const manifest = data.manifests.find(
+        (candidate) => candidate.id === entry.manifesto_id,
+      );
+      return {
+        kind: "entry" as const,
+        // O manifesto define em qual semana o crédito será fechado, mas a
+        // coluna Data deve sempre preservar a data original do lançamento.
+        date: entry.data_lancamento,
+        manifestNumber: manifestWithoutUnit(
+          manifest?.manifestos ?? entry.manifesto_numero ?? "",
+        ),
+        entry,
+      };
+    }),
+  ].sort(
+    (a, b) =>
+      recordTime(a.date) - recordTime(b.date) ||
+      a.manifestNumber.localeCompare(b.manifestNumber, "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      }) ||
+      (a.kind === b.kind ? 0 : a.kind === "manifest" ? -1 : 1) ||
+      (a.kind === "entry" && b.kind === "entry"
+        ? recordTime(a.entry.data_lancamento) - recordTime(b.entry.data_lancamento) ||
+          a.entry.id - b.entry.id
+        : 0),
+  );
   const ctrbRows = data.manifests
     .filter((manifest) => String(manifest.ctrb_numero ?? "").trim())
     .map((manifest) => ({ numero: manifest.ctrb_numero!, manifest }))
@@ -1331,12 +1505,21 @@ function Values({
       date: entry.data_lancamento,
       entry,
     })),
-    ...data.coupons.map((coupon) => ({
+    ...couponEntries.map((coupon) => ({
       kind: "coupon" as const,
       date: coupon.data_cobranca,
       coupon,
     })),
-  ].sort((a, b) => recordTime(a.date) - recordTime(b.date));
+  ].sort((a, b) => {
+    const aCtrb = a.kind === "entry" &&
+      String(a.entry.codigo_despesa ?? "").trim() === "3333";
+    const bCtrb = b.kind === "entry" &&
+      String(b.entry.codigo_despesa ?? "").trim() === "3333";
+    return Number(aCtrb) - Number(bCtrb) ||
+      recordTime(a.date) - recordTime(b.date) ||
+      (a.kind === "entry" ? a.entry.id : a.coupon.id) -
+        (b.kind === "entry" ? b.entry.id : b.coupon.id);
+  });
   const toggleDebit = (id: number, checked: boolean) => {
     if (!setSelectedDebitIds) return;
     const next = new Set(selectedDebitIds ?? []);
@@ -1346,6 +1529,13 @@ function Values({
   };
   const setAllDebits = () =>
     setSelectedDebitIds?.(debitEntries.map((entry) => entry.id));
+  const toggleCoupon = (id: number, checked: boolean) => {
+    if (!setSelectedCouponIds) return;
+    const next = new Set(selectedCouponIds ?? []);
+    if (checked) next.add(id);
+    else next.delete(id);
+    setSelectedCouponIds([...next]);
+  };
 
   return (
     <>
@@ -1356,16 +1546,25 @@ function Values({
             <strong>Créditos e manifestos</strong>
           </div>
           <table>
-            <thead><tr><th>Data</th><th>ID Lanç/Uni</th><th>Manifesto / Descrição</th><th>Horário</th><th>Destino</th><th className="right">Valor</th></tr></thead>
+            <thead><tr><th>Data</th><th>ID Lanç/Uni</th><th>Manifesto / Descrição</th><th>Horário</th><th>Destino</th><th>Usuário</th><th className="right">Valor</th></tr></thead>
             <tbody>
               {creditRecords.map((record) => record.kind === "manifest" ? (
-                <tr key={`m${record.manifest.id}`}><td>{recordDate(record.date)}</td><td>{record.manifest.unit ?? "—"}</td><td>{manifestWithoutUnit(record.manifest.manifestos)}</td><td>{recordHour(record.manifest.hora)}</td><td>{record.manifest.destino || "—"}</td><td className="right">{money(record.manifest.frete_veiculo)}</td></tr>
+                <tr key={`m${record.manifest.id}`}><td>{recordDate(record.date)}</td><td>{record.manifest.unit ?? ""}</td><td>{manifestWithoutUnit(record.manifest.manifestos)}</td><td>{recordHour(record.manifest.hora)}</td><td>{record.manifest.destino || ""}</td><td></td><td className="right">{money(record.manifest.frete_veiculo)}</td></tr>
               ) : (
-                <tr key={`e${record.entry.id}`}><td>{recordDate(record.date)}</td><td>{entryIdentifier(record.entry)}</td><td>{entryManifestNumber(record.entry, data.manifests)}<small>{entryDescription(record.entry)}</small></td><td>—</td><td>—</td><td className="right">{money(record.entry.valor)}</td></tr>
+                <tr key={`e${record.entry.id}`} className="closure-credit-entry">
+                  <td>{recordDate(record.date)}</td>
+                  <td>{entryIdentifier(record.entry)}</td>
+                  <td colSpan={3} className="closure-entry-description">
+                    <span>{entryManifestNumber(record.entry, data.manifests)}</span>
+                    <small>{entryDescription(record.entry)}</small>
+                  </td>
+                  <td>{record.entry.responsavel_cod ?? ""}</td>
+                  <td className="right">{money(record.entry.valor)}</td>
+                </tr>
               ))}
-              {!data.manifests.length && !creditRows.length && <tr><td colSpan={6}>Nenhum crédito ou manifesto.</td></tr>}
+              {!data.manifests.length && !creditRows.length && <tr><td colSpan={7}>Nenhum crédito ou manifesto.</td></tr>}
             </tbody>
-            <tfoot><tr className="closure-record-total"><td colSpan={5}>Total de créditos e manifestos</td><td className="right">{money(moneyValue(creditsAndManifestsTotal))}</td></tr></tfoot>
+            <tfoot><tr className="closure-record-total"><td colSpan={6}>Total de créditos e manifestos</td><td className="right">{money(moneyValue(creditsAndManifestsTotal))}</td></tr></tfoot>
           </table>
         </div>
         <div className="closure-record-list">
@@ -1375,7 +1574,7 @@ function Values({
             <tbody>
               {ctrbRows.map(({ numero, manifest }) => <tr key={manifest.id}>
                 <td>{recordDate(manifest?.semana)}</td>
-                <td>{manifest ? manifestWithoutUnit(manifest.manifestos) : "—"}</td>
+                <td>{manifest ? manifestWithoutUnit(manifest.manifestos) : ""}</td>
                 <td>{numero}</td>
                 <td className="right">{money(manifest?.ctrb_adiantamento)}</td>
                 <td className="right">{money(manifest?.vale_pedagio)}</td>
@@ -1395,30 +1594,37 @@ function Values({
           <div className="closure-record-title">
             <strong>Vales</strong>
           </div>
-          {canSelectDebits && debitEntries.length > 0 && (
+          {(canSelectDebits || canSelectCoupons) && (debitEntries.length > 0 || couponEntries.length > 0) && (
             <div className="closure-record-actions">
               <button
                 type="button"
                 className="text-button"
                 disabled={
-                  busy || debitEntries.every((entry) => selected.has(entry.id))
+                  busy || (debitEntries.every((entry) => selected.has(entry.id)) &&
+                    couponEntries.every((coupon) => selectedCoupons.has(coupon.id)))
                 }
-                onClick={setAllDebits}
+                onClick={() => {
+                  setAllDebits();
+                  setSelectedCouponIds?.(couponEntries.map((coupon) => coupon.id));
+                }}
               >
                 Selecionar todos
               </button>
               <button
                 type="button"
                 className="text-button"
-                disabled={busy || !selected.size}
-                onClick={() => setSelectedDebitIds?.([])}
+                disabled={busy || (!selected.size && !selectedCoupons.size)}
+                onClick={() => {
+                  setSelectedDebitIds?.([]);
+                  setSelectedCouponIds?.([]);
+                }}
               >
                 Limpar seleção
               </button>
             </div>
           )}
           <table>
-            <thead><tr><th>Data</th><th>ID Vale</th><th>Manifesto / Descrição</th><th className="right">Valor</th></tr></thead>
+            <thead><tr><th>Data</th><th>ID</th><th>Manifesto</th><th>Tipo</th><th>Despesa</th><th>Descrição</th><th>Usuário</th><th className="right">Valor</th></tr></thead>
             <tbody>
               {debitRecords.map((record) => record.kind === "entry" ? (
                 <tr
@@ -1433,13 +1639,13 @@ function Values({
                   <td>{recordDate(record.date)}</td>
                   <td>
                     {ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id) ? (
-                      <>{entryIdentifier(record.entry)} · CTRB</>
+                      entryIdentifier(record.entry)
                     ) : canSelectDebits ? (
                       <><input
                           type="checkbox"
                           checked={selected.has(record.entry.id)}
                           disabled={busy}
-                          aria-label={`Descontar vale ${record.entry.id}`}
+                          aria-label={`Descontar vale ${valeIdentifier(record.entry)}`}
                           onChange={(event) =>
                             toggleDebit(record.entry.id, event.target.checked)
                           }
@@ -1448,26 +1654,35 @@ function Values({
                       entryIdentifier(record.entry)
                     )}
                   </td>
-                  <td>
-                    {entryManifestNumber(record.entry, data.manifests)}
-                    <small>
-                      {entryDescription(record.entry)}
-                      {ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id)
-                        ? " · subtrai do CTRB"
-                        : ""}
-                    </small>
-                  </td>
+                  <td>{entryManifestNumber(record.entry, data.manifests)}</td>
+                  <td>{ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id) ? "CTRB" : "Vale"}</td>
+                  <td>{entryDescription(record.entry)}</td>
+                  <td>{record.entry.descricao || ""}{ctrbAdvanceEntries.some((entry) => entry.id === record.entry.id) ? " · subtrai do CTRB" : ""}</td>
+                  <td>{record.entry.responsavel_cod ?? ""}</td>
                   <td className="right">{money(record.entry.valor)}</td>
                 </tr>
               ) : (
-                <tr key={`c${record.coupon.id}`}><td>{recordDate(record.date)}</td><td>Cupom</td><td>Nota (ID) {record.coupon.nota_id}</td><td className="right">{money(record.coupon.valor)}</td></tr>
+                <tr key={`c${record.coupon.id}`} className={selectedCoupons.has(record.coupon.id) ? "" : "muted-row"}>
+                  <td>{recordDate(record.date)}</td>
+                  <td>
+                    {canSelectCoupons && <input type="checkbox" checked={selectedCoupons.has(record.coupon.id)} disabled={busy} aria-label={`Descontar cupom ${valeIdentifier(record.coupon)}`} onChange={(event) => toggleCoupon(record.coupon.id, event.target.checked)} />}{" "}
+                    {valeIdentifier(record.coupon)}
+                  </td>
+                  <td></td>
+                  <td>Cupom</td>
+                  <td>{couponExpense(record.coupon)}</td>
+                  <td>{record.coupon.descricao || ""}</td>
+                  <td>{record.coupon.responsavel_cod ?? ""}</td>
+                  <td className="right">{money(record.coupon.valor)}</td>
+                </tr>
               ))}
-              {!debitEntries.length && !data.coupons.length && <tr><td colSpan={4}>Nenhum vale ou cupom.</td></tr>}
+              {!debitEntries.length && !couponEntries.length && <tr><td colSpan={8}>Nenhum vale ou cupom.</td></tr>}
             </tbody>
             <tfoot>
-              <tr className="closure-record-total"><td colSpan={3}>Total de vales selecionados</td><td className="right">{money(moneyValue(selectedDebitTotal))}</td></tr>
+              <tr className="closure-record-pending"><td colSpan={7}>Vales pendentes</td><td className="right">{money(moneyValue(pendingValeTotal))}</td></tr>
+              <tr className="closure-record-total"><td colSpan={7}>Total de vales e cupons selecionados</td><td className="right">{money(moneyValue(selectedDebitTotal + selectedCouponTotal))}</td></tr>
               {ctrbAdvanceEntries.length > 0 && (
-                <tr className="closure-record-total"><td colSpan={3}>Total 3333 descontado do CTRB</td><td className="right">{money(moneyValue(ctrbAdvance3333))}</td></tr>
+                <tr className="closure-record-total"><td colSpan={7}>Total 3333 descontado do CTRB</td><td className="right">{money(moneyValue(ctrbAdvance3333))}</td></tr>
               )}
             </tfoot>
           </table>

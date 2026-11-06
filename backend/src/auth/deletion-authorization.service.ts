@@ -9,7 +9,13 @@ export class DeletionAuthorizationService {
   constructor(private readonly db: PrismaService) {}
 
   async authorize(request: any) {
-    if (request.method !== 'DELETE') return;
+    const deleting = request.method === 'DELETE';
+    const editingEntry =
+      request.method === 'PUT' &&
+      (/^(?:\/api)?\/freight-entries\/\d+\/?$/.test(request.path) ||
+        /^(?:\/api)?\/manifests\/\d+\/entries\/\d+\/?$/.test(request.path));
+    if (!deleting && !editingEntry) return;
+    const operation = deleting ? 'exclusão' : 'edição';
     const credentials = request.body?.admin_authorization;
     if (request.body) delete request.body.admin_authorization;
     delete request.user.deletionApprovedBy;
@@ -17,8 +23,14 @@ export class DeletionAuthorizationService {
     if (!actor || actor.id !== request.user.sub) throw new ForbiddenException('Usuário não autorizado.');
     request.user.isAdmin = Boolean(actor.isAdmin);
     if (actor.isAdmin) return;
-    const deny = (message: string) => new ForbiddenException({ code: 'ADMIN_APPROVAL_REQUIRED', message });
-    if (!credentials) throw deny('Esta exclusão precisa da autorização de um administrador.');
+    const deny = (message: string) =>
+      new ForbiddenException({
+        code: 'ADMIN_APPROVAL_REQUIRED',
+        operation: deleting ? 'delete' : 'edit',
+        message,
+      });
+    if (!credentials)
+      throw deny(`Esta ${operation} precisa da autorização de um administrador.`);
     const previous = this.failures.get(request.user.cod);
     if (previous && previous.until > Date.now() && previous.count >= 5)
       throw new ForbiddenException('Muitas tentativas de autorização. Aguarde dez minutos.');
@@ -37,6 +49,6 @@ export class DeletionAuthorizationService {
     }
     this.failures.delete(request.user.cod);
     request.user.deletionApprovedBy = cod;
-    this.logger.log(`Exclusão autorizada: operador ${request.user.cod}, administrador ${cod}, unidade ${request.user.unit}, rota ${request.path}`);
+    this.logger.log(`${operation} autorizada: operador ${request.user.cod}, administrador ${cod}, unidade ${request.user.unit}, rota ${request.path}`);
   }
 }

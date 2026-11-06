@@ -93,6 +93,16 @@ export type frete_despesas = Prisma.frete_despesasModel
  */
 export type frete_lancamentos = Prisma.frete_lancamentosModel
 /**
+ * Model frete_vale_controles
+ * 
+ */
+export type frete_vale_controles = Prisma.frete_vale_controlesModel
+/**
+ * Model frete_faturas_vales
+ * 
+ */
+export type frete_faturas_vales = Prisma.frete_faturas_valesModel
+/**
  * Model frete_semanas
  * 
  */

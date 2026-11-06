@@ -101,6 +101,16 @@ export class ReportsController {
   reprint(@Query() q: ReportQuery, @Req() req: AuthenticatedRequest) {
     return this.service.reprint(q, req.user);
   }
+  @Get('closures/drivers')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  reprintDrivers(@Query() q: ReportQuery, @Req() req: AuthenticatedRequest) {
+    return this.service.reprintDrivers(q, req.user);
+  }
   @Get(['closures/reprint.pdf', 'closures/reprint/pdf'])
   @Header('Cache-Control', 'no-store')
   async reprintPdf(

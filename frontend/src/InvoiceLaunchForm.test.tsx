@@ -129,7 +129,7 @@ it("nota existente preenche e protege dados, preservando zeros do número", asyn
   await screen.findByText(/Saldo disponível:.*70,00/);
   expect(
     (screen.getByLabelText("Data da nota") as HTMLInputElement).value,
-  ).toBe("2026-09-21");
+  ).toBe("21/09/2026");
   expect(
     (screen.getByLabelText("Valor da nota") as HTMLInputElement).readOnly,
   ).toBe(true);
