@@ -20,6 +20,7 @@ import { FreightInvoicesModule } from './freight-invoices/freight-invoices.modul
 import { FreightClosuresModule } from './freight-closures/freight-closures.module';
 import { ValeInvoicesModule } from './vale-invoices/vale-invoices.module';
 import { UsersModule } from './users/users.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { UsersModule } from './users/users.module';
     FreightClosuresModule,
     ValeInvoicesModule,
     UsersModule,
+    TicketsModule,
   ],
 
   controllers: [AppController],

@@ -134,6 +134,9 @@ describe('Manutenção de manifestos', () => {
       frete_vale_controles: {
         create: jest.fn(async () => ({ id: 1000 + entries.length })),
       },
+      branches: {
+        findUnique: jest.fn(async () => ({ unit: 101, branch: 'RJ' })),
+      },
       frete_carregamento_manifestos: {
         findFirst: jest.fn(async ({ where }) => {
           if (where.manifestos) return null;

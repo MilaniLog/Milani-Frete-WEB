@@ -20,7 +20,30 @@ const data = {
   motorista: "ALLAN FRANCA",
   tipoVeiculo: "TRUCK",
   closureNumber: 10001,
-  manifests: [{ id: 1, manifestos: "M1", frete_veiculo: "100", tipo_veiculo: "TRUCK", motorista: "ALLAN FRANCA" }],
+  manifests: [{
+    id: 1,
+    unit: 100,
+    semana: "2026-09-21",
+    manifestos: "100M1",
+    frete_veiculo: "100",
+    tipo_veiculo: "TRUCK",
+    motorista: "ALLAN FRANCA",
+    cod_777_15: "100",
+    cod_888_25: "20",
+    cod_999_100: "30",
+    nao_777_calc: "5",
+    nao_888_calc: "6",
+    nao_999_calc: "7",
+    diaria: "1",
+    tde: "2",
+    escada: "3",
+    paletização: "4",
+    estadia: "5",
+    descarga: "6",
+    outros: "7",
+    carreg_perc: "0.125",
+    perc_final: "0.1",
+  }],
   entries: [
     { id: 10, numero: 10, manifesto_id: 1, data_lancamento: "2026-09-21", codigo_despesa: "0060", nome_despesa: "COMPLEMENTO", tipo_despesa: "Credito", valor: "20", responsavel_cod: 7 },
     { id: 11, numero: 11, manifesto_id: 1, data_lancamento: "2026-09-22", codigo_despesa: "0004", nome_despesa: "VALE", tipo_despesa: "Debito", valor: "10", responsavel_cod: 8 },
@@ -49,6 +72,19 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (path: string, options?: RequestInit) => {
+      if (path.includes("/freight-closures/drafts"))
+        return response(
+          options?.method === "PUT"
+            ? {
+                selections: [{ placa: "ABC1234", debit_entry_ids: [11], coupon_ids: [] }],
+                lastUpdate: {
+                  responsavel_cod: 7,
+                  responsavel_nome: "Usuário teste",
+                  updated_at: "2026-11-09T12:30:00.000Z",
+                },
+              }
+            : { selections: [], lastUpdate: null },
+        );
       if (path.endsWith("/freight-closures/week"))
         return response({ results: [{ closure }] }, 201);
       if (options?.method) return response({ closure }, 201);
@@ -65,6 +101,54 @@ beforeEach(() => {
       return response([closure]);
     }),
   );
+});
+it("salva as seleções do fechamento no servidor para outros computadores", async () => {
+  mount();
+  fireEvent.change(screen.getByLabelText("Código da semana"), {
+    target: { value: "3926" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Relatório de conferência" }));
+  const vale = await screen.findByRole("checkbox", { name: "Descontar vale 11" });
+  fireEvent.click(vale);
+  fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+  await screen.findByText(
+    "Alterações da semana 3926 salvas para todos os computadores.",
+  );
+  const save = vi.mocked(fetch).mock.calls.find(
+    ([path, options]) =>
+      path === "/api/freight-closures/drafts" && options?.method === "PUT",
+  );
+  expect(save).toBeTruthy();
+  expect(JSON.parse(String(save?.[1]?.body))).toMatchObject({
+    semana: "3926",
+    selections: [
+      { placa: "ABC1234", debit_entry_ids: [11], coupon_ids: [] },
+    ],
+  });
+  expect(screen.getByText(/Rascunho salvo por 7 - Usuário teste/)).toBeTruthy();
+});
+it("mostra os valores agrupados e percentuais de cada manifesto", async () => {
+  mount();
+  fireEvent.change(screen.getByLabelText("Código da semana"), {
+    target: { value: "3926" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Relatório de conferência" }));
+
+  const title = await screen.findByText("Informações dos manifestos");
+  const section = title.closest(".closure-record-list");
+  expect(section?.textContent).toContain("21/09/2026");
+  expect(section?.textContent).toContain("100 - M1");
+  expect(section?.textContent).toContain("R$ 150,00");
+  expect(section?.textContent).toContain("R$ 18,00");
+  expect(section?.textContent).toContain("R$ 28,00");
+  expect(section?.textContent).toContain("R$ 160,00");
+  expect(section?.textContent).toContain("12,50%");
+  expect(section?.textContent).toContain("10,00%");
+  expect(
+    screen
+      .getByText("Créditos e manifestos")
+      .compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
 });
 it("conferência filtrada não oferece finalização parcial e envia os filtros", async () => {
   vi.stubGlobal("URL", Object.assign(URL, {
@@ -118,7 +202,23 @@ it("conferência filtrada não oferece finalização parcial e envia os filtros"
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
 });
-it("fecha somente as placas revisadas na conferência da semana", async () => {
+it("fecha todas as placas abertas da semana mesmo estando na primeira", async () => {
+  const originalFetch = vi.mocked(fetch);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path: string, options?: RequestInit) => {
+      if (path.includes("/conference?"))
+        return response({
+          groups: [
+            data,
+            { ...data, placa: "XYZ1234", closureNumber: 10002 },
+          ],
+        });
+      if (path.endsWith("/freight-closures/week"))
+        return response({ results: [{ closure }, { closure: { ...closure, placa: "XYZ1234" } }] }, 201);
+      return originalFetch(path, options);
+    }),
+  );
   mount();
   fireEvent.change(screen.getByLabelText("Código da semana"), {
     target: { value: "3926" },
@@ -134,14 +234,14 @@ it("fecha somente as placas revisadas na conferência da semana", async () => {
     vi.mocked(fetch).mock.calls.some(([, o]) => o?.method === "POST"),
   ).toBe(false);
   fireEvent.click(close);
-  await screen.findByText("1 fechamentos finalizados.");
+  await screen.findByText("2 fechamentos finalizados.");
   const weekCall = vi
     .mocked(fetch)
     .mock.calls.find(([path, options]) => path === "/api/freight-closures/week" && options?.method === "POST");
   expect(weekCall).toBeTruthy();
   expect(JSON.parse(String(weekCall?.[1]?.body))).toMatchObject({
     semana: "3926",
-    placas: ["ABC1234"],
+    placas: ["ABC1234", "XYZ1234"],
   });
   const pdfCalls = vi
     .mocked(fetch)

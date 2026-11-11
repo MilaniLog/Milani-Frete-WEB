@@ -1,1 +1,4 @@
-export type PermissionKey = 'freight_service' | 'freight_closure';
+export type PermissionKey =
+  | 'freight_service'
+  | 'freight_closure'
+  | 'ticket_service';

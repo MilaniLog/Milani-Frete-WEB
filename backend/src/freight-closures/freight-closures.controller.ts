@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -20,6 +21,7 @@ import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../auth/auth-user.types';
 import {
   CancelClosureDto,
+  ClosureDraftQueryDto,
   ClosureReportsDto,
   ClosureDto,
   ConferenceDto,
@@ -43,6 +45,23 @@ export class FreightClosuresController {
     private readonly service: FreightClosuresService,
     private readonly conference: ConferenceService,
   ) {}
+  @Get('drafts')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  drafts(
+    @Query() dto: ClosureDraftQueryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.drafts(dto, req.user);
+  }
+
+  @Put('drafts')
+  saveDrafts(
+    @Body() dto: WeekClosureDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.saveDrafts(dto, req.user);
+  }
+
   @Get('conference')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
   conferenceReport(
@@ -139,6 +158,7 @@ export class FreightClosuresController {
       req.user,
       dto.selections,
       dto,
+      dto.placas,
     );
     const reports = previews.map((preview) => {
       const report = previewReport(preview);

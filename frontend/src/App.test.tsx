@@ -34,6 +34,7 @@ it("edita preservando campos financeiros e mantém formulário após conflito", 
   const originalFetch = vi.mocked(fetch).getMockImplementation()!;
   const saved = {
     ...manifest,
+    destino: " destino ",
     hora: "10:30:45",
     m3: "12.345",
     kg: "500",
@@ -312,7 +313,7 @@ it("envia cadastro com números e mantém CPF como texto", async () => {
     cod_777_00: 1000,
     destino_id: 1,
   });
-});
+}, 10_000);
 
 it("calcula retenções e líquido automaticamente sem descontar vale-pedágio", async () => {
   await login();

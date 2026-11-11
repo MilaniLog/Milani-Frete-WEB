@@ -546,7 +546,14 @@ export class ManifestsService {
       manifestoAdicional3 = null,
     ] = manifestNumbers;
 
-    const origem = dto.origem?.trim().toUpperCase() || 'SP';
+    const branch = await database.branches.findUnique({
+      where: { unit: targetUnit },
+      select: { branch: true },
+    });
+    const origem =
+      dto.origem?.trim().toUpperCase() ||
+      branch?.branch?.trim().toUpperCase() ||
+      'SP';
     const semana = new Date(`${dto.semana}T00:00:00.000Z`);
     const week = await periodForDate(database, semana);
 

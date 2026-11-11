@@ -17,6 +17,9 @@ describe('Cálculos do VBA', () => {
 
   beforeEach(() => {
     prisma = {
+      branches: {
+        findUnique: jest.fn().mockResolvedValue({ branch: 'SP' }),
+      },
       frete_regras_calculo: { findMany: jest.fn().mockResolvedValue(rules) },
       frete_carregamento_manifestos: {
         findFirst: jest.fn().mockResolvedValue(null),

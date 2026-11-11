@@ -22,6 +22,7 @@ export type Session = {
   };
   permissions: {
     unit: number;
+    ticket_service?: boolean;
     freight_service: boolean;
     freight_closure?: boolean;
   }[];

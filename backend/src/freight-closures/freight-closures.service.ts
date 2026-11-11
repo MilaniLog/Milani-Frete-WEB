@@ -11,7 +11,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user.types';
 import { hasGlobalFreightAccess } from '../auth/freight-access';
 import { getWeek } from '../weeks/period-policy';
-import { CancelClosureDto, ClosureDto, ConferenceDto } from './freight-closures.dto';
+import {
+  CancelClosureDto,
+  ClosureDraftQueryDto,
+  ClosureDto,
+  ConferenceDto,
+  WeekClosureDto,
+} from './freight-closures.dto';
 import { allocatePayment } from './payment-allocation';
 import { savedReport } from './closure-report';
 
@@ -304,6 +310,30 @@ export class FreightClosuresService {
       },
       manifests.map((row) => row.ctrb_numero),
     );
+    const originRows = manifests.length ? manifests : referenceManifests;
+    const originUnits = [
+      ...new Set(
+        originRows
+          .map((row) => row.unit)
+          .filter((unit): unit is number => Number.isInteger(unit)),
+      ),
+    ];
+    const originBranches = originUnits.length
+      ? await tx.branches.findMany({
+          where: { unit: { in: originUnits } },
+          select: { unit: true, branch: true },
+        })
+      : [];
+    const branchByUnit = new Map(
+      originBranches.map((branch) => [branch.unit, branch.branch]),
+    );
+    const origins = [
+      ...new Set(
+        originRows
+          .map((row) => branchByUnit.get(row.unit) || row.origem)
+          .filter(Boolean),
+      ),
+    ];
     return {
       payment,
       beneficiario: {
@@ -324,14 +354,7 @@ export class FreightClosuresService {
         entries.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
         coupons.find((row) => row.tipo_veiculo)?.tipo_veiculo ??
         null,
-      origem:
-        [...new Set(manifests.map((row) => row.origem).filter(Boolean))].join(
-          ' / ',
-        ) ||
-        [...new Set(referenceManifests.map((row) => row.origem).filter(Boolean))].join(
-          ' / ',
-        ) ||
-        null,
+      origem: origins.join(' / ') || null,
       periodo_inicio: week.data_inicio,
       periodo_fim: week.data_fim,
       manifests,
@@ -360,11 +383,192 @@ export class FreightClosuresService {
     return this.transaction((tx) => this.collect(tx, dto, user));
   }
 
+  private numericDraftIds(value: Prisma.JsonValue): number[] {
+    return Array.isArray(value)
+      ? value.filter((id): id is number => Number.isInteger(id) && Number(id) > 0)
+      : [];
+  }
+
+  private async draftResponse(tx: Prisma.TransactionClient, rows: any[]) {
+    const codes = [...new Set(rows.map((row) => row.responsavel_cod))];
+    const users = codes.length
+      ? await tx.employees.findMany({
+          where: { cod: { in: codes } },
+          select: { cod: true, Name: true },
+        })
+      : [];
+    const names = new Map(users.map((employee) => [employee.cod, employee.Name]));
+    const latest = [...rows].sort(
+      (left, right) => right.updated_at.getTime() - left.updated_at.getTime(),
+    )[0];
+    return {
+      selections: rows.map((row) => ({
+        placa: row.placa,
+        debit_entry_ids: this.numericDraftIds(row.debit_entry_ids),
+        coupon_ids: this.numericDraftIds(row.coupon_ids),
+      })),
+      lastUpdate: latest
+        ? {
+            responsavel_cod: latest.responsavel_cod,
+            responsavel_nome: names.get(latest.responsavel_cod) ?? null,
+            updated_at: latest.updated_at,
+          }
+        : null,
+    };
+  }
+
+  drafts(dto: ClosureDraftQueryDto, user: AuthUser) {
+    return this.transaction(async (tx) => {
+      const rows = await tx.frete_fechamento_rascunhos.findMany({
+        where: {
+          semana: dto.semana,
+          ...(await this.scopeWhere(tx, user, dto)),
+        },
+        orderBy: [{ placa: 'asc' }],
+      });
+      return this.draftResponse(tx, rows);
+    });
+  }
+
+  saveDrafts(dto: WeekClosureDto, user: AuthUser) {
+    return this.transaction(async (tx) => {
+      const selections = dto.selections ?? [];
+      const plates = selections.map((selection) => selection.placa);
+      const week = await getWeek(tx, dto.semana);
+      const dates = { gte: week.data_inicio, lte: week.data_fim };
+      const scope = await this.scopeWhere(tx, user, dto);
+      const [manifestPlates, entryPlates, scopedCouponPlates] = plates.length
+        ? await Promise.all([
+            tx.frete_carregamento_manifestos.findMany({
+              where: {
+                ...scope,
+                placa: { in: plates },
+                cancelado: false,
+                semana: dates,
+                fechamento_id: null,
+              },
+              select: { placa: true, unit: true },
+            }),
+            tx.frete_lancamentos.findMany({
+              where: {
+                ...scope,
+                placa: { in: plates },
+                cancelado: false,
+                data_lancamento: dates,
+                pago: false,
+                fechamento_id: null,
+                OR: [
+                  {
+                    tipo_despesa: { in: ['Credito', 'Adiantamento'] },
+                    manifesto_id: null,
+                    manifesto_numero: null,
+                  },
+                  { tipo_despesa: 'Debito', manifesto_id: null },
+                ],
+              },
+              select: { placa: true, unit: true },
+            }),
+            tx.frete_cupons.findMany({
+              where: {
+                ...scope,
+                placa: { in: plates },
+                data_cobranca: dates,
+                pago: false,
+                fechamento_id: null,
+              },
+              select: { placa: true, unit: true },
+            }),
+          ])
+        : [[], [], []];
+      const units = new Map<string, number>();
+      for (const row of [...manifestPlates, ...entryPlates, ...scopedCouponPlates])
+        if (!units.has(row.placa)) units.set(row.placa, row.unit);
+      if (plates.some((plate) => !units.has(plate)))
+        throw new ForbiddenException(
+          'O rascunho contém placa fora das unidades permitidas.',
+        );
+
+      const debitIds = selections.flatMap((selection) => selection.debit_entry_ids);
+      const couponIds = selections.flatMap((selection) => selection.coupon_ids);
+      const [debits, coupons] = await Promise.all([
+        debitIds.length
+          ? tx.frete_lancamentos.findMany({
+              where: {
+                id: { in: debitIds },
+                cancelado: false,
+                pago: false,
+                fechamento_id: null,
+                tipo_despesa: 'Debito',
+                codigo_despesa: { not: '3333' },
+              },
+              select: { id: true, placa: true },
+            })
+          : [],
+        couponIds.length
+          ? tx.frete_cupons.findMany({
+              where: {
+                id: { in: couponIds },
+                pago: false,
+                fechamento_id: null,
+              },
+              select: { id: true, placa: true },
+            })
+          : [],
+      ]);
+      const debitPlates = new Map<number, string>(
+        debits.map((entry) => [entry.id, entry.placa] as const),
+      );
+      const couponPlates = new Map<number, string>(
+        coupons.map((coupon) => [coupon.id, coupon.placa] as const),
+      );
+      const invalid = selections.some(
+        (selection) =>
+          selection.debit_entry_ids.some((id) => debitPlates.get(id) !== selection.placa) ||
+          selection.coupon_ids.some((id) => couponPlates.get(id) !== selection.placa),
+      );
+      if (invalid)
+        throw new BadRequestException(
+          'O rascunho contém vale ou cupom indisponível para a placa.',
+        );
+
+      await Promise.all(selections.map((selection) =>
+        tx.frete_fechamento_rascunhos.upsert({
+          where: {
+            semana_placa: { semana: dto.semana, placa: selection.placa },
+          },
+          create: {
+            semana: dto.semana,
+            placa: selection.placa,
+            unit: units.get(selection.placa)!,
+            debit_entry_ids: selection.debit_entry_ids,
+            coupon_ids: selection.coupon_ids,
+            responsavel_cod: user.cod,
+          },
+          update: {
+            unit: units.get(selection.placa)!,
+            debit_entry_ids: selection.debit_entry_ids,
+            coupon_ids: selection.coupon_ids,
+            responsavel_cod: user.cod,
+          },
+        }),
+      ));
+      const rows = await tx.frete_fechamento_rascunhos.findMany({
+        where: {
+          semana: dto.semana,
+          ...(await this.scopeWhere(tx, user, dto)),
+        },
+        orderBy: [{ placa: 'asc' }],
+      });
+      return this.draftResponse(tx, rows);
+    });
+  }
+
   async adjustedWeekPreview(
     semana: string,
     user: AuthUser,
     selections: { placa: string; debit_entry_ids: number[]; coupon_ids: number[] }[] = [],
     scope: { unit?: number; local?: string; dominio?: 'MLN' | 'LOOG' } = {},
+    requestedPlates?: string[],
   ) {
     return this.transaction(async (tx) => {
       const week = await getWeek(tx, semana);
@@ -410,7 +614,12 @@ export class FreightClosuresService {
         select: { plate: true },
       });
       const registered = new Set(registeredVehicles.map((row) => row.plate));
-      const plates = candidatePlates.filter((placa) => registered.has(placa));
+      const requested = requestedPlates?.length
+        ? new Set(requestedPlates)
+        : null;
+      const plates = candidatePlates.filter(
+        (placa) => registered.has(placa) && (!requested || requested.has(placa)),
+      );
       const selectionByPlate = new Map(
         selections.map((selection) => [selection.placa, selection]),
       );
@@ -479,12 +688,9 @@ export class FreightClosuresService {
           [...manifests, ...entries, ...coupons].map((row) => row.placa),
         ),
       ].sort();
-      if (!openPlates.length)
+      if (!openPlates.length && !reviewedPlates?.length)
         throw new BadRequestException('Não há registros abertos nesta semana.');
       const plates = reviewedPlates ?? openPlates;
-      const unknownPlate = plates.find((placa) => !openPlates.includes(placa));
-      if (unknownPlate)
-        throw new BadRequestException(`Placa sem registros abertos nesta semana: ${unknownPlate}.`);
       if (!plates.length)
         throw new BadRequestException('Selecione ao menos uma placa revisada para fechar.');
       const selectionByPlate = new Map(
@@ -602,6 +808,9 @@ export class FreightClosuresService {
       coupons.count !== data.coupons.length
     )
       throw new ConflictException('Registros alterados durante o fechamento.');
+    await tx.frete_fechamento_rascunhos.deleteMany({
+      where: { semana: data.semana, placa: data.placa },
+    });
     return { closure, totals: data.totals, payment: data.payment };
   }
 

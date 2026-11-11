@@ -416,7 +416,8 @@ export const ModelName = {
   frete_faturas_vales: 'frete_faturas_vales',
   frete_semanas: 'frete_semanas',
   branches: 'branches',
-  frete_fechamentos: 'frete_fechamentos'
+  frete_fechamentos: 'frete_fechamentos',
+  frete_fechamento_rascunhos: 'frete_fechamento_rascunhos'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "frete_tipos_nota" | "frete_notas" | "frete_cupons" | "frete_carregamento_manifestos" | "employees" | "user_permissions" | "vehicle" | "vehicleType" | "driver" | "frete_empresas" | "companies" | "frete_destinos" | "frete_regras_calculo" | "frete_despesas" | "frete_lancamentos" | "frete_vale_controles" | "frete_faturas_vales" | "frete_semanas" | "branches" | "frete_fechamentos"
+    modelProps: "frete_tipos_nota" | "frete_notas" | "frete_cupons" | "frete_carregamento_manifestos" | "employees" | "user_permissions" | "vehicle" | "vehicleType" | "driver" | "frete_empresas" | "companies" | "frete_destinos" | "frete_regras_calculo" | "frete_despesas" | "frete_lancamentos" | "frete_vale_controles" | "frete_faturas_vales" | "frete_semanas" | "branches" | "frete_fechamentos" | "frete_fechamento_rascunhos"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1756,6 +1757,72 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    frete_fechamento_rascunhos: {
+      payload: Prisma.$frete_fechamento_rascunhosPayload<ExtArgs>
+      fields: Prisma.frete_fechamento_rascunhosFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.frete_fechamento_rascunhosFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.frete_fechamento_rascunhosFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        findFirst: {
+          args: Prisma.frete_fechamento_rascunhosFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.frete_fechamento_rascunhosFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        findMany: {
+          args: Prisma.frete_fechamento_rascunhosFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>[]
+        }
+        create: {
+          args: Prisma.frete_fechamento_rascunhosCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        createMany: {
+          args: Prisma.frete_fechamento_rascunhosCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.frete_fechamento_rascunhosDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        update: {
+          args: Prisma.frete_fechamento_rascunhosUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        deleteMany: {
+          args: Prisma.frete_fechamento_rascunhosDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.frete_fechamento_rascunhosUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.frete_fechamento_rascunhosUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$frete_fechamento_rascunhosPayload>
+        }
+        aggregate: {
+          args: Prisma.Frete_fechamento_rascunhosAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFrete_fechamento_rascunhos>
+        }
+        groupBy: {
+          args: Prisma.frete_fechamento_rascunhosGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Frete_fechamento_rascunhosGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.frete_fechamento_rascunhosCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Frete_fechamento_rascunhosCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2178,6 +2245,21 @@ export const Frete_fechamentosScalarFieldEnum = {
 export type Frete_fechamentosScalarFieldEnum = (typeof Frete_fechamentosScalarFieldEnum)[keyof typeof Frete_fechamentosScalarFieldEnum]
 
 
+export const Frete_fechamento_rascunhosScalarFieldEnum = {
+  id: 'id',
+  semana: 'semana',
+  placa: 'placa',
+  unit: 'unit',
+  debit_entry_ids: 'debit_entry_ids',
+  coupon_ids: 'coupon_ids',
+  responsavel_cod: 'responsavel_cod',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Frete_fechamento_rascunhosScalarFieldEnum = (typeof Frete_fechamento_rascunhosScalarFieldEnum)[keyof typeof Frete_fechamento_rascunhosScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2192,6 +2274,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -2405,6 +2494,14 @@ export const frete_fechamentosOrderByRelevanceFieldEnum = {
 } as const
 
 export type frete_fechamentosOrderByRelevanceFieldEnum = (typeof frete_fechamentosOrderByRelevanceFieldEnum)[keyof typeof frete_fechamentosOrderByRelevanceFieldEnum]
+
+
+export const frete_fechamento_rascunhosOrderByRelevanceFieldEnum = {
+  semana: 'semana',
+  placa: 'placa'
+} as const
+
+export type frete_fechamento_rascunhosOrderByRelevanceFieldEnum = (typeof frete_fechamento_rascunhosOrderByRelevanceFieldEnum)[keyof typeof frete_fechamento_rascunhosOrderByRelevanceFieldEnum]
 
 
 
@@ -2646,6 +2743,7 @@ export type GlobalOmitConfig = {
   frete_semanas?: Prisma.frete_semanasOmit
   branches?: Prisma.branchesOmit
   frete_fechamentos?: Prisma.frete_fechamentosOmit
+  frete_fechamento_rascunhos?: Prisma.frete_fechamento_rascunhosOmit
 }
 
 /* Types for Logging */

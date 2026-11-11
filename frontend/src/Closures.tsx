@@ -27,6 +27,12 @@ type ManifestRow = {
   id: number; unit?: number; semana?: string; manifestos: string; frete_veiculo: string;
   tipo_veiculo?: string | null; motorista?: string | null;
   hora?: string | null; destino?: string | null;
+  cod_777_15?: string; cod_888_25?: string; cod_999_100?: string;
+  nao_777_calc?: string; nao_888_calc?: string; nao_999_calc?: string;
+  diaria?: string; tde?: string; escada?: string; paletização?: string;
+  estadia?: string; descarga?: string; outros?: string;
+  carreg_perc?: string; perc_carreg?: string;
+  perc_final?: string; final_perc?: string;
   ctrb_numero?: string | null; ctrb_total?: string; ctrb_adiantamento?: string;
   vale_pedagio?: string; sest_senat?: string; irrf?: string;
   prev_social?: string; inss?: string; valor_liquido?: string;
@@ -135,8 +141,27 @@ const debitRows = (data: Pick<Preview, "entries" | "availableDebits">) =>
 const couponRows = (data: Pick<Preview, "coupons" | "availableCoupons">) =>
   data.availableCoupons ?? data.coupons;
 type RecordSelection = { debits: number[]; coupons: number[] };
+type DraftResponse = {
+  selections: {
+    placa: string;
+    debit_entry_ids: number[];
+    coupon_ids: number[];
+  }[];
+  lastUpdate: {
+    responsavel_cod: number;
+    responsavel_nome: string | null;
+    updated_at: string;
+  } | null;
+};
 const decimal = (value: string | undefined) => Number(value ?? 0);
 const moneyValue = (value: number) => value.toFixed(2);
+const percentage = (value: string | undefined) =>
+  value == null
+    ? ""
+    : (Number(value) * 100).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + "%";
 const initialBatchSelections = (groups: Preview[]) =>
   Object.fromEntries(
     groups.map((group) => [group.placa, { debits: [], coupons: [] }]),
@@ -173,6 +198,29 @@ const loadBatchSelections = (week: string, groups: Preview[]) => {
   } catch {
     return fallback;
   }
+};
+
+const selectionsFromDraft = (
+  week: string,
+  groups: Preview[],
+  draft: DraftResponse,
+) => {
+  if (!draft.selections.length) return loadBatchSelections(week, groups);
+  const stored = new Map(draft.selections.map((selection) => [selection.placa, selection]));
+  return Object.fromEntries(
+    groups.map((group) => {
+      const selection = stored.get(group.placa);
+      const availableDebits = new Set(debitRows(group).map((entry) => entry.id));
+      const availableCoupons = new Set(couponRows(group).map((coupon) => coupon.id));
+      return [
+        group.placa,
+        {
+          debits: (selection?.debit_entry_ids ?? []).filter((id) => availableDebits.has(id)),
+          coupons: (selection?.coupon_ids ?? []).filter((id) => availableCoupons.has(id)),
+        },
+      ];
+    }),
+  );
 };
 
 const withSelections = (data: Preview, selection: RecordSelection): Preview => {
@@ -257,6 +305,10 @@ export default function Closures({
   const [batchDebitSelections, setBatchDebitSelections] = useState<
     Record<string, RecordSelection>
   >({});
+  const [draftLastUpdate, setDraftLastUpdate] = useState<DraftResponse["lastUpdate"]>(null);
+  const draftStatus = draftLastUpdate
+    ? `Rascunho salvo por ${draftLastUpdate.responsavel_cod}${draftLastUpdate.responsavel_nome ? ` - ${draftLastUpdate.responsavel_nome}` : ""} em ${new Date(draftLastUpdate.updated_at).toLocaleString("pt-BR")}`
+    : "Nenhum rascunho compartilhado salvo";
   const visibleClosures = rows.filter((row) => {
     const query = closureSearch.trim().toLowerCase();
     return !query || [row.numero, row.semana, row.placa, row.status]
@@ -272,6 +324,26 @@ export default function Closures({
     setBatchWeek("");
     setBatchIndex(0);
     setBatchDebitSelections({});
+    setDraftLastUpdate(null);
+  }
+  function draftQuery(selectedWeek: string) {
+    return new URLSearchParams({
+      semana: selectedWeek,
+      ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+      ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
+    }).toString();
+  }
+  async function loadDraft(selectedWeek: string, groups: Preview[]) {
+    if (!selectedWeek || !groups.length) {
+      setDraftLastUpdate(null);
+      return initialBatchSelections(groups);
+    }
+    const draft = await api<DraftResponse>(
+      `/freight-closures/drafts?${draftQuery(selectedWeek)}`,
+      token,
+    );
+    setDraftLastUpdate(draft.lastUpdate);
+    return selectionsFromDraft(selectedWeek, groups, draft);
   }
   function query() {
     const p = new URLSearchParams();
@@ -338,7 +410,7 @@ export default function Closures({
         setConferenceQuery(q);
         setBatchWeek(week);
         setBatchIndex(0);
-        setBatchDebitSelections(loadBatchSelections(week, data.groups));
+        setBatchDebitSelections(await loadDraft(week, data.groups));
       } catch (e) {
         fail(e);
       } finally {
@@ -464,7 +536,7 @@ export default function Closures({
         setConferenceQuery(q);
         setBatchWeek(week);
         setBatchIndex(0);
-        setBatchDebitSelections(loadBatchSelections(week, data.groups));
+        setBatchDebitSelections(await loadDraft(week, data.groups));
       } catch (e) {
         fail(e);
       } finally {
@@ -580,9 +652,8 @@ export default function Closures({
   }
   async function finalizeWeek() {
     if (!batchWeek || busy) return;
-    const reviewed =
-      conferenceGroups?.slice(0, batchIndex + 1).filter((group) => !group.isClosed) ?? [];
-    const invalid = reviewed
+    const openGroups = conferenceGroups?.filter((group) => !group.isClosed) ?? [];
+    const invalid = openGroups
       .map((group) =>
         withSelections(group, batchDebitSelections[group.placa] ?? { debits: [], coupons: [] }),
       )
@@ -611,9 +682,9 @@ export default function Closures({
             semana: batchWeek,
             ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
             ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
-            placas: conferenceGroups?.slice(0, batchIndex + 1).map((group) => group.placa) ?? [],
+            placas: openGroups.map((group) => group.placa),
             selections: selections.filter((selection) =>
-              conferenceGroups?.slice(0, batchIndex + 1).some((group) => group.placa === selection.placa),
+              openGroups.some((group) => group.placa === selection.placa),
             ),
           }),
         },
@@ -754,14 +825,30 @@ export default function Closures({
   function activeConferenceWeek() {
     return week || batchWeek || conferenceGroups?.[0]?.semana || "";
   }
-  function saveBatchAdjustments() {
+  async function saveBatchAdjustments() {
     const selectedWeek = activeConferenceWeek();
-    if (!selectedWeek) return;
-    localStorage.setItem(
-      batchStorageKey(selectedWeek),
-      JSON.stringify(batchDebitSelections),
-    );
-    setSuccess(`Alterações da semana ${selectedWeek} salvas neste computador.`);
+    if (!selectedWeek || busy) return;
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const draft = await api<DraftResponse>("/freight-closures/drafts", token, {
+        method: "PUT",
+        body: JSON.stringify({
+          semana: selectedWeek,
+          ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
+          ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
+          selections: batchSelectionsPayload(),
+        }),
+      });
+      localStorage.removeItem(batchStorageKey(selectedWeek));
+      setDraftLastUpdate(draft.lastUpdate);
+      setSuccess(`Alterações da semana ${selectedWeek} salvas para todos os computadores.`);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
   }
   async function downloadAdjustedConference() {
     const selectedWeek = activeConferenceWeek();
@@ -781,6 +868,7 @@ export default function Closures({
             semana: selectedWeek,
             ...(isAdmin && filters.unit.trim() ? { local: filters.unit.trim() } : {}),
             ...(isAdmin && filters.dominio ? { dominio: filters.dominio } : {}),
+            placas: conferenceGroups?.map((group) => group.placa) ?? [],
             selections: batchSelectionsPayload(),
           }),
         },
@@ -988,7 +1076,7 @@ export default function Closures({
                 return (
                   <section className="panel batch-conference-panel">
                     {!filters.finalizados && <div className="batch-saved-line">
-                      <span className="badge">Seleções salvas nesta conferência</span>
+                      <span className="badge">{draftStatus}</span>
                     </div>}
                     <div ref={conferenceRef} className="filters batch-conference-heading">
                       <div>
@@ -1520,6 +1608,17 @@ function Values({
       (a.kind === "entry" ? a.entry.id : a.coupon.id) -
         (b.kind === "entry" ? b.entry.id : b.coupon.id);
   });
+  const manifestValue = (manifest: ManifestRow, fields: (keyof ManifestRow)[]) =>
+    fields.reduce((total, field) => total + Number(manifest[field] ?? 0), 0);
+  const manifestDetails = [...data.manifests].sort(
+    (left, right) =>
+      recordTime(left.semana) - recordTime(right.semana) ||
+      manifestWithoutUnit(left.manifestos).localeCompare(
+        manifestWithoutUnit(right.manifestos),
+        "pt-BR",
+        { numeric: true, sensitivity: "base" },
+      ),
+  );
   const toggleDebit = (id: number, checked: boolean) => {
     if (!setSelectedDebitIds) return;
     const next = new Set(selectedDebitIds ?? []);
@@ -1565,6 +1664,64 @@ function Values({
               {!data.manifests.length && !creditRows.length && <tr><td colSpan={7}>Nenhum crédito ou manifesto.</td></tr>}
             </tbody>
             <tfoot><tr className="closure-record-total"><td colSpan={6}>Total de créditos e manifestos</td><td className="right">{money(moneyValue(creditsAndManifestsTotal))}</td></tr></tfoot>
+          </table>
+        </div>
+        <div className="closure-record-list">
+          <div className="closure-record-title">
+            <strong>Informações dos manifestos</strong>
+          </div>
+          <table className="closure-manifest-details-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Manifesto</th>
+                <th className="right">Valor do frete</th>
+                <th className="right">Fretes não feitos</th>
+                <th className="right">Adicionais</th>
+                <th className="right">Total</th>
+                <th className="right">Perc. inicial</th>
+                <th className="right">Perc. final</th>
+              </tr>
+            </thead>
+            <tbody>
+              {manifestDetails.map((manifest) => {
+                const freight = manifestValue(manifest, [
+                  "cod_777_15",
+                  "cod_888_25",
+                  "cod_999_100",
+                ]);
+                const notFreight = manifestValue(manifest, [
+                  "nao_777_calc",
+                  "nao_888_calc",
+                  "nao_999_calc",
+                ]);
+                const additions = manifestValue(manifest, [
+                  "diaria",
+                  "tde",
+                  "escada",
+                  "paletização",
+                  "estadia",
+                  "descarga",
+                  "outros",
+                ]);
+                const total = freight - notFreight + additions;
+                return (
+                  <tr key={`manifest-detail-${manifest.id}`}>
+                    <td>{recordDate(manifest.semana)}</td>
+                    <td>{manifest.unit ?? ""} - {manifestWithoutUnit(manifest.manifestos)}</td>
+                    <td className="right">{money(moneyValue(freight))}</td>
+                    <td className="right">{money(moneyValue(notFreight))}</td>
+                    <td className="right">{money(moneyValue(additions))}</td>
+                    <td className="right">{money(moneyValue(total))}</td>
+                    <td className="right">{percentage(manifest.carreg_perc ?? manifest.perc_carreg)}</td>
+                    <td className="right">{percentage(manifest.perc_final ?? manifest.final_perc)}</td>
+                  </tr>
+                );
+              })}
+              {!manifestDetails.length && (
+                <tr><td colSpan={8}>Nenhum manifesto registrado.</td></tr>
+              )}
+            </tbody>
           </table>
         </div>
         <div className="closure-record-list">

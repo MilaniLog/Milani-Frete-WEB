@@ -325,6 +325,22 @@ export class ConferenceService {
           );
         const money = (value: Decimal) =>
           value.toDecimalPlaces(2, Decimal.ROUND_HALF_EVEN);
+        const manifestUnits = [
+          ...new Set(
+            manifests
+              .map((manifest) => manifest.unit)
+              .filter((unit): unit is number => Number.isInteger(unit)),
+          ),
+        ];
+        const manifestBranches = manifestUnits.length
+          ? await tx.branches.findMany({
+              where: { unit: { in: manifestUnits } },
+              select: { unit: true, branch: true },
+            })
+          : [];
+        const branchByUnit = new Map(
+          manifestBranches.map((branch) => [branch.unit, branch.branch]),
+        );
         const groups = vehicles.flatMap((v) => {
           const m = manifests.filter((x) => x.placa === v.plate),
             e = entries.filter((x) => x.placa === v.plate),
@@ -361,9 +377,13 @@ export class ConferenceService {
                 c.find((x) => x.motorista)?.motorista ??
                 null,
               origem:
-                [...new Set(m.map((x) => x.origem).filter(Boolean))].join(
-                  ' / ',
-                ) || null,
+                [
+                  ...new Set(
+                    m
+                      .map((x) => branchByUnit.get(x.unit) || x.origem)
+                      .filter(Boolean),
+                  ),
+                ].join(' / ') || null,
               closureNumber:
                 m.find((x) => x.num_fechamento != null)?.num_fechamento ??
                 closure?.numero ??

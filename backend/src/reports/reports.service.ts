@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,6 +25,17 @@ const date = (v: unknown) =>
     .split('-')
     .reverse()
     .join('/');
+const paymentDueDate = (periodEnd: unknown) => {
+  if (periodEnd == null) return null;
+  const value = periodEnd instanceof Date
+    ? new Date(periodEnd.getTime())
+    : new Date(`${String(periodEnd).slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(value.getTime())) return null;
+  value.setUTCDate(value.getUTCDate() + 21);
+  while (value.getUTCDay() === 0 || value.getUTCDay() === 6)
+    value.setUTCDate(value.getUTCDate() - 1);
+  return date(value);
+};
 @Injectable()
 export class ReportsService {
   constructor(private readonly db: PrismaService) {}
@@ -577,9 +589,17 @@ export class ReportsService {
                   new Decimal(0),
                 )
               : new Decimal(closure.total_ctrb);
+          const manifestIds = new Set(
+            r.manifests
+              .map((manifest) => Number(manifest.id))
+              .filter((id) => Number.isInteger(id) && id > 0),
+          );
           const ctrb3333 = r.entries
             .filter(
-              (entry) => String(entry.codigo_despesa ?? '').trim() === '3333',
+              (entry) =>
+                String(entry.codigo_despesa ?? '').trim() === '3333' &&
+                entry.manifesto_id != null &&
+                manifestIds.has(Number(entry.manifesto_id)),
             )
             .reduce(
               (total, entry) => total.plus(String(entry.valor ?? 0)),
@@ -587,12 +607,14 @@ export class ReportsService {
             );
           const ctrbNet =
             r.origem === 'FINALIZACAO' &&
-            eligible.every((m) => m.valor_liquido != null)
+            r.manifests.every((m) => m.valor_liquido != null)
               ? money(
-                  eligible.reduce(
-                    (a, m) => a.plus(String(m.valor_liquido)),
-                    new Decimal(0),
-                  ),
+                  r.manifests
+                    .reduce(
+                      (a, m) => a.plus(String(m.valor_liquido)),
+                      new Decimal(0),
+                    )
+                    .minus(ctrb3333),
                 )
               : null;
           const company =
@@ -612,6 +634,8 @@ export class ReportsService {
             money(gross.minus(ctrb)),
             money(gross.minus(net)),
             money(net.minus(ctrb)),
+            paymentDueDate(closure.periodo_fim),
+            null,
             String(closure.unit),
             branch?.dominio ?? null,
             branch?.branch ?? null,
@@ -626,7 +650,7 @@ export class ReportsService {
             String(a[5]).localeCompare(String(b[5])) ||
             Number(a[4]) - Number(b[4]),
         );
-        const numeric = [6, 7, 8, 9, 10, 11, 15],
+        const numeric = [6, 7, 8, 9, 10, 11, 17],
           columns = [
             'EMPRESA',
             'CPF/CNPJ PROP',
@@ -640,9 +664,11 @@ export class ReportsService {
             'LIQ S/ CTRB',
             'VALES',
             'LIQ PAGAR',
+            'VENC',
+            'DT PG',
             'CÓD. UN',
-            'DOMÍNIO',
-            'UNIDADE',
+            'DOM',
+            'UN',
             'CTRB LIQ',
           ];
         const rows: Cell[][] = [];
@@ -675,8 +701,10 @@ export class ReportsService {
         const totalLiquidoSemCtrb = total(9);
         const totalVales = total(10);
         const totalLiquidoPagar = total(11);
-        const totalCtrbLiquido = total(15);
-        const totalCtrbPagar = totalCtrbLiquido.minus(totalCtrbPago);
+        const totalCtrbLiquido = total(17);
+        // CTRB LIQ already matches TOTAL CTRB in the closure report:
+        // liquid CTRBs minus the linked code-3333 amounts.
+        const totalCtrbPagar = totalCtrbLiquido;
         const totalPagar = totalLiquidoPagar.plus(totalCtrbPagar);
         const totalSections = [
           {
@@ -728,6 +756,140 @@ export class ReportsService {
                   `${currentOwner} fechamento(s) sem identificação histórica do proprietário: cadastro atual exibido. Empresa histórica preservada quando registrada.`,
                 ]
               : []),
+          ],
+        };
+      },
+      { isolationLevel: 'RepeatableRead', timeout: 30000 },
+    );
+  }
+
+  accumulatedFreight(q: ReportQuery, user: AuthUser): Promise<TableReport> {
+    if (!user.isAdmin)
+      throw new ForbiddenException(
+        'Somente administradores podem acessar o relatório de frete acumulado.',
+      );
+    return this.db.$transaction(
+      async (tx) => {
+        if (!q.semana)
+          throw new BadRequestException('Informe a semana de referência.');
+        const selectedWeek = await getWeek(tx, q.semana);
+        const weeks = await tx.frete_semanas.findMany({
+          where: { data_inicio: { lte: selectedWeek.data_inicio } },
+          orderBy: { data_inicio: 'desc' },
+          take: 4,
+          select: { codigo: true, data_inicio: true, data_fim: true },
+        });
+        const weekCodes = weeks.map((week) => week.codigo);
+        const vehicleTypePlates = q.tipo
+          ? await tx.vehicle.findMany({
+              where: { codVehicleType: Number(q.tipo) },
+              select: { plate: true },
+            })
+          : null;
+        const closures = await tx.frete_fechamentos.findMany({
+          where: {
+            ...(await this.scopeWhere(tx, user, q)),
+            status: 'FECHADO',
+            semana: { in: weekCodes },
+            ...(vehicleTypePlates
+              ? { placa: { in: vehicleTypePlates.map((vehicle) => vehicle.plate) } }
+              : {}),
+          },
+          orderBy: [{ placa: 'asc' }, { semana: 'desc' }, { id: 'asc' }],
+        });
+        const vehicles = await tx.vehicle.findMany({
+          where: { plate: { in: [...new Set(closures.map((row) => row.placa))] } },
+          select: { plate: true, owner: true, owner_name: true },
+        });
+        const vehicleByPlate = new Map(vehicles.map((vehicle) => [vehicle.plate, vehicle]));
+        const accumulated = new Map<
+          string,
+          {
+            document: string | null;
+            owner: string | null;
+            plate: string;
+            unit: number;
+            weeks: Map<string, Decimal>;
+          }
+        >();
+        for (const closure of closures) {
+          const history = closure.historico as any;
+          const historical =
+            history?.finalizacao?.dados ?? history?.cancelamento?.dados;
+          const beneficiary = historical?.beneficiario;
+          const vehicle = vehicleByPlate.get(closure.placa);
+          const accumulatedKey = `${closure.unit}:${closure.placa}`;
+          const current = accumulated.get(accumulatedKey) ?? {
+            document: beneficiary?.documento ?? vehicle?.owner ?? null,
+            owner: beneficiary?.nome ?? vehicle?.owner_name ?? null,
+            plate: closure.placa,
+            unit: closure.unit,
+            weeks: new Map<string, Decimal>(),
+          };
+          if (!current.document && beneficiary?.documento)
+            current.document = beneficiary.documento;
+          if (!current.owner && beneficiary?.nome) current.owner = beneficiary.nome;
+          const value = new Decimal(
+            String(historical?.totals?.total_bruto ?? closure.total_bruto ?? 0),
+          );
+          current.weeks.set(
+            String(closure.semana),
+            (current.weeks.get(String(closure.semana)) ?? new Decimal(0)).plus(value),
+          );
+          accumulated.set(accumulatedKey, current);
+        }
+        const rows = [...accumulated.values()]
+          .sort(
+            (left, right) =>
+              left.unit - right.unit ||
+              String(left.owner ?? '').localeCompare(String(right.owner ?? ''), 'pt-BR', {
+                sensitivity: 'base',
+              }) || left.plate.localeCompare(right.plate),
+          )
+          .map((row) => {
+            const weekly = weekCodes.map(
+              (code) => row.weeks.get(code) ?? new Decimal(0),
+            );
+            const total = weekly.reduce(
+              (sum, value) => sum.plus(value),
+              new Decimal(0),
+            );
+            return [
+              String(row.unit),
+              row.document,
+              row.owner,
+              row.plate,
+              money(total),
+              ...weekly.map((value) => money(value)),
+            ];
+          });
+        return {
+          title: 'Frete acumulado por proprietário',
+          notes: [
+            `${this.unitLabel(user, q)} · Semana de referência ${q.semana}`,
+            `Período considerado: ${weeks.map((week) => week.codigo).join(', ')}`,
+            'Valor acumulado = soma do TTL FRETE das quatro semanas.',
+          ],
+          columns: [
+            'UNIDADE',
+            'CPF/CNPJ',
+            'Nome do proprietário',
+            'Placa',
+            'Valor acumulado',
+            ...weekCodes,
+          ],
+          rows,
+          numeric: [4, ...weekCodes.map((_, index) => index + 5)],
+          totals: [
+            {
+              label: 'Total acumulado',
+              value: money(
+                rows.reduce(
+                  (sum, row) => sum.plus(String(row[4] ?? 0)),
+                  new Decimal(0),
+                ),
+              ),
+            },
           ],
         };
       },

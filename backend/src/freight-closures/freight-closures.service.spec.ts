@@ -14,12 +14,18 @@ describe('FreightClosuresService', () => {
       updateMany: jest.fn().mockResolvedValue({ count: rows.length }),
     });
     db = {
+      branches: {
+        findMany: jest.fn().mockResolvedValue([{ unit: 2, branch: 'SSA' }]),
+      },
       vehicle: {
         findUnique: jest.fn().mockResolvedValue({
           first_payer: 'A',
           second_payer: 'B',
           second_payer_percent: new Decimal('0.3'),
         }),
+        findMany: jest.fn().mockResolvedValue([
+          { plate: dto.placa, unit: 2 },
+        ]),
       },
       frete_semanas: {
         findUnique: jest.fn().mockResolvedValue({
@@ -47,13 +53,19 @@ describe('FreightClosuresService', () => {
           valor: new Decimal([20, 10, 50][index]),
         })),
       ),
-      frete_cupons: table([{ id: 20, valor: new Decimal(30) }]),
+      frete_cupons: table([{ id: 20, placa: dto.placa, valor: new Decimal(30) }]),
       frete_fechamentos: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         aggregate: jest.fn().mockResolvedValue({ _max: { numero: 5 } }),
         create: jest.fn().mockResolvedValue({ id: 6, numero: 10001 }),
         findFirst: jest.fn().mockResolvedValue(null),
       },
+      frete_fechamento_rascunhos: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      employees: { findMany: jest.fn().mockResolvedValue([]) },
     };
     db.$transaction = jest.fn((work) => work(db));
     service = new FreightClosuresService(db as PrismaService);
@@ -64,6 +76,51 @@ describe('FreightClosuresService', () => {
     expect(result.totals.total_liquido.toString()).toBe('80');
     expect(result.totals.total_ctrb.toString()).toBe('200');
     expect(db.frete_fechamentos.create).not.toHaveBeenCalled();
+  });
+  it('salva e compartilha o rascunho da semana por placa', async () => {
+    const updated = new Date('2026-11-09T12:30:00.000Z');
+    db.frete_fechamento_rascunhos.findMany.mockResolvedValue([
+      {
+        semana: '0001',
+        placa: dto.placa,
+        unit: 2,
+        debit_entry_ids: [2],
+        coupon_ids: [20],
+        responsavel_cod: 1,
+        updated_at: updated,
+      },
+    ]);
+    db.employees.findMany.mockResolvedValue([{ cod: 1, Name: 'Usuário teste' }]);
+    const result = await service.saveDrafts(
+      {
+        semana: '0001',
+        selections: [
+          { placa: dto.placa, debit_entry_ids: [2], coupon_ids: [20] },
+        ],
+      },
+      user,
+    );
+    expect(db.frete_fechamento_rascunhos.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { semana_placa: { semana: '0001', placa: dto.placa } },
+        create: expect.objectContaining({
+          unit: 2,
+          debit_entry_ids: [2],
+          coupon_ids: [20],
+          responsavel_cod: 1,
+        }),
+      }),
+    );
+    expect(result).toEqual({
+      selections: [
+        { placa: dto.placa, debit_entry_ids: [2], coupon_ids: [20] },
+      ],
+      lastUpdate: {
+        responsavel_cod: 1,
+        responsavel_nome: 'Usuário teste',
+        updated_at: updated,
+      },
+    });
   });
   it('mantem o total CTRB integral com debito de codigo 3333', async () => {
     db.frete_lancamentos.findMany.mockResolvedValue([
@@ -184,6 +241,9 @@ describe('FreightClosuresService', () => {
     expect(db.frete_cupons.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { fechamento_id: 6, pago: true, alterado_por: user.cod } }),
     );
+    expect(db.frete_fechamento_rascunhos.deleteMany).toHaveBeenCalledWith({
+      where: { semana: '0001', placa: dto.placa },
+    });
   });
   it('impede o fechamento quando o valor líquido está negativo', async () => {
     db.frete_carregamento_manifestos.findMany.mockResolvedValue([
@@ -539,6 +599,23 @@ describe('FreightClosuresService', () => {
     expect(finalize).toHaveBeenCalledWith(
       db,
       { semana: dto.semana, placa: 'ABC1234' },
+      user,
+    );
+  });
+
+  it('confere os registros da placa revisada mesmo quando ela não entra na descoberta simplificada', async () => {
+    db.frete_carregamento_manifestos.findMany.mockResolvedValue([]);
+    db.frete_lancamentos.findMany.mockResolvedValue([]);
+    db.frete_cupons.findMany.mockResolvedValue([]);
+    const finalize = jest
+      .spyOn(service as any, 'finalizeTransaction')
+      .mockResolvedValue({ closure: { id: 1 } });
+
+    await service.finalizeWeek(dto.semana, user, [], [dto.placa]);
+
+    expect(finalize).toHaveBeenCalledWith(
+      db,
+      { semana: dto.semana, placa: dto.placa },
       user,
     );
   });

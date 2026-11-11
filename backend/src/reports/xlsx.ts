@@ -80,6 +80,8 @@ export function xlsxWorkbook(
   rows: XlsxCell[][],
   numericRows: Set<string>,
   headingRows: Set<number>,
+  columnWidths: number[] = [],
+  pageBreakRows: number[] = [],
 ) {
   const sheetRows = rows
     .map(
@@ -96,7 +98,13 @@ export function xlsxWorkbook(
           .join('')}</row>`,
     )
     .join('');
-  const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`;
+  const columns = columnWidths.length
+    ? `<cols>${columnWidths.map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" bestFit="1" customWidth="1"/>`).join('')}</cols>`
+    : '';
+  const rowBreaks = pageBreakRows.length
+    ? `<rowBreaks count="${pageBreakRows.length}" manualBreakCount="${pageBreakRows.length}">${pageBreakRows.map((row) => `<brk id="${row}" min="0" max="16383" man="1"/>`).join('')}</rowBreaks>`
+    : '';
+  const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${columns}<sheetData>${sheetRows}</sheetData>${rowBreaks}</worksheet>`;
   return zip([
     {
       name: '[Content_Types].xml',

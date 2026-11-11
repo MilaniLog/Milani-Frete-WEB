@@ -35,6 +35,16 @@ export const escape = (v: unknown) =>
         "'": '&apos;',
       })[c]!,
   );
+const documentColumn = (columns: string[], index: number) =>
+  /CPF|CNPJ/i.test(columns[index % columns.length] ?? '');
+export const formatDocument = (value: unknown) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (digits.length === 11)
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  if (digits.length === 14)
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  return value;
+};
 export function reportHtml(r: TableReport) {
   if (isFinancial(r)) return financialHtml(r, escape);
   const compactPairs = r.printLayout === 'compact-pairs';
@@ -57,15 +67,21 @@ export function reportHtml(r: TableReport) {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })
-        : v;
-  const payments = ['EMPR', 'EMPRESA'].includes(r.columns[0]);
+        : documentColumn(r.columns, i)
+          ? formatDocument(v)
+          : v;
+  const payments = ['EMPR', 'EMPRESA', 'UNIDADE'].includes(r.columns[0]);
   let company: Cell | undefined;
+  let companyIndex = 0;
   const rows = printRows
     .map((row, rowIndex) => {
       const subtotal = r.subtotalRows?.includes(rowIndex) ?? false;
+      const groupLabel = r.columns[0] === 'UNIDADE'
+        ? `UNIDADE ${row[0] ?? ''}`
+        : row[0] ?? 'SEM EMPRESA';
       const group =
         payments && !subtotal && row[0] !== company
-          ? `<tr class="group"><td colspan="${r.columns.length}">EMPRESA: ${escape(row[0] ?? '')}</td></tr>`
+          ? `<tr class="group ${companyIndex++ ? 'company-page-break' : ''}"><th>${escape(groupLabel)}</th>${r.columns.slice(1).map((column) => `<th>${escape(column.toUpperCase())}</th>`).join('')}</tr>`
           : '';
       company = row[0];
       return (
@@ -82,8 +98,8 @@ export function reportHtml(r: TableReport) {
     )
     .join('');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escape(r.title)}</title><style>
-body{font:${compactPairs ? '10px' : '11px'} Arial,sans-serif;margin:24px;color:#111;background:white}h1{font-size:${compactPairs ? '15px' : '18px'};text-align:center;text-transform:uppercase;border:2px solid #333;padding:${compactPairs ? '7px' : '10px'};margin:0 0 8px}.metadata{border:1px solid #555;padding:6px 8px;margin-bottom:12px}.metadata p{margin:4px 0}table{border-collapse:collapse;width:100%;table-layout:${compactPairs ? 'fixed' : 'auto'}}th,td{border:1px solid #888;padding:${compactPairs ? '3px 4px' : '5px 4px'};overflow-wrap:anywhere}th{text-align:center;background:#e1e1e1;font-size:10px}td.number{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.group td{background:#eee;font-weight:bold;border-top:2px solid #555}.subtotal td{background:#f2f2f2;font-weight:bold;border-top:2px solid #777}.payable{background:#fff3b0;font-weight:bold}thead{display:table-header-group}tr{break-inside:avoid}.total-sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:8px;break-inside:avoid}.total-block{break-inside:avoid}.totals{margin:0;width:100%;font-size:8px}.totals th{text-align:left;padding:3px}.totals td{text-align:right;white-space:nowrap;padding:3px}.totals tr:last-child{background:#ebebeb;font-weight:bold;border-top:2px solid #333}footer{font-size:10px;margin-top:8px;color:#444}@page{size:A4 ${compactPairs ? 'portrait' : 'landscape'};margin:10mm 10mm 14mm}@media print{body{margin:0}.screen{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-</style></head><body><h1>Milani — ${escape(r.title)}</h1><div class="metadata">${r.notes.map((n) => `<p>${escape(n)}</p>`).join('')}</div><p class="screen">Use Ctrl+P para imprimir ou salvar em PDF.</p><table><thead><tr>${printColumns.map((c) => `<th>${escape(c.toUpperCase())}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${printColumns.length}">Nenhum registro encontrado.</td></tr>`}</tbody></table><div class="total-sections">${totalsHtml}</div>${compactPairs ? '' : '<footer>Valores em reais (R$). Relatório de conferência.</footer>'}</body></html>`;
+body{font:${compactPairs ? '10px' : '11px'} Arial,sans-serif;margin:24px;color:#111;background:white}h1{font-size:${compactPairs ? '15px' : '18px'};text-align:center;text-transform:uppercase;border:2px solid #333;padding:${compactPairs ? '7px' : '10px'};margin:0 0 8px}.metadata{border:1px solid #555;padding:6px 8px;margin-bottom:12px}.metadata p{margin:4px 0}table{border-collapse:collapse;width:100%;table-layout:${compactPairs ? 'fixed' : 'auto'}}th,td{border:1px solid #888;padding:${compactPairs ? '3px 4px' : '5px 4px'};overflow-wrap:anywhere}th{text-align:center;background:#e1e1e1;font-size:10px}td.number{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.group th{background:#eee;font-weight:bold;border-top:2px solid #555}.subtotal td{background:#f2f2f2;font-weight:bold;border-top:2px solid #777}.payable{background:#fff3b0;font-weight:bold}thead{display:table-header-group}tr{break-inside:avoid}.total-sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:8px;break-inside:avoid}.total-block{break-inside:avoid}.totals{margin:0;width:100%;font-size:8px}.totals th{text-align:left;padding:3px}.totals td{text-align:right;white-space:nowrap;padding:3px}.totals tr:last-child{background:#ebebeb;font-weight:bold;border-top:2px solid #333}footer{font-size:10px;margin-top:8px;color:#444}@page{size:A4 ${compactPairs ? 'portrait' : 'landscape'};margin:10mm 10mm 14mm}@media print{body{margin:0}.screen{display:none}.company-page-break{break-before:page;page-break-before:always}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body><h1>Milani — ${escape(r.title)}</h1><div class="metadata">${r.notes.map((n) => `<p>${escape(n)}</p>`).join('')}</div><p class="screen">Use Ctrl+P para imprimir ou salvar em PDF.</p><table>${payments ? '' : `<thead><tr>${printColumns.map((c) => `<th>${escape(c.toUpperCase())}</th>`).join('')}</tr></thead>`}<tbody>${rows || `<tr><td colspan="${printColumns.length}">Nenhum registro encontrado.</td></tr>`}</tbody></table><div class="total-sections">${totalsHtml}</div>${compactPairs ? '' : '<footer>Valores em reais (R$). Relatório de conferência.</footer>'}</body></html>`;
 }
 export function reportSpreadsheet(r: TableReport) {
   if (isFinancial(r)) {
@@ -116,16 +132,29 @@ export function reportSpreadsheet(r: TableReport) {
       ],
     });
   }
-  const payments = ['EMPR', 'EMPRESA'].includes(r.columns[0]);
+  const payments = ['EMPR', 'EMPRESA', 'UNIDADE'].includes(r.columns[0]);
   let company: Cell | undefined;
   const dataRows: { row: Cell[]; sourceIndex?: number; group?: boolean }[] = [];
   r.rows.forEach((row, sourceIndex) => {
     const subtotal = r.subtotalRows?.includes(sourceIndex) ?? false;
     if (payments && !subtotal && row[0] !== company) {
       company = row[0];
-      dataRows.push({ row: [`EMPRESA: ${row[0] ?? 'SEM EMPRESA'}`], group: true });
+      dataRows.push({
+        row: [
+          r.columns[0] === 'UNIDADE'
+            ? `UNIDADE ${row[0] ?? ''}`
+            : row[0] ?? 'SEM EMPRESA',
+          ...r.columns.slice(1),
+        ],
+        group: true,
+      });
     }
-    dataRows.push({ row, sourceIndex });
+    dataRows.push({
+      row: row.map((value, column) =>
+        documentColumn(r.columns, column) ? formatDocument(value) as Cell : value,
+      ),
+      sourceIndex,
+    });
   });
   const totalSections = r.totalSections ?? [{ title: '', totals: r.totals }];
   const footerRows: {
@@ -153,17 +182,21 @@ export function reportSpreadsheet(r: TableReport) {
       footerRows.push({ row: [total.label, total.value], numericColumns: [1] }),
     );
   }
-  const rows: Cell[][] = [
+  const preludeRows: Cell[][] = [
     [r.title],
     ...r.notes.map((note) => [note]),
     [],
-    r.columns,
+  ];
+  const globalHeadingRows: Cell[][] = payments ? [] : [r.columns];
+  const rows: Cell[][] = [
+    ...preludeRows,
+    ...globalHeadingRows,
     ...dataRows.map((item) => item.row),
     [],
     ...footerRows.map((item) => item.row),
   ];
-  const headingRow = 2 + r.notes.length;
-  const dataStart = headingRow + 1;
+  const headingRow = payments ? -1 : preludeRows.length;
+  const dataStart = preludeRows.length + globalHeadingRows.length;
   const numeric = new Set<string>();
   dataRows.forEach((item, rowIndex) => {
     if (item.sourceIndex != null)
@@ -175,14 +208,42 @@ export function reportSpreadsheet(r: TableReport) {
       numeric.add(`${totalsStart + index}:${column}`),
     );
   });
-  const headingRows = new Set([0, headingRow]);
+  const headingRows = new Set([0, ...(headingRow >= 0 ? [headingRow] : [])]);
   dataRows.forEach((item, index) => {
     if (item.group) headingRows.add(dataStart + index);
   });
   footerRows.forEach((item, index) => {
     if (item.heading) headingRows.add(totalsStart + index);
   });
-  return xlsxWorkbook(rows, numeric, headingRows);
+  const widthRows = [
+    r.columns,
+    ...dataRows.map((item) => item.row),
+    ...footerRows.map((item) => item.row),
+  ];
+  const columnWidths = Array.from(
+    { length: Math.max(r.columns.length, ...widthRows.map((row) => row.length)) },
+    (_, column) =>
+      Math.min(
+        60,
+        Math.max(
+          5,
+          ...widthRows.map((row) => String(row[column] ?? '').length + 2),
+        ),
+      ),
+  );
+  const companyPageBreakRows = payments
+    ? dataRows
+        .map((item, index) => (item.group ? dataStart + index : -1))
+        .filter((row) => row >= 0)
+        .slice(1)
+    : [];
+  return xlsxWorkbook(
+    rows,
+    numeric,
+    headingRows,
+    columnWidths,
+    companyPageBreakRows,
+  );
 }
 export function combineHtml(reports: string[]) {
   if (!reports.length)

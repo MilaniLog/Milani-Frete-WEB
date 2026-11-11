@@ -91,6 +91,47 @@ export class ReportsController {
     );
     res.send(workbook);
   }
+  @Get('freight-accumulated')
+  @Header('Cache-Control', 'no-store')
+  accumulatedFreight(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.accumulatedFreight(q, req.user);
+  }
+  @Get('freight-accumulated/print')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  @Header(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+  )
+  async accumulatedFreightPrint(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return reportHtml(await this.service.accumulatedFreight(q, req.user));
+  }
+  @Get('freight-accumulated/spreadsheet')
+  @Header('Cache-Control', 'no-store')
+  async accumulatedFreightSpreadsheet(
+    @Query() q: ReportQuery,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    const workbook = reportSpreadsheet(
+      await this.service.accumulatedFreight(q, req.user),
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="frete-acumulado.xlsx"',
+    );
+    res.send(workbook);
+  }
   @Get('closures/reprint')
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Cache-Control', 'no-store')

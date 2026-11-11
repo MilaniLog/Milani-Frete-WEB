@@ -19,16 +19,22 @@ export type Page =
   | "vale-invoices"
   | "coupons-report"
   | "payments-report"
+  | "accumulated-freight-report"
   | "manifest-closure-report"
-  | "users";
+  | "users"
+  | "tickets"
+  | "ticket-pendings";
 
 export function canAccessPage(session: Session, page: Page): boolean {
-  return !["weeks", "units", "users"].includes(page) || session.user.isAdmin;
+  if (page === "tickets" || page === "ticket-pendings")
+    return session.user.isAdmin || session.permissions.some((permission) => permission.ticket_service);
+  return !["weeks", "units", "users", "accumulated-freight-report"].includes(page) || session.user.isAdmin;
 }
 
 const valePages: Page[] = ["entries", "financial-report", "vale-invoices"];
 const closurePages: Page[] = ["closures", "reprint-closures"];
 const couponPages: Page[] = ["invoices", "coupons-report"];
+const ticketPages: Page[] = ["tickets", "ticket-pendings"];
 const registrationPages = [
   ["weeks", "Semanas"],
   ["units", "Unidades"],
@@ -143,7 +149,9 @@ export default function Navigation({
                 ["entries", "Vales"],
                 ["closures", "Fechamentos"],
                 ["invoices", "Notas e cupons"],
+                ["tickets", "Tickets"],
                 ["payments-report", "Planilha de pagamentos"],
+                ["accumulated-freight-report", "Frete acumulado"],
                 ["manifest-closure-report", "Números de fechamento"],
               ] as const
             )
@@ -152,8 +160,8 @@ export default function Navigation({
                 <button
                   key={id}
                   type="button"
-                  className={`nav-button ${page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) ? "is-active" : ""}`}
-                  aria-current={page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) ? "page" : undefined}
+                  className={`nav-button ${page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) || (id === "tickets" && ticketPages.includes(page)) ? "is-active" : ""}`}
+                  aria-current={page === id || (id === "entries" && valePages.includes(page)) || (id === "closures" && closurePages.includes(page)) || (id === "invoices" && couponPages.includes(page)) || (id === "tickets" && ticketPages.includes(page)) ? "page" : undefined}
                   onClick={() => select(id)}
                 >
                   {label}

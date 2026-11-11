@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "./api";
-import { normalizeWeek } from "./field-formats";
+import { formatDocument, normalizeWeek } from "./field-formats";
 import { downloadReport } from "./report-download";
 import SearchableSelect from "./SearchableSelect";
 import QuickDateInput from "./QuickDateInput";
@@ -229,7 +229,11 @@ export default function ManifestClosureReport({
               <tbody>
                 {report.rows.map((row, index) => (
                   <tr key={index}>{row.map((value, cell) => (
-                    <td key={cell}>{value ?? ""}</td>
+                    <td key={cell}>{value == null
+                      ? ""
+                      : /CPF|CNPJ/i.test(report.columns[cell] ?? "")
+                        ? formatDocument(value)
+                        : value}</td>
                   ))}</tr>
                 ))}
               </tbody>

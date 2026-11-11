@@ -469,13 +469,13 @@ export default function FinancialReports({
             </div>
           ) : <div className="table-scroll">
             <SortableTable>
-              <thead>
+              {!payments && <thead>
                 <tr>
                   {report.columns.map((c) => (
                     <th key={c}>{c}</th>
                   ))}
                 </tr>
-              </thead>
+              </thead>}
               <tbody>
                 {report.rows.map((r, i) => {
                   const subtotal = report.subtotalRows?.includes(i) ?? false;
@@ -485,7 +485,10 @@ export default function FinancialReports({
                     <Fragment key={i}>
                       {companyBlock && (
                         <tr className="report-company-row">
-                          <th colSpan={report.columns.length}>Empresa: {r[0] || "SEM EMPRESA"}</th>
+                          <th>{r[0] || "SEM EMPRESA"}</th>
+                          {report.columns.slice(1).map((column) => (
+                            <th key={column}>{column}</th>
+                          ))}
                         </tr>
                       )}
                       <tr className={subtotal ? "report-subtotal-row" : undefined}>

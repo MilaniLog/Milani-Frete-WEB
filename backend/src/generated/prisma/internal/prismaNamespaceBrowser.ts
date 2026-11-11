@@ -70,7 +70,8 @@ export const ModelName = {
   frete_faturas_vales: 'frete_faturas_vales',
   frete_semanas: 'frete_semanas',
   branches: 'branches',
-  frete_fechamentos: 'frete_fechamentos'
+  frete_fechamentos: 'frete_fechamentos',
+  frete_fechamento_rascunhos: 'frete_fechamento_rascunhos'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -472,6 +473,21 @@ export const Frete_fechamentosScalarFieldEnum = {
 export type Frete_fechamentosScalarFieldEnum = (typeof Frete_fechamentosScalarFieldEnum)[keyof typeof Frete_fechamentosScalarFieldEnum]
 
 
+export const Frete_fechamento_rascunhosScalarFieldEnum = {
+  id: 'id',
+  semana: 'semana',
+  placa: 'placa',
+  unit: 'unit',
+  debit_entry_ids: 'debit_entry_ids',
+  coupon_ids: 'coupon_ids',
+  responsavel_cod: 'responsavel_cod',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+} as const
+
+export type Frete_fechamento_rascunhosScalarFieldEnum = (typeof Frete_fechamento_rascunhosScalarFieldEnum)[keyof typeof Frete_fechamento_rascunhosScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -486,6 +502,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -699,4 +722,12 @@ export const frete_fechamentosOrderByRelevanceFieldEnum = {
 } as const
 
 export type frete_fechamentosOrderByRelevanceFieldEnum = (typeof frete_fechamentosOrderByRelevanceFieldEnum)[keyof typeof frete_fechamentosOrderByRelevanceFieldEnum]
+
+
+export const frete_fechamento_rascunhosOrderByRelevanceFieldEnum = {
+  semana: 'semana',
+  placa: 'placa'
+} as const
+
+export type frete_fechamento_rascunhosOrderByRelevanceFieldEnum = (typeof frete_fechamento_rascunhosOrderByRelevanceFieldEnum)[keyof typeof frete_fechamento_rascunhosOrderByRelevanceFieldEnum]
 

@@ -18,6 +18,9 @@ import Navigation, { canAccessPage, type Page } from "./Navigation";
 import Destinations from "./Destinations";
 import Units from "./Units";
 import FinancialReports from "./FinancialReports";
+import AccumulatedFreightReport from "./AccumulatedFreightReport";
+import Tickets from "./Tickets";
+import TicketPendings from "./TicketPendings";
 import ReprintClosures from "./ReprintClosures";
 import ManifestClosureReport from "./ManifestClosureReport";
 import ValeInvoices from "./ValeInvoices";
@@ -151,7 +154,11 @@ export default function App() {
     session.user.freightProfile === "FINANCEIRO" ||
     session.user.freightProfile === "RH";
   const pageTitle =
-    page === "destinations"
+    page === "ticket-pendings"
+      ? "Pendências de extração"
+    : page === "tickets"
+      ? "Tickets"
+    : page === "destinations"
       ? "Destinos"
       : page === "users"
         ? "Usuários"
@@ -167,6 +174,8 @@ export default function App() {
           ? "Relatório de cupons"
           : page === "payments-report"
             ? "Planilha de pagamentos"
+          : page === "accumulated-freight-report"
+            ? "Frete acumulado"
             : page === "home"
               ? "Home"
               : page === "manifests"
@@ -254,6 +263,32 @@ export default function App() {
               token={session.accessToken}
               isAdmin={hasGlobalFreightAccess}
               userUnit={session.user.unit}
+              expired={() => {
+                setSession(null);
+                setNotice("Sua sessão expirou. Entre novamente.");
+              }}
+            />
+          ) : page === "accumulated-freight-report" ? (
+            <AccumulatedFreightReport
+              token={session.accessToken}
+              expired={() => {
+                setSession(null);
+                setNotice("Sua sessão expirou. Entre novamente.");
+              }}
+            />
+          ) : page === "tickets" ? (
+            <Tickets
+              token={session.accessToken}
+              openPendings={() => setPage("ticket-pendings")}
+              expired={() => {
+                setSession(null);
+                setNotice("Sua sessão expirou. Entre novamente.");
+              }}
+            />
+          ) : page === "ticket-pendings" ? (
+            <TicketPendings
+              token={session.accessToken}
+              back={() => setPage("tickets")}
               expired={() => {
                 setSession(null);
                 setNotice("Sua sessão expirou. Entre novamente.");
@@ -1040,8 +1075,9 @@ function CreateManifest({
       const key = element.name;
       if (!key || key === "cpf_motorista" || key === "placa") continue;
       if (key === "destino_id") {
-        const matches = destinations.filter((d) => d.nome === initial.destino);
-        element.value = matches.length === 1 ? String(matches[0].id) : "";
+        element.value = initialDestinationId == null
+          ? ""
+          : String(initialDestinationId);
       } else if (key === "semana") element.value = date(initial.semana);
       else if (key === "hora")
         element.value = String(initial.hora ?? "").slice(0, 5);
@@ -1052,7 +1088,7 @@ function CreateManifest({
         element.checked = Boolean(initial[key]);
       else if (initial[key] != null) element.value = String(initial[key]);
     }
-  }, [initial]);
+  }, [initial, initialDestinationId]);
   const calculation = useManifestCalculation(formRef, token, onExpired, initial?.id);
   useEffect(() => {
     if (calculation.preview?.vehicle.type) {
@@ -1335,7 +1371,13 @@ function CreateManifest({
             />
             <label>
               Destino
-              <SearchableSelect aria-label="Destino" name="destino_id" required defaultValue={initialDestinationId == null ? "" : String(initialDestinationId)}>
+              <SearchableSelect
+                key={`destination-${initial?.id ?? "new"}-${initialDestinationId ?? "none"}`}
+                aria-label="Destino"
+                name="destino_id"
+                required
+                defaultValue={initialDestinationId == null ? "" : String(initialDestinationId)}
+              >
                 <option value="" disabled>
                   Selecione
                 </option>
@@ -1428,7 +1470,12 @@ function CreateManifest({
           <div className="form-grid">
             <label>
               Origem
-              <input name="origem" defaultValue="SP" maxLength={10} required />
+              <input
+                name="origem"
+                defaultValue={String(initial?.origem ?? "")}
+                maxLength={10}
+                placeholder="Automatica pela unidade"
+              />
             </label>
             <label>
               Frete do veículo

@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS ticket_extraction_pending (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  source_key VARCHAR(191) NOT NULL,
+  invoice VARCHAR(50) NULL,
+  unit INT NULL,
+  sender VARCHAR(20) NULL,
+  subject VARCHAR(255) NULL,
+  raw_message TEXT NULL,
+  source_status VARCHAR(100) NULL,
+  error_reason VARCHAR(255) NOT NULL,
+  payload_json LONGTEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE',
+  resolved_type VARCHAR(100) NULL,
+  resolved_freight DECIMAL(15,2) NULL,
+  resolved_by INT NULL,
+  resolved_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_ticket_extraction_pending_source (source_key),
+  KEY idx_ticket_extraction_pending_status (status),
+  KEY idx_ticket_extraction_pending_invoice (invoice)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

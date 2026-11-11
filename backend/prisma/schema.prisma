@@ -410,3 +410,19 @@ model frete_fechamentos {
   status                        String                          @default("ABERTO") @db.VarChar(20)
   alterado_por                  Int?
 }
+
+model frete_fechamento_rascunhos {
+  id                Int      @id @default(autoincrement())
+  semana            String   @db.Char(4)
+  placa             String   @db.VarChar(20)
+  unit              Int
+  debit_entry_ids   Json
+  coupon_ids        Json
+  responsavel_cod   Int
+  created_at        DateTime @default(now()) @db.DateTime(0)
+  updated_at        DateTime @default(now()) @updatedAt @db.DateTime(0)
+
+  @@unique([semana, placa], map: "uq_frete_fechamento_rascunho_semana_placa")
+  @@index([unit, semana], map: "idx_frete_fechamento_rascunho_unit_semana")
+  @@index([responsavel_cod], map: "idx_frete_fechamento_rascunho_responsavel")
+}

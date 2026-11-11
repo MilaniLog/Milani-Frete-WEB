@@ -89,7 +89,7 @@ export class ClosureDto {
   coupon_ids?: number[];
 }
 
-class WeekClosureSelectionDto {
+export class WeekClosureSelectionDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
@@ -109,6 +109,28 @@ class WeekClosureSelectionDto {
   @IsInt({ each: true })
   @Min(1, { each: true })
   coupon_ids: number[];
+}
+
+export class ClosureDraftQueryDto {
+  @Matches(/^\d{4}$/)
+  semana: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  unit?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
+  @IsString()
+  @MaxLength(30)
+  local?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
+  @IsIn(['MLN', 'LOOG'])
+  dominio?: 'MLN' | 'LOOG';
 }
 
 export class WeekClosureDto {
