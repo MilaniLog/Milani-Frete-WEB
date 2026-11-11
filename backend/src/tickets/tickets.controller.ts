@@ -1,14 +1,11 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/permissions.guard';
-import { RequirePermission } from '../auth/require-permission.decorator';
 import type { AuthenticatedRequest } from '../auth/auth-user.types';
 import { AdjustTicketPendingDto, TicketQueryDto } from './tickets.dto';
 import { TicketsService } from './tickets.service';
 
 @Controller('tickets')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
-@RequirePermission('ticket_service')
+@UseGuards(JwtAuthGuard)
 export class TicketsController {
   constructor(private readonly service: TicketsService) {}
 

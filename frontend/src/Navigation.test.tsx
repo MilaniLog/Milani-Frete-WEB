@@ -11,6 +11,7 @@ it('libera páginas normais mesmo sem permissões individuais',()=>{
  menu(false,false);
  fireEvent.click(screen.getByRole('button',{name:/Cadastros/}));
  for(const name of ['Motoristas','Veículos','Manifestos','Despesas','Fechamentos','Vales','Empresas','Notas e cupons']) expect(screen.getByRole('button',{name})).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Tickets'})).toBeTruthy();
  expect(screen.queryByRole('button',{name:'Semanas'})).toBeNull();
  expect(screen.queryByRole('button',{name:'Usuários'})).toBeNull();
 });

@@ -16,13 +16,7 @@ export class TicketsService {
 
   private async allowedUnits(user: AuthUser): Promise<number[] | null> {
     if (user.isAdmin) return null;
-    const permissions = await this.db.user_permissions.findMany({
-      where: { cod_user: user.cod, ticket_service: true },
-      select: { unit: true },
-    });
-    if (!permissions.length)
-      throw new ForbiddenException('Usuário sem permissão para consultar tickets.');
-    return [...new Set(permissions.map((permission) => permission.unit))];
+    return [user.unit];
   }
 
   private unitClause(

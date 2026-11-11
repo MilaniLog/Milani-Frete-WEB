@@ -26,8 +26,7 @@ export type Page =
   | "ticket-pendings";
 
 export function canAccessPage(session: Session, page: Page): boolean {
-  if (page === "tickets" || page === "ticket-pendings")
-    return session.user.isAdmin || session.permissions.some((permission) => permission.ticket_service);
+  if (page === "tickets" || page === "ticket-pendings") return true;
   return !["weeks", "units", "users", "accumulated-freight-report"].includes(page) || session.user.isAdmin;
 }
 
